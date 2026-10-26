@@ -85,6 +85,11 @@ def _scene_points(B, terrain, P, n_total=9_000_000, seed=5):
         if r.roof_z <= r.base_z + 0.5:
             continue
         gs = list(r.geometry.geoms) if isinstance(r.geometry, MultiPolygon) else [r.geometry]
+        if r.get("name") in P.get("solids", {}):
+            m = P["solids"][r.get("name")].copy()
+            m.apply_translation([-P["cx"], -P["cy"], -P["cz"]])
+            meshes.append((m, np.array(cm(min(r.height_m / VMAX, 1.0))[:3]) * 255, None))
+            continue
         for g in gs:
             m = trimesh.creation.extrude_polygon(g, float(r.roof_z - r.base_z))
             m.apply_translation([-P["cx"], -P["cy"], r.base_z - P["cz"]])
@@ -116,11 +121,11 @@ def fig_buildings_3d(P, B, cloud_pts, cloud_hag, terrain, d0):
     a = pl.ax(0.6, 2.6, 7.4, 4.93 * 1.0); a.imshow(img1); a.axis("off")
     pl.label(0.6, 8.25, "Lidar returns, 2.4 million of the 5.9 million, by height above ground")
     pts, colm = _scene_points(B, terrain, P)
-    img2, _ = render3d.render(pts, colm, az=215, el=42, width=1500, height=1000, zexag=1.0, center=ctr, scale=info["scale"], splat=2)
+    img2, _ = render3d.render(pts, colm, az=215, el=42, width=1500, height=1000, zexag=1.0, center=ctr, scale=info["scale"], off=info["off"], splat=2)
     # same projection so both views match
     b = pl.ax(8.2, 2.6, 7.4, 4.93); b.imshow(img2); b.axis("off")
     pl.label(8.2, 8.25, "LOD1 model: footprint extruded from the ground to the main roof")
-    pl.text(0.6, 2.2, "Both views use the same viewing direction and scale. The block at the left edge is the Verve tower; the Space Needle is the thin tower near the centre-left, drawn as a solid 163 m cylinder in the model.\n"
+    pl.text(0.6, 2.2, "Both views use the same viewing direction and scale. The block at the left edge is the Verve tower; the Space Needle is the thin tower near the centre-left, modelled as a shape fitted to its own lidar returns (plate 13).\n"
                       "LOD1 means flat roofs at one height per footprint: pitched roofs, setbacks and rooftop equipment are not modelled. Overture footprints include buildings finished after the 2021 lidar,\n"
                       "which appear as low blocks or are skipped.", fontsize=8.5, color=MUTED, linespacing=1.4)
     return pl.save("10_seattle_3d.png")
@@ -226,9 +231,47 @@ def fig_naip(P, B, raw, fixed, tf, model, evidence, surf, walls, year, dates):
     centre = (P["cx"], P["cy"], P["cz"])
     full = (-size / 2, size / 2, -size / 2, size / 2)
     zoom = (129 - 130, 129 + 130, -109 - 130, -109 + 130)
-    for k, (reg, ttl, n_pts, b0) in enumerate(((full, "Whole area", 5_000_000, 4.75), (zoom, "Close up around the Space Needle (modelled as a plain cylinder)", 4_000_000, 0.95))):
+    for k, (reg, ttl, n_pts, b0) in enumerate(((full, "Whole area", 5_000_000, 4.75), (zoom, "Close up around the Space Needle (shape fitted to its lidar returns)", 4_000_000, 0.95))):
         p_, c_ = _sample_textured(surf, walls, reg, n_pts)
         img, _ = render3d.render(p_, c_, az=215, el=42, width=1500, height=800, zexag=1.0, center=p_.mean(0), splat=2)
         a = pl.ax(9.0, b0, 6.4, 3.41); a.imshow(img); a.axis("off")
         pl.label(9.0, b0 + 3.55, ttl)
     return pl.save("12_seattle_imagery.png")
+
+
+# --------------------------------------------------------------------------------------------- 13 the Space Needle
+def fig_needle(P, pts, prof, quality, sym_saucer, sym_legs, parts_old, parts_new, axis_local, vol_old, vol_new, d0):
+    import textwrap
+    pl = Plate("The Space Needle: fitted to its lidar returns", "Lidar returns and the fitted outline (left); the tower as a fitted shape of revolution and as the extruded footprint it replaces (right)",
+               SRC.format(d0=d0) + " Imagery: USDA NAIP 2019, via the Microsoft Planetary Computer.", "Camera and scale identical in both 3D views")
+    r = np.hypot(pts[:, 0], pts[:, 1])
+    keep = r < 32
+    a = pl.ax(0.9, 2.45, 1.9, 5.5)
+    a.scatter(pts[keep, 0], pts[keep, 2], s=0.3, c="#555555", alpha=0.35, lw=0, rasterized=True)
+    z, rr, it = prof["z"], prof["r"], prof["interpolated"]
+    for sgn in (-1, 1):
+        for k in range(len(z) - 1):
+            a.plot([sgn * rr[k], sgn * rr[k + 1]], [z[k], z[k + 1]], color="#C0392B", lw=1.3, ls="--" if (it[k] and it[k + 1]) else "-")
+    a.set_xlim(-32, 32); a.set_ylim(0, 190); a.set_aspect("equal"); a.tick_params(labelsize=7.5, length=2); a.spines[["top", "right"]].set_visible(False)
+    a.set_xlabel("m from the axis", fontsize=8, color=MUTED); a.set_ylabel("height above ground, m", fontsize=8, color=MUTED)
+    pl.label(0.9, 8.3, "Lidar returns and fitted outline")
+    region = (axis_local[0] - 48, axis_local[0] + 48, axis_local[1] - 48, axis_local[1] + 48)
+    imgs, info = [], None
+    for k, ((surf, walls), ttl, x0) in enumerate(((parts_new, "After: fitted to the lidar", 4.1), (parts_old, "Before: footprint extruded to the main roof", 9.4))):
+        p_, c_ = _sample_textured(surf, walls, region, 5_000_000)
+        if info is None:
+            cen = p_.mean(0)
+        img, inf = render3d.render(p_, c_, az=215, el=14, width=1000, height=1200, zexag=1.0, center=cen, scale=info["scale"] if info else None, off=info["off"] if info else None, splat=2)
+        info = info or inf
+        ax_ = pl.ax(x0, 2.3, 4.5, 5.4); ax_.imshow(img); ax_.axis("off")
+        pl.label(x0, 8.3, ttl)
+    inter = quality["interpolated_height_m"]
+    notes = [f"The tower is nearly symmetric about its axis (saucer radius {sym_saucer[0]:.1f} to {sym_saucer[1]:.1f} m by compass sector, legs {sym_legs[0]:.1f} to {sym_legs[1]:.1f} m), so the outline, the 95th-percentile radius of the returns in each 2 m of height, is revolved around the axis. {quality['share_inside'] * 100:.0f}% of the {quality['points']:,} returns lie inside it (+1.5 m).",
+             f"About {inter:.0f} m of the height has almost no returns (the open steel between the shaft and the saucer) and is interpolated (dashed); the spire above the top house is a thin cylinder set by a few returns. Highest return {quality['top_m']:.1f} m (Overture: 184 m). Volume {vol_new / 1000:.0f} thousand m³ against {vol_old / 1000:.0f} thousand for the extruded footprint.",
+             "This is the lidar silhouette, so the shaft is solid and the legs, glass and spire detail are not modelled; side faces are plain because no photograph shows them."]
+    y = 2.05
+    for t in notes:
+        w_ = "\n".join(textwrap.wrap(t, 185))
+        pl.text(0.9, y, w_, fontsize=8, color=MUTED, linespacing=1.3)
+        y -= 0.17 * (w_.count("\n") + 1) + 0.08
+    return pl.save("13_space_needle.png")

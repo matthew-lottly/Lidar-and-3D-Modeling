@@ -8,6 +8,24 @@
  "clipped_by_edge": 26,
  "cityjson_buildings": 130,
  "open_shells": {},
+ "needle": {
+  "quality": {
+   "points": 22089,
+   "share_inside": 0.8923898773145005,
+   "median_gap_to_p99_m": 0.1712611392620964,
+   "interpolated_height_m": 54.0,
+   "top_m": 184.4600067138672
+  },
+  "symmetry_saucer": [
+   20.285234875461985,
+   21.701038717406316
+  ],
+  "symmetry_legs": [
+   12.569746586802436,
+   15.41001130599623
+  ],
+  "volume_m3": 68051.42835410312
+ },
  "naip": {
   "year": 2019,
   "dates": "2019-10-11",

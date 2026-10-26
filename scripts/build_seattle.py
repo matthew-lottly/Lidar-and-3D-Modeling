@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import numpy as np
 import trimesh
 
-from lidar3d import buildings, city, exports, figures_city, naip
+from lidar3d import buildings, city, exports, figures_city, naip, needle
 from lidar3d.cloud import Rasters, hillshade, multi_hillshade
 from lidar3d.ept import CACHE
 
@@ -29,21 +29,27 @@ def main():
     d0, d1 = [(dt.datetime(1980, 1, 6) + dt.timedelta(seconds=float(v) + 1e9)).date() for v in np.percentile(g, [0.5, 99.5])]
     dd = str(d0) if d0 == d1 else f"{d0} to {d1}"
     B, ras = buildings.analyse(aoi, c, foot)
+    nrow = B[B.name == "Space Needle"].iloc[0]
+    npts, naxis = needle.extract(c, nrow.geometry, nrow.ground_z)
+    nprof = needle.profile(npts)
+    nmesh = needle.lathe(nprof, naxis, nrow.ground_z)
+    assert nmesh.is_watertight and nmesh.volume > 0
+    solids = {"Space Needle": nmesh}
     R = Rasters(aoi, c, res=0.5)
     dtm, dsm = R.dtm(), R.dsm()
     ok = B[B.status == "ok"]
     # outputs: attribute table, CityJSON, GLB
     keep = [k for k in B.columns if k not in ("sources",)]
     B[keep].astype({k: str for k in B.columns if B[k].dtype == object and k not in ("geometry",)}).to_file(out / "buildings_lod1.gpkg", driver="GPKG")
-    n = exports.cityjson_lod1(B, out / "seattle_center_lod1.city.json", source=f"LOD1 from 3DEP WA_KingCo_1_2021 lidar ({dd}) and Overture building footprints.")
+    n = exports.cityjson_lod1(B, out / "seattle_center_lod1.city.json", solids=solids, source=f"LOD1 from 3DEP WA_KingCo_1_2021 lidar ({dd}) and Overture building footprints.")
     bad = exports.cityjson_open_edges(json.loads((out / "seattle_center_lod1.city.json").read_text()))
     print("cityjson buildings", n, "open shells", bad)
     cz = float(np.median(dtm))
     centre = (aoi.cx, aoi.cy, cz)
-    exports.buildings_glb(B, dtm, R.x0, R.y1, 0.5, centre, out / "seattle_center_lod1.glb")
+    exports.buildings_glb(B, dtm, R.x0, R.y1, 0.5, centre, out / "seattle_center_lod1.glb", solids=solids)
     # plates
     P = dict(x0=R.x0, y1=R.y1, w=aoi.size_m, h=aoi.size_m, npts=len(c), ppm2=len(c) / aoi.size_m ** 2, cx=aoi.cx, cy=aoi.cy, cz=cz,
-             hs=multi_hillshade(dsm, 0.5, 1.0))
+             hs=multi_hillshade(dsm, 0.5, 1.0), solids=solids)
     _, top = figures_city.fig_buildings_map(P, B, dd)
     R1 = Rasters(aoi, c, res=1.0)
     dtm1 = R1.dtm()
@@ -72,10 +78,16 @@ def main():
     evidence = naip.alignment_check(B, rgbn, fixed, tf)
     print("displacement model", model, "\nevidence", evidence, "occluded share", float(occ.mean()))
     exports.ortho_tif(fixed, tf, aoi.crs, out / f"naip_{year}_lidar_corrected.tif", ndates)
-    surf, walls = exports.textured_parts(B, dtm, R.x0, R.y1, 0.5, aoi.size_m, fixed, centre)
+    surf, walls = exports.textured_parts(B, dtm, R.x0, R.y1, 0.5, aoi.size_m, fixed, centre, solids=solids)
+    surf_old, walls_old = exports.textured_parts(B, dtm, R.x0, R.y1, 0.5, aoi.size_m, fixed, centre)
     trimesh.Scene({"surface": surf, "walls": walls}).export(out / "seattle_center_textured.glb")
     P["d0"] = dd
     figures_city.fig_naip(P, B, rgbn, fixed, tf, model, evidence, surf, walls, year, ndates)
+    nq = needle.fit_quality(npts, nprof)
+    sym_s, sym_l = needle.symmetry(npts, 154, 160), needle.symmetry(npts, 30, 60)
+    nloc = (naxis[0] - aoi.cx, naxis[1] - aoi.cy)
+    figures_city.fig_needle(P, npts, nprof, nq, sym_s, sym_l, (surf_old, walls_old), (surf, walls), nloc, float(nrow.geometry.area * (nrow.roof_z - nrow.base_z)), float(nmesh.volume), dd)
+    print("needle", nq, sym_s, sym_l)
     # point-cloud sample + viewer
     sel = rng.choice(len(c), 600_000, replace=False)
     from matplotlib import colormaps
@@ -84,7 +96,7 @@ def main():
     exports.html_viewer(np.c_[c.x[sel], c.y[sel], c.z[sel]], col, ROOT / "outputs" / "seattle_point_cloud_viewer.html", len(c), dd, dd,
                         "height above ground (viridis, 0 to 45 m); ground and low objects in grey", title="Lidar point cloud, Seattle Center")
     stats = dict(points=len(c), area_km2=aoi.size_m ** 2 / 1e6, pts_per_m2=len(c) / aoi.size_m ** 2, collected=dd, footprints=len(foot), modelled=int(len(ok)), clipped_by_edge=int(ok.clipped.sum()), cityjson_buildings=n,
-                 open_shells=bad, naip=dict(year=year, dates=ndates, model=model, alignment=evidence, occluded_share=float(occ.mean())), height_check=res, roof_types=ok.roof_type.value_counts().to_dict(), total_footprint_m2=float(ok.area_m2.sum()), top10=top[["name", "height_m", "height_max_m"]].to_dict("records"))
+                 open_shells=bad, needle=dict(quality=nq, symmetry_saucer=sym_s, symmetry_legs=sym_l, volume_m3=float(nmesh.volume)), naip=dict(year=year, dates=ndates, model=model, alignment=evidence, occluded_share=float(occ.mean())), height_check=res, roof_types=ok.roof_type.value_counts().to_dict(), total_footprint_m2=float(ok.area_m2.sum()), top10=top[["name", "height_m", "height_max_m"]].to_dict("records"))
     (out / "stats.json").write_text(json.dumps(stats, indent=1, default=str))
     print(json.dumps({k: v for k, v in stats.items() if k != "top10"}, indent=1, default=str))
 

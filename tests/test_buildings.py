@@ -59,3 +59,34 @@ def test_true_ortho_moves_a_leaning_roof_back_over_its_footprint():
     out, occ = naip.true_ortho(img, tf, dsm, ground, model, 0.0, 0.0)
     assert out[0, 60, 55] == 200 and out[0, 60, 65] == 200       # roof cells now take the roof colour
     assert out[0, 60, 45] != 200 or occ[60, 45]                  # the ground where the roof leaned is not roof-coloured, or flagged as hidden
+
+
+def test_needle_profile_and_lathe_recover_a_known_hourglass():
+    from lidar3d import needle
+    rng = np.random.default_rng(4)
+    z = rng.uniform(18, 100, 40000)
+    r_true = 12 - 0.1 * (z - 20)                                    # 12 m at 20 m height narrowing to 4 m at 100 m
+    th = rng.uniform(0, 2 * np.pi, z.size)
+    rr = r_true * np.sqrt(rng.uniform(0.6, 1.0, z.size))            # returns inside the envelope
+    pts = np.c_[rr * np.cos(th), rr * np.sin(th), z]
+    pr = needle.profile(pts, shaft_top=200)
+    mid = np.interp(60.0, pr["z"], pr["r"])
+    assert abs(mid - (12 - 4)) < 0.6                                # about 8 m at 60 m
+    assert pr["interpolated"][1:-1].sum() == 0
+    m = needle.lathe(pr, (0.0, 0.0), 0.0)
+    assert m.is_watertight and m.volume > 0
+    assert abs(m.bounds[1][2] - pr["top"]) < 1e-6
+
+
+def test_cityjson_accepts_a_modelled_solid_and_stays_closed(tmp_path):
+    import json
+    from lidar3d import needle
+    pts = np.c_[np.zeros(200), np.zeros(200), np.linspace(20, 80, 200)] + np.random.default_rng(1).normal(0, 0.05, (200, 3))
+    pr = needle.profile(pts, nmin=1, shaft_nmin=1)
+    sq = Polygon([(-5, -5), (5, -5), (5, 5), (-5, 5)])
+    g = gpd.GeoDataFrame([{**_row(sq), "name": "Tower"}], geometry="geometry", crs="EPSG:32610")
+    p = tmp_path / "s.city.json"
+    exports.cityjson_lod1(g, p, solids={"Tower": needle.lathe(pr, (0.0, 0.0), 100.0)})
+    doc = json.loads(p.read_text())
+    assert exports.cityjson_open_edges(doc) == {}
+    assert next(iter(doc["CityObjects"].values()))["geometry"][0]["lod"] == "2"

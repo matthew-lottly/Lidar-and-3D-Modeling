@@ -18,7 +18,7 @@
 
 * 132 footprints measured; 76 flat, 10 pitched, 46 complex. Median height 8.7 m.
 * Comparison with Overture's own `height` (114 buildings): the main roof level correlates at r = 0.94 and reads 3.0 m lower at the median (mean absolute difference 5.3 m, 41 % within 3 m); the highest return correlates at r = 0.95, median +0.7 m, mean absolute 3.7 m, 64 % within 3 m. This is two datasets agreeing or not, not an accuracy test: there is no surveyed height.
-* The Space Needle's footprint is the saucer outline: main roof 162.9 m, highest return 184.5 m (spire), Overture 184 m.
+* The Space Needle's footprint is the saucer outline: main roof 162.9 m, highest return 184.5 m (spire), Overture 184 m. The fitted tower model is described below.
 * Large disagreements are listed on `outputs/11_seattle_height_check.png`. Examples: 222 Fifth (Overture 38.1 m, lidar highest 15.9 m) and MoPOP (Overture 9.7 m, lidar 30.8 m). Why was not checked; a building completed after April 2021 would explain the first.
 
 ## Files
@@ -28,6 +28,15 @@
 * `.../buildings_lod1.gpkg`: footprints with all measured attributes.
 * `.../seattle_center_textured.glb` and `.../naip_2019_lidar_corrected.tif`: imagery draped on the models, and the corrected 4-band image.
 * `outputs/seattle_point_cloud_viewer.html`: 600,000 points, any browser.
+
+## The Space Needle (`src/lidar3d/needle.py`, plate 13)
+
+The footprint extrusion made the Needle a 163 m cylinder, so it is modelled separately. The lidar has 22,089 returns on the tower (above 18 m, within 30 m of the axis). They are close to axisymmetric (saucer radius 20.3 to 21.7 m and leg radius 12.6 to 15.4 m across eight compass sectors), so the 95th-percentile radius of the returns in each 2 m of height is revolved around the axis to give a closed mesh (volume 68,000 m³ against 182,000 m³ for the cylinder; highest point 184.5 m, Overture 184 m).
+
+* **Recovered from the data:** the hourglass shaft (14 m radius at 20 m height narrowing to about 4.5 m near 105 m), the wider ring near 34 m, the saucer (widest, 21 m radius, near 157 m), the top house and the spire.
+* **Interpolated, not measured:** 54 m of height (about 107 to 153 m) where the open steel returns almost nothing, drawn dashed on plate 13; the spire above the top house is a thin cylinder set by four returns; below 18 m the radius is held constant because surrounding pavilions contaminate the returns.
+* **Not modelled:** the three legs, glass, the halo's detail. The shaft is a solid, because the lidar gives a silhouette. Upward faces take the aerial photo; side faces are plain.
+* The CityJSON stores it as an LOD2 solid (closed shell, no open edges) for this one building; all others stay LOD1.
 
 ## Aerial imagery on the models (`src/lidar3d/naip.py`)
 
@@ -39,6 +48,6 @@
 
 ## Not done
 
-* **No LOD2 roofs.** Roofs are flat blocks. The fitted planes are used only to label roof shape.
+* **No LOD2 roofs** (except the fitted Space Needle). Roofs are flat blocks. The fitted planes are used only to label roof shape.
 * **No photogrammetry and no facade textures.** NAIP is a single downward image; reconstructing building faces needs overlapping oblique photos (Mapillary and Wikimedia were not reachable). See [photogrammetry.md](photogrammetry.md).
 * **Trees and non-building structures** inside a footprint are not separated from the roof.

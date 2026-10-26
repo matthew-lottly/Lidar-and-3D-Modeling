@@ -88,7 +88,7 @@ def html_viewer(pts, rgb, path, total, d0, d1, mode, title="Lidar point cloud, T
 
 
 # ------------------------------------------------------------------------------------------------ buildings
-def cityjson_lod1(gdf, path, crs_epsg=32610, source=""):
+def cityjson_lod1(gdf, path, crs_epsg=32610, source="", solids=None):
     """CityJSON 1.1, one Building per row with an LOD1 Solid (ground, walls, flat roof) between base_z and roof_z, coordinates in the projected CRS."""
     from shapely.geometry import MultiPolygon
     from shapely.geometry.polygon import orient
@@ -102,7 +102,19 @@ def cityjson_lod1(gdf, path, crs_epsg=32610, source=""):
         return index[k]
 
     objs = {}
+    solids = solids or {}
     for i, r in gdf[gdf.status == "ok"].iterrows():
+        if r.get("name") in solids:                                       # a modelled solid (triangle mesh, LOD2-style) instead of the extruded footprint
+            m = solids[r.get("name")]
+            surfaces = [[[vid(*m.vertices[v]) for v in f]] for f in m.faces]
+            nz = m.face_normals[:, 2]
+            sem = [0 if q > 0.3 else 1 if q < -0.9 else 2 for q in nz]
+            a = {k: (None if (isinstance(v, float) and np.isnan(v)) else v) for k, v in dict(
+                name=r.get("name"), overture_id=r.get("id"), overture_height=r.get("height"), height_m=round(float(r.height_m), 2), height_max_m=round(float(r.height_max_m), 2),
+                ground_z=round(float(r.ground_z), 2), roof_type="modelled from lidar (surface of revolution)", footprint_area_m2=round(float(r.area_m2), 1)).items()}
+            objs[f"bldg_{i}"] = dict(type="Building", attributes=a, geometry=[dict(type="Solid", lod="2", boundaries=[surfaces], semantics=dict(
+                surfaces=[{"type": "RoofSurface"}, {"type": "GroundSurface"}, {"type": "WallSurface"}], values=[sem]))])
+            continue
         polys = list(r.geometry.geoms) if isinstance(r.geometry, MultiPolygon) else [r.geometry]
         surfaces, sem = [], []
         b, t = float(r.base_z), float(r.roof_z)
@@ -130,7 +142,7 @@ def cityjson_lod1(gdf, path, crs_epsg=32610, source=""):
     return len(objs)
 
 
-def buildings_glb(gdf, terrain_z, x0, y1, res, centre, path, cmap_name="viridis", vmax=45.0):
+def buildings_glb(gdf, terrain_z, x0, y1, res, centre, path, cmap_name="viridis", vmax=45.0, solids=None):
     """Scene with a terrain mesh and the LOD1 blocks coloured by height above ground. Local coordinates: metres from `centre` (x, y, z)."""
     from shapely.geometry import MultiPolygon
     sc = trimesh.Scene()
@@ -150,6 +162,12 @@ def buildings_glb(gdf, terrain_z, x0, y1, res, centre, path, cmap_name="viridis"
             continue
         polys = list(r.geometry.geoms) if isinstance(r.geometry, MultiPolygon) else [r.geometry]
         col = (np.array(cmap(min(r.height_m / vmax, 1.0)))[:4] * 255).astype(np.uint8)
+        if solids and r.get("name") in solids:
+            m = solids[r.get("name")].copy()
+            m.apply_translation([-centre[0], -centre[1], -centre[2]])
+            m.visual.face_colors = col
+            sc.add_geometry(m, node_name=f"bldg_{i}_{r.get('name')}")
+            continue
         for pg in polys:
             m = trimesh.creation.extrude_polygon(pg, float(r.roof_z - r.base_z))
             m.apply_translation([-centre[0], -centre[1], r.base_z - centre[2]])
@@ -173,7 +191,7 @@ def cityjson_open_edges(doc: dict) -> dict[str, int]:
     return bad
 
 
-def textured_parts(gdf, terrain_z, x0, y1, res, size, ortho_rgb, centre, step=4, wall_rgb=(186, 180, 170)):
+def textured_parts(gdf, terrain_z, x0, y1, res, size, ortho_rgb, centre, step=4, wall_rgb=(186, 180, 170), solids=None):
     """Terrain and flat roofs share one image texture (the lidar-corrected NAIP ortho); walls get a plain colour because no image shows them. Local coordinates, metres from `centre`.
     Returns (surface mesh with UVs and texture, wall mesh)."""
     from PIL import Image
@@ -195,14 +213,23 @@ def textured_parts(gdf, terrain_z, x0, y1, res, size, ortho_rgb, centre, step=4,
     F = [np.r_[np.c_[a, d, b], np.c_[b, d, e]]]
     off = len(V[0])
     wallV, wallF, woff = [], [], 0
+    solids = solids or {}
     for _, r in gdf[gdf.status == "ok"].iterrows():
         if r.roof_z <= r.base_z + 0.5:
             continue
         parts = list(r.geometry.geoms) if isinstance(r.geometry, MultiPolygon) else [r.geometry]
+        if r.get("name") in solids:
+            parts = [None]
         for pg in parts:
-            m = trimesh.creation.extrude_polygon(pg, float(r.roof_z - r.base_z))
-            v = m.vertices.copy(); v[:, 2] += r.base_z
-            up = m.face_normals[:, 2] > 0.9
+            if pg is None:
+                m = solids[r.get("name")]
+                v = m.vertices.copy()
+                up = m.face_normals[:, 2] > 0.5                    # upward faces (saucer deck, top house) get the aerial photo; the rest is plain
+            else:
+                m = trimesh.creation.extrude_polygon(pg, float(r.roof_z - r.base_z))
+                v = m.vertices.copy(); v[:, 2] += r.base_z
+            if pg is not None:
+                up = m.face_normals[:, 2] > 0.9
             cap = m.faces[up]
             used, inv = np.unique(cap, return_inverse=True)
             V.append(v[used]); F.append(inv.reshape(-1, 3) + off); off += len(used)

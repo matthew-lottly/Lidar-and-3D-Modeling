@@ -13,12 +13,12 @@ def rotation(az_deg: float, el_deg: float) -> np.ndarray:
     return Rx @ Rz
 
 
-def render(pts: np.ndarray, colors: np.ndarray, az=200.0, el=35.0, width=1600, height=900, zexag=1.0, center=None, scale=None, bg=(255, 255, 255), splat=2) -> tuple[np.ndarray, dict]:
+def render(pts: np.ndarray, colors: np.ndarray, az=200.0, el=35.0, width=1600, height=900, zexag=1.0, center=None, scale=None, bg=(255, 255, 255), splat=2, off=None) -> tuple[np.ndarray, dict]:
     """pts: (n,3) in metres, colors: (n,3) uint8. Returns an RGB image and the projection info (for placing annotations)."""
     c = pts.mean(0) if center is None else np.asarray(center, float)
     p = (pts - c) * np.array([1, 1, zexag])
-    v = p @ rotation(az, el).T                         # v[:,0] right, v[:,1] up (view), v[:,2] depth (toward viewer negative)
-    off = np.zeros(2)
+    v = p @ rotation(az, el).T                         # v[:,0] right, v[:,1] up (view), v[:,2] depth (toward the viewer positive)
+    off = np.zeros(2) if off is None else np.asarray(off, float)      # pass the first view's info['off'] and 'scale' to get an identical camera
     if scale is None:                                   # fit the whole cloud in the frame and centre it
         span_x, span_y = np.ptp(v[:, 0]), np.ptp(v[:, 1])
         scale = 0.94 * min(width / span_x, height / span_y)
