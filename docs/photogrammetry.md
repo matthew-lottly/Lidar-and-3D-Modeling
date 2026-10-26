@@ -12,3 +12,9 @@ If you have photos (drone, aerial or ground) with 60 to 80 % overlap:
 * **COLMAP:** `colmap automatic_reconstructor --workspace_path ws --image_path photos`
 
 To check a photogrammetric surface against this lidar, georeference it (ground control points or image GPS), export a DSM, and difference it with `data/processed/dsm_1m.tif` (EPSG:32610). The lidar was collected in September 2022, so photos from another date will also show real change.
+
+## Seattle
+
+The same applies to the Seattle buildings. Street-level and aerial photo sources (Mapillary, Wikimedia Commons, Flickr, OpenAerialMap, USGS EarthExplorer) were tried from the build environment and none could be reached, so there are no photographs to reconstruct from. A photogrammetric model of a building needs your own photos of it, or access to one of those sources.
+
+Photogrammetry and lidar would complement each other on a building: lidar gives the roof and overall form (this repository), photos give facade detail and texture. A real comparison would be a photo-based surface differenced against the lidar surface in the same coordinates.

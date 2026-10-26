@@ -52,10 +52,10 @@ def point_ply(pts, rgb, path):
         fh.write(hdr.encode()); fh.write(a.tobytes())
 
 
-_VIEWER = """<!doctype html><meta charset=utf-8><title>Tatoosh Range point cloud</title>
+_VIEWER = """<!doctype html><meta charset=utf-8><title>%(title)s</title>
 <style>html,body{margin:0;height:100%%;background:#f5f4ef;font:14px system-ui,sans-serif;color:#222}canvas{display:block;width:100%%;height:100%%;cursor:grab}
 #i{position:fixed;left:14px;top:12px;max-width:420px;line-height:1.35}#i b{font-size:16px}</style>
-<div id=i><b>Lidar point cloud, Tatoosh Range, Washington</b><br>%(n)s points sampled from %(tot)s (USGS 3DEP, collected %(d0)s to %(d1)s). Drag to rotate, wheel to zoom, shift-drag to pan. Colour: %(mode)s.</div>
+<div id=i><b>%(title)s</b><br>%(n)s points sampled from %(tot)s (USGS 3DEP, collected %(dates)s). Drag to rotate, wheel to zoom, shift-drag to pan. Colour: %(mode)s.</div>
 <canvas id=c></canvas><script>
 const D=%(data)s;const N=D.n,cx=D.cx,cy=D.cy,cz=D.cz;
 const P=new Float32Array(N*3),C=new Uint8Array(N*3);
@@ -64,9 +64,9 @@ const q=new Int16Array(a.buffer);for(let i=0;i<N*3;i++)P[i]=q[i]*D.s;
 const b2=atob(D.c);for(let i=0;i<b2.length;i++)C[i]=b2.charCodeAt(i);})();
 const cv=document.getElementById('c'),g=cv.getContext('2d');let az=3.5,el=0.6,zm=1,px=0,py=0;
 function draw(){const W=cv.width=cv.clientWidth*devicePixelRatio,H=cv.height=cv.clientHeight*devicePixelRatio;g.fillStyle='#f5f4ef';g.fillRect(0,0,W,H);
-const ca=Math.cos(az),sa=Math.sin(az),ce=Math.cos(el),se=Math.sin(el),sc=Math.min(W,H)/1500*zm;
+const ca=Math.cos(az),sa=Math.sin(az),ce=Math.cos(el),se=Math.sin(el),sc=Math.min(W,H)/(2.3*D.r)*zm;
 const im=g.getImageData(0,0,W,H),d=im.data,zb=new Float32Array(W*H).fill(1e9);
-for(let i=0;i<N;i++){const x=P[i*3],y=P[i*3+1],z=P[i*3+2]*1.3;const u=x*ca-y*sa,v0=x*sa+y*ca,dep=v0*ce+z*se*-1+0,v=z*ce-v0*se;
+for(let i=0;i<N;i++){const x=P[i*3],y=P[i*3+1],z=P[i*3+2]*1.3;const u=x*ca-y*sa,v0=x*sa+y*ca,dep=-(v0*ce+z*se),v=z*ce-v0*se;
 const X=(W/2+px*devicePixelRatio+u*sc)|0,Y=(H/2+py*devicePixelRatio-v*sc)|0;
 for(let a=0;a<2;a++)for(let b=0;b<2;b++){const xx=X+a,yy=Y+b;if(xx<0||yy<0||xx>=W||yy>=H)continue;const k=yy*W+xx;if(dep<zb[k]){zb[k]=dep;d[k*4]=C[i*3];d[k*4+1]=C[i*3+1];d[k*4+2]=C[i*3+2];d[k*4+3]=255}}}
 g.putImageData(im,0,0)}
@@ -76,12 +76,98 @@ cv.onwheel=e=>{e.preventDefault();zm*=e.deltaY<0?1.1:.9;req()};function req(){if
 </script>"""
 
 
-def html_viewer(pts, rgb, path, total, d0, d1, mode):
+def html_viewer(pts, rgb, path, total, d0, d1, mode, title="Lidar point cloud, Tatoosh Range, Washington"):
     """Self-contained viewer: positions as int16 (cm-level quantisation over the AOI), colours as bytes, a z-buffered software splat on a 2D canvas."""
     c = pts.mean(0)
     loc = pts - c
     s = float(np.abs(loc).max() / 32000)
     q = np.round(loc / s).astype("<i2")
     import base64
-    data = dict(n=int(len(pts)), cx=float(c[0]), cy=float(c[1]), cz=float(c[2]), s=s, p=base64.b64encode(q.tobytes()).decode(), c=base64.b64encode(rgb.astype(np.uint8).tobytes()).decode())
-    Path(path).write_text(_VIEWER % dict(n=f"{len(pts):,}", tot=f"{total:,}", d0=d0, d1=d1, mode=mode, data=json.dumps(data)))
+    data = dict(n=int(len(pts)), cx=float(c[0]), cy=float(c[1]), cz=float(c[2]), s=s, r=float(np.abs(loc).max()), p=base64.b64encode(q.tobytes()).decode(), c=base64.b64encode(rgb.astype(np.uint8).tobytes()).decode())
+    Path(path).write_text(_VIEWER % dict(n=f"{len(pts):,}", tot=f"{total:,}", dates=(str(d0) if str(d0) == str(d1) else f'{d0} to {d1}'), mode=mode, title=title, data=json.dumps(data)))
+
+
+# ------------------------------------------------------------------------------------------------ buildings
+def cityjson_lod1(gdf, path, crs_epsg=32610, source=""):
+    """CityJSON 1.1, one Building per row with an LOD1 Solid (ground, walls, flat roof) between base_z and roof_z, coordinates in the projected CRS."""
+    from shapely.geometry import MultiPolygon
+    from shapely.geometry.polygon import orient
+    verts, index = [], {}
+
+    def vid(x, y, z):
+        k = (round(x, 3), round(y, 3), round(z, 3))
+        if k not in index:
+            index[k] = len(verts)
+            verts.append(k)
+        return index[k]
+
+    objs = {}
+    for i, r in gdf[gdf.status == "ok"].iterrows():
+        polys = list(r.geometry.geoms) if isinstance(r.geometry, MultiPolygon) else [r.geometry]
+        surfaces, sem = [], []
+        b, t = float(r.base_z), float(r.roof_z)
+        if t <= b + 0.5:
+            continue
+        for pg in polys:
+            pg = orient(pg, 1.0)
+            rings = [list(pg.exterior.coords)[:-1]] + [list(h.coords)[:-1] for h in pg.interiors]
+            surfaces.append([[vid(x, y, t) for x, y in rg] for rg in rings]); sem.append(0)                     # roof, normal up
+            surfaces.append([[vid(x, y, b) for x, y in rg[::-1]] for rg in rings]); sem.append(1)               # ground, normal down
+            for rg in rings:
+                for (x0, y0), (x1, y1) in zip(rg, rg[1:] + rg[:1]):
+                    surfaces.append([[vid(x0, y0, b), vid(x1, y1, b), vid(x1, y1, t), vid(x0, y0, t)]]); sem.append(2)   # outward wall
+        a = {k: (None if (isinstance(v, float) and np.isnan(v)) else v) for k, v in dict(
+            name=r.get("name"), overture_id=r.get("id"), overture_height=r.get("height"), height_m=round(float(r.height_m), 2), height_max_m=round(float(r.height_max_m), 2),
+            ground_z=round(float(r.ground_z), 2), roof_type=r.roof_type, footprint_area_m2=round(float(r.area_m2), 1)).items()}
+        objs[f"bldg_{i}"] = dict(type="Building", attributes=a, geometry=[dict(type="Solid", lod="1", boundaries=[surfaces], semantics=dict(
+            surfaces=[{"type": "RoofSurface"}, {"type": "GroundSurface"}, {"type": "WallSurface"}], values=[sem]))])
+    v = np.array(verts)
+    tr = dict(scale=[0.001] * 3, translate=[float(v[:, 0].min()), float(v[:, 1].min()), float(v[:, 2].min())])
+    iv = np.round((v - np.array(tr["translate"])) / 0.001).astype(int).tolist()
+    doc = {"type": "CityJSON", "version": "1.1", "transform": tr, "CityObjects": objs, "vertices": iv,
+           "metadata": {"referenceSystem": f"https://www.opengis.net/def/crs/EPSG/0/{crs_epsg}", "title": "Seattle Center buildings, LOD1 from 3DEP lidar", "description": source}}
+    Path(path).write_text(json.dumps(doc, separators=(",", ":")))
+    return len(objs)
+
+
+def buildings_glb(gdf, terrain_z, x0, y1, res, centre, path, cmap_name="viridis", vmax=45.0):
+    """Scene with a terrain mesh and the LOD1 blocks coloured by height above ground. Local coordinates: metres from `centre` (x, y, z)."""
+    from shapely.geometry import MultiPolygon
+    sc = trimesh.Scene()
+    step = 4
+    zs = terrain_z[::step, ::step]
+    h, w = zs.shape
+    jj, ii = np.meshgrid(np.arange(w), np.arange(h))
+    v = np.c_[x0 + (jj.ravel() * step + 0.5) * res - centre[0], y1 - (ii.ravel() * step + 0.5) * res - centre[1], zs.ravel() - centre[2]]
+    idx = np.arange(h * w).reshape(h, w)
+    a, b, d, e = idx[:-1, :-1].ravel(), idx[:-1, 1:].ravel(), idx[1:, :-1].ravel(), idx[1:, 1:].ravel()
+    terr = trimesh.Trimesh(v, np.r_[np.c_[a, d, b], np.c_[b, d, e]], process=False)
+    terr.visual.vertex_colors = np.tile([205, 200, 190, 255], (len(v), 1)).astype(np.uint8)
+    sc.add_geometry(terr, node_name="terrain")
+    cmap = __import__("matplotlib").colormaps[cmap_name]
+    for i, r in gdf[gdf.status == "ok"].iterrows():
+        if r.roof_z <= r.base_z + 0.5:
+            continue
+        polys = list(r.geometry.geoms) if isinstance(r.geometry, MultiPolygon) else [r.geometry]
+        col = (np.array(cmap(min(r.height_m / vmax, 1.0)))[:4] * 255).astype(np.uint8)
+        for pg in polys:
+            m = trimesh.creation.extrude_polygon(pg, float(r.roof_z - r.base_z))
+            m.apply_translation([-centre[0], -centre[1], r.base_z - centre[2]])
+            m.visual.face_colors = col
+            sc.add_geometry(m, node_name=f"bldg_{i}_{r.get('name') or ''}".strip())
+    sc.export(path)
+
+
+def cityjson_open_edges(doc: dict) -> dict[str, int]:
+    """For every Building solid, count directed edges without an opposite partner. A closed, consistently oriented shell has none."""
+    bad = {}
+    for k, o in doc["CityObjects"].items():
+        edges = {}
+        for srf in o["geometry"][0]["boundaries"][0]:
+            for ring in srf:
+                for a, b in zip(ring, ring[1:] + ring[:1]):
+                    edges[(a, b)] = edges.get((a, b), 0) + 1
+        n = sum(1 for (a, b), c in edges.items() if c != edges.get((b, a), 0))
+        if n:
+            bad[k] = n
+    return bad

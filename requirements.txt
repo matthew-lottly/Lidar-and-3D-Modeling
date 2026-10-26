@@ -10,3 +10,7 @@ trimesh
 requests
 mgrs
 pillow
+geopandas
+shapely
+pyarrow
+mapbox_earcut

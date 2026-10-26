@@ -28,7 +28,7 @@ def render(pts: np.ndarray, colors: np.ndarray, az=200.0, el=35.0, width=1600, h
     ok = (px >= 0) & (px < width) & (py >= 0) & (py < height)
     px, py, d, col = px[ok], py[ok], v[ok, 2], colors[ok]
     key = py * width + px
-    order = np.lexsort((d, key))                        # per pixel, smallest depth value first = nearest to the viewer (depth axis points away from viewer)
+    order = np.lexsort((-d, key))                       # per pixel, largest v[:,2] first: that axis points toward the viewer (higher and nearer points have larger values)
     key_s = key[order]
     first = np.r_[True, key_s[1:] != key_s[:-1]]
     sel = order[first]

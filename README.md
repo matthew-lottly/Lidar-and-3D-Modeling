@@ -25,6 +25,17 @@ Lidar, radar and 3D terrain products for a 1.4 km square (2.0 km²) about 18 km 
 ![Radar](outputs/06_radar_maps.png)
 ![3D model](outputs/08_terrain_model.png)
 
+## Second analysis: Seattle Center buildings
+
+LOD1 building models for 132 footprints around the Space Needle, from the 2021 King County lidar (12 points per m²) and Overture footprints. Details and numbers in [docs/seattle-buildings.md](docs/seattle-buildings.md).
+
+![Seattle buildings](outputs/09_seattle_buildings.png)
+![Seattle 3D](outputs/10_seattle_3d.png)
+
+* [outputs/09_seattle_buildings.png](outputs/09_seattle_buildings.png), [10_seattle_3d.png](outputs/10_seattle_3d.png), [11_seattle_height_check.png](outputs/11_seattle_height_check.png)
+* `data/processed/seattle/`: CityJSON, GLB, GeoPackage; [outputs/seattle_point_cloud_viewer.html](outputs/seattle_point_cloud_viewer.html)
+* Limits: flat-roof blocks only (no LOD2), heights compared with Overture's rather than a survey, and **no photogrammetry**: no overlapping photographs of the buildings could be obtained (photo services are unreachable from the build environment).
+
 ## Data
 
 * **Lidar:** USGS 3D Elevation Program project `WA_CentralWildfire_2_D22`, Entwine Point Tiles on AWS (`s3://usgs-lidar-public`). Collected 2022-09-04 to 2022-09-08 (dates derived from the point GPS times). 30.8 points per m². Published classes present: 1 unclassified, 2 ground, 9 water, 20 and 21 snow; there are no vegetation classes, so canopy comes from a height model.
@@ -53,12 +64,17 @@ Checks made after the map was finished, not used to tune it, except where stated
 * **Canopy.** Heights are the highest return per 1 m cell; a boulder or cornice of the same height looks like a tree to the model.
 * **Not verified here:** WebGL or GPU rendering (the plates and the point-cloud viewer use a software renderer; the viewer was loaded once in headless Chromium with no errors), opening the GLB and PLY files in specific desktop viewers (they were loaded back with `trimesh` only), and any field validation.
 
+## Correction made on 2026-10-26
+
+The software renderer used for the 3D views drew the farthest point instead of the nearest where points overlapped. It was found while rendering buildings, fixed in `render3d.py`, covered by a test, and the Rainier point-cloud views (plate 03), the 3D model plate and the viewers were rebuilt. Earlier versions of those images showed far-side surfaces through near ones.
+
 ## Run it
 
 ```bash
 pip install -r requirements.txt
 python scripts/build_all.py            # fetches data on first run (about 1.4 GB of lidar tiles, cached in data/cache), rebuilds figures and exports
 python scripts/build_all.py figures    # or: exports
+python scripts/build_seattle.py        # Seattle Center buildings
 python -m pytest tests                 # pure-logic tests, no network
 ```
 

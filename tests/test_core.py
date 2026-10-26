@@ -60,3 +60,13 @@ def test_remove_small_merges_tiny_patch():
 def test_to_db():
     assert np.isclose(radar.to_db(np.array([0.1]))[0], -10.0)
     assert np.isnan(radar.to_db(np.array([0.0]))[0])
+
+
+def test_renderer_nearest_point_wins():
+    from lidar3d import render3d
+    R = render3d.rotation(215, 42)
+    toward_viewer = R[2]                                   # world vector that maps to +depth in the view
+    pts = np.array([[0.0, 0.0, 0.0], *(10 * toward_viewer)[None, :]])
+    cols = np.array([[255, 0, 0], [0, 0, 255]], np.uint8)  # red is far, blue is near, same screen position
+    img, info = render3d.render(pts, cols, az=215, el=42, width=40, height=40, scale=1.0, center=np.zeros(3), splat=1)
+    assert tuple(img[20, 20]) == (0, 0, 255)

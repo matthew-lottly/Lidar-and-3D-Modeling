@@ -1,0 +1,85 @@
+{
+ "points": 5949328,
+ "area_km2": 0.49,
+ "pts_per_m2": 12.141485714285714,
+ "collected": "2021-04-14",
+ "footprints": 139,
+ "modelled": 132,
+ "clipped_by_edge": 26,
+ "cityjson_buildings": 130,
+ "open_shells": {},
+ "height_check": {
+  "height_m": {
+   "n": 114,
+   "r": 0.9365434657197199,
+   "bias": -3.0200002670288084,
+   "mae": 5.2759656650978215,
+   "within3": 0.41228070175438597
+  },
+  "height_max_m": {
+   "n": 114,
+   "r": 0.9515172145904552,
+   "bias": 0.6599998474121094,
+   "mae": 3.689097134690536,
+   "within3": 0.6403508771929824
+  }
+ },
+ "roof_types": {
+  "flat": 76,
+  "complex": 46,
+  "pitched": 10
+ },
+ "total_footprint_m2": 174897.74560377776,
+ "top10": [
+  {
+   "name": "Space Needle",
+   "height_m": 162.91600036621094,
+   "height_max_m": 184.4600067138672
+  },
+  {
+   "name": "Seattle Opera at the Center",
+   "height_m": 17.96999740600586,
+   "height_max_m": 42.380001068115234
+  },
+  {
+   "name": "McCaw Hall",
+   "height_m": 24.164999961853027,
+   "height_max_m": 40.464999198913574
+  },
+  {
+   "name": "Climate Pledge Arena",
+   "height_m": 18.990001678466797,
+   "height_max_m": 38.92000198364258
+  },
+  {
+   "name": "KOMO Plaza West",
+   "height_m": 26.035001754760742,
+   "height_max_m": 32.004995346069336
+  },
+  {
+   "name": "MoPOP: Museum of Pop Culture",
+   "height_m": 25.46999740600586,
+   "height_max_m": 30.790000915527344
+  },
+  {
+   "name": "KOMO Plaza East",
+   "height_m": 25.40999984741211,
+   "height_max_m": 30.78000259399414
+  },
+  {
+   "name": "The Century",
+   "height_m": 26.06999969482422,
+   "height_max_m": 30.5
+  },
+  {
+   "name": "Hyatt House",
+   "height_m": 24.56500244140625,
+   "height_max_m": 29.625
+  },
+  {
+   "name": NaN,
+   "height_m": 24.720001220703125,
+   "height_max_m": 28.290000915527344
+  }
+ ]
+}
