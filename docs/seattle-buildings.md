@@ -26,10 +26,19 @@
 * `data/processed/seattle/seattle_center_lod1.city.json`: CityJSON 1.1, LOD1 Building solids with roof, wall and ground surfaces and attributes. Every solid is a closed, consistently oriented shell (checked by `exports.cityjson_open_edges`, which found none open). It has **not** been checked against the CityJSON schema validator, which could not be installed here.
 * `.../seattle_center_lod1.glb`: terrain mesh plus building blocks coloured by height.
 * `.../buildings_lod1.gpkg`: footprints with all measured attributes.
+* `.../seattle_center_textured.glb` and `.../naip_2019_lidar_corrected.tif`: imagery draped on the models, and the corrected 4-band image.
 * `outputs/seattle_point_cloud_viewer.html`: 600,000 points, any browser.
+
+## Aerial imagery on the models (`src/lidar3d/naip.py`)
+
+* **Imagery:** USDA NAIP 2019-10-11, 0.6 m, RGB + near-infrared, read as a window from the Microsoft Planetary Computer mirror. No NAIP flight exists for 2021, so the photo is 18 months older than the lidar and 7 years older than the footprints; buildings built or demolished in between (the Climate Pledge Arena site is visibly a construction yard in the photo) will not match.
+* **Why it needs correcting:** NAIP is flattened onto the bare ground, so the top of a tall building appears displaced away from the point under the camera. The Space Needle's saucer appears 65 m west of its footprint. Draping the raw photo on the models would put roofs in the wrong place.
+* **Correction:** for 24 well-matched tall buildings, the displacement of each roof outline in the image was measured (cross-correlating the lidar footprint outline with the image edges), and a shift proportional to height above ground (`h * (k*x + b)`) was fitted. Every surface cell then takes its colour from the shifted image position. The camera position is not recoverable from a 700 m area, so only the fitted shifts are used.
+* **Evidence:** over 39 tall footprints the median offset between each outline and its best image match fell from 2.7 m to 1.3 m; the match score rose for 74 %. Typical fit error is still about 3 m on some buildings. About 9 % of the area is hidden behind tall buildings in the photo and is filled from neighbouring pixels, so it is not real imagery.
+* **Model:** `seattle_center_textured.glb` has the terrain and roofs textured with the corrected image and plain grey walls: no photo shows a wall. It looks photographic from above and like a block model from the side.
 
 ## Not done
 
 * **No LOD2 roofs.** Roofs are flat blocks. The fitted planes are used only to label roof shape.
-* **No photogrammetry.** See [photogrammetry.md](photogrammetry.md).
+* **No photogrammetry and no facade textures.** NAIP is a single downward image; reconstructing building faces needs overlapping oblique photos (Mapillary and Wikimedia were not reachable). See [photogrammetry.md](photogrammetry.md).
 * **Trees and non-building structures** inside a footprint are not separated from the roof.

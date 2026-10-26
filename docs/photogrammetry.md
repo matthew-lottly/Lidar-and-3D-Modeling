@@ -18,3 +18,7 @@ To check a photogrammetric surface against this lidar, georeference it (ground c
 The same applies to the Seattle buildings. Street-level and aerial photo sources (Mapillary, Wikimedia Commons, Flickr, OpenAerialMap, USGS EarthExplorer) were tried from the build environment and none could be reached, so there are no photographs to reconstruct from. A photogrammetric model of a building needs your own photos of it, or access to one of those sources.
 
 Photogrammetry and lidar would complement each other on a building: lidar gives the roof and overall form (this repository), photos give facade detail and texture. A real comparison would be a photo-based surface differenced against the lidar surface in the same coordinates.
+
+## Update: aerial imagery is now available, photogrammetry still is not
+
+NAIP aerial imagery (0.6 m) was retrieved from the Planetary Computer once its host was allowed, and is draped on the Seattle roofs (see [seattle-buildings.md](seattle-buildings.md)). That is texture mapping of a single downward photo, not photogrammetry. NAIP frames are not distributed as overlapping image sets with camera positions in the public mirror, and the roof-only result leaves facades unphotographed. Street-level photo hosts (Mapillary, Wikimedia Commons) were not allowed from the build environment.

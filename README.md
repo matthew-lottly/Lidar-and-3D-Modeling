@@ -31,15 +31,18 @@ LOD1 building models for 132 footprints around the Space Needle, from the 2021 K
 
 ![Seattle buildings](outputs/09_seattle_buildings.png)
 ![Seattle 3D](outputs/10_seattle_3d.png)
+![Seattle imagery](outputs/12_seattle_imagery.png)
 
 * [outputs/09_seattle_buildings.png](outputs/09_seattle_buildings.png), [10_seattle_3d.png](outputs/10_seattle_3d.png), [11_seattle_height_check.png](outputs/11_seattle_height_check.png)
 * `data/processed/seattle/`: CityJSON, GLB, GeoPackage; [outputs/seattle_point_cloud_viewer.html](outputs/seattle_point_cloud_viewer.html)
-* Limits: flat-roof blocks only (no LOD2), heights compared with Overture's rather than a survey, and **no photogrammetry**: no overlapping photographs of the buildings could be obtained (photo services are unreachable from the build environment).
+* **Aerial imagery:** NAIP 2019 (0.6 m) corrected for relief displacement with the lidar heights and draped on roofs and ground: [outputs/12_seattle_imagery.png](outputs/12_seattle_imagery.png), `seattle_center_textured.glb`.
+* Limits: flat-roof blocks only (no LOD2); heights compared with Overture's rather than a survey; imagery is a single downward photo from 2019, so roofs are photographic but walls are plain grey; and **no photogrammetry**: no overlapping photographs of the buildings could be obtained.
 
 ## Data
 
 * **Lidar:** USGS 3D Elevation Program project `WA_CentralWildfire_2_D22`, Entwine Point Tiles on AWS (`s3://usgs-lidar-public`). Collected 2022-09-04 to 2022-09-08 (dates derived from the point GPS times). 30.8 points per m². Published classes present: 1 unclassified, 2 ground, 9 water, 20 and 21 snow; there are no vegetation classes, so canopy comes from a height model.
 * **Radar:** Sentinel-1 radiometrically terrain-corrected Gamma0, VV and VH, 20 m, from the public `sentinel-s1-rtc-indigo` archive. 104 ascending acquisitions with the same geometry, 2017-01-21 to 2021-04-18.
+* **Aerial imagery (Seattle):** USDA NAIP 2019-10-11, 0.6 m, via the Microsoft Planetary Computer.
 * **Optical, for checking and draping:** Sentinel-2 L2A scene `S2B_10TFS_20220909` (five days after the lidar).
 * **Check data:** ESA WorldCover 2021 v200. Place names: Overture Maps. Regional hillshade: USGS 3DEP 1 arc-second DEM.
 

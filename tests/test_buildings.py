@@ -33,3 +33,29 @@ def test_cityjson_solids_are_closed_for_holes_and_concave_shapes(tmp_path):
     doc = json.loads(p.read_text())
     assert exports.cityjson_open_edges(doc) == {}
     assert doc["version"] == "1.1" and len(doc["CityObjects"]) == 2
+
+
+def test_displacement_fit_recovers_a_known_camera():
+    rng = np.random.default_rng(2)
+    n = 60
+    h = rng.uniform(10, 120, n); x = rng.uniform(-300, 300, n); y = rng.uniform(-300, 300, n)
+    k, bx, by = 1 / 2800, -0.35, 0.02
+    de = h * (k * x + bx) + rng.normal(0, 0.3, n); dn = h * (k * y + by) + rng.normal(0, 0.3, n)
+    de[:5] += 20                                                  # bad matches
+    from lidar3d import naip
+    m = naip.fit_displacement(np.c_[h, x, y, de, dn, np.ones(n)])
+    assert abs(m["bx"] - bx) < 0.02 and abs(m["by"] - by) < 0.02 and m["rms_after"] < m["rms_before"]
+
+
+def test_true_ortho_moves_a_leaning_roof_back_over_its_footprint():
+    from lidar3d import naip
+    from rasterio.transform import from_origin
+    n, res = 120, 0.6
+    tf = from_origin(0, n * res, res, res)
+    dsm = np.zeros((n, n)); dsm[50:70, 50:70] = 30.0              # a 30 m block
+    ground = np.zeros((n, n))
+    model = dict(k=0.0, bx=-0.2, by=0.0)                          # roof appears 6 m (10 cells) west of its footprint
+    img = np.zeros((4, n, n), np.uint8); img[:, 50:70, 40:60] = 200   # image shows the roof at columns 40..60
+    out, occ = naip.true_ortho(img, tf, dsm, ground, model, 0.0, 0.0)
+    assert out[0, 60, 55] == 200 and out[0, 60, 65] == 200       # roof cells now take the roof colour
+    assert out[0, 60, 45] != 200 or occ[60, 45]                  # the ground where the roof leaned is not roof-coloured, or flagged as hidden

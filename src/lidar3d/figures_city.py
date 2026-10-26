@@ -163,3 +163,72 @@ def fig_buildings_check(B, d0, n_all):
         y -= 0.2 * (w_.count("\n") + 1) + 0.22
     pl.save("11_seattle_height_check.png")
     return res
+
+
+# --------------------------------------------------------------------------------------------- 12 imagery draped on the models
+def _sample_textured(surf, walls, region, n, seed=7):
+    """Points on the textured surface and walls inside region (xmin, xmax, ymin, ymax in local metres), colours shaded by a fixed light.
+    Triangles are chosen by overlap with the region (big roof triangles reach far outside it) and the sampled points are then clipped to it."""
+    rng = np.random.default_rng(seed)
+    L = np.array([0.4, -0.5, 0.75]); L /= np.linalg.norm(L)
+    sel = []
+    for m, textured in ((surf, True), (walls, False)):
+        tri = m.triangles
+        lo, hi = tri.min(1), tri.max(1)
+        ov = (hi[:, 0] > region[0]) & (lo[:, 0] < region[1]) & (hi[:, 1] > region[2]) & (lo[:, 1] < region[3])
+        sel.append(ov * m.area_faces)
+    density = n / max(sum(w.sum() for w in sel), 1e-9)
+    pts, cols = [], []
+    for (m, textured), w in zip(((surf, True), (walls, False)), sel):
+        k = int(density * w.sum())
+        if k < 10:
+            continue
+        if textured:
+            p, f, col = trimesh.sample.sample_surface(m, k, face_weight=w, sample_color=True, seed=int(rng.integers(1 << 30)))
+            col = np.asarray(col)[:, :3].astype(float)
+        else:
+            p, f = trimesh.sample.sample_surface(m, k, face_weight=w, seed=int(rng.integers(1 << 30)))
+            col = m.visual.face_colors[f][:, :3].astype(float)
+        sh = 0.62 + 0.38 * np.clip(m.face_normals[f] @ L, 0, 1)
+        inside = (p[:, 0] > region[0]) & (p[:, 0] < region[1]) & (p[:, 1] > region[2]) & (p[:, 1] < region[3])
+        pts.append(p[inside]); cols.append(np.clip(col * sh[:, None], 0, 255).astype(np.uint8)[inside])
+    return np.vstack(pts), np.vstack(cols)
+
+
+def fig_naip(P, B, raw, fixed, tf, model, evidence, surf, walls, year, dates):
+    """raw / fixed: (4, h, w) NAIP before / after the lidar-based correction."""
+    pl = Plate("High-resolution aerial imagery on the lidar buildings", f"NAIP aerial photography ({dates}, 0.6 m pixels) corrected with the lidar surface and draped on the building model; roofs are photographic, walls are plain because no photo shows them",
+               SRC.format(d0=P["d0"]) + " Imagery: USDA National Agriculture Imagery Program (NAIP), via the Microsoft Planetary Computer.", "Photogrammetry was not possible: single downward photos only")
+    ex = (tf.c, tf.c + tf.a * raw.shape[2], tf.f - tf.a * raw.shape[1], tf.f)
+    cx, cy = P["cx"] + 129.0, P["cy"] - 109.0           # the Space Needle
+    half = 150.0
+    for k, (img, ttl) in enumerate(((raw, "As photographed"), (fixed, "Corrected with lidar heights"))):
+        a = pl.ax(0.6 + k * 4.2, 4.35, 3.9, 3.9)
+        a.imshow(np.moveaxis(img[:3], 0, -1), extent=ex)
+        for _, r in B[B.status == "ok"].iterrows():
+            gs = list(r.geometry.geoms) if isinstance(r.geometry, MultiPolygon) else [r.geometry]
+            for g in gs:
+                xs, ys = g.exterior.xy
+                a.plot(xs, ys, color="#FFD400", lw=0.9)
+        a.set_xlim(cx - half, cx + half); a.set_ylim(cy - half, cy + half); a.set_xticks([]); a.set_yticks([])
+        pl.label(0.6 + k * 4.2, 8.35, ttl)
+    ev = evidence
+    notes = [f"Yellow lines are the lidar footprints. A downward aerial photo is flattened onto the bare ground, so the top of a tall building appears displaced away from the point under the camera: the Space Needle's saucer sits about 65 m west of its own footprint on the left.",
+             f"The correction shifts each surface cell by an amount proportional to its lidar height above ground, with the shift fitted to {model['n']} tall buildings. After it, the roofs move onto their footprints.",
+             f"Check: across {ev['n']} tall footprints the median distance between each outline and its best image match fell from {ev['offset_before_m']:.1f} m to {ev['offset_after_m']:.1f} m, and the match score rose for {ev['improved_share'] * 100:.0f}% of them. It is not perfect: the fit leaves about {model['rms_after']:.0f} m typical error on some buildings, and surfaces hidden behind tall buildings in the photo cannot be recovered."]
+    import textwrap
+    y = 4.05
+    for t in notes:
+        w_ = "\n".join(textwrap.wrap(t, 90))
+        pl.text(0.6, y, w_, fontsize=8.5, color=MUTED, linespacing=1.35)
+        y -= 0.19 * (w_.count("\n") + 1) + 0.2
+    size = P["w"]
+    centre = (P["cx"], P["cy"], P["cz"])
+    full = (-size / 2, size / 2, -size / 2, size / 2)
+    zoom = (129 - 130, 129 + 130, -109 - 130, -109 + 130)
+    for k, (reg, ttl, n_pts, b0) in enumerate(((full, "Whole area", 5_000_000, 4.75), (zoom, "Close up around the Space Needle (modelled as a plain cylinder)", 4_000_000, 0.95))):
+        p_, c_ = _sample_textured(surf, walls, reg, n_pts)
+        img, _ = render3d.render(p_, c_, az=215, el=42, width=1500, height=800, zexag=1.0, center=p_.mean(0), splat=2)
+        a = pl.ax(9.0, b0, 6.4, 3.41); a.imshow(img); a.axis("off")
+        pl.label(9.0, b0 + 3.55, ttl)
+    return pl.save("12_seattle_imagery.png")

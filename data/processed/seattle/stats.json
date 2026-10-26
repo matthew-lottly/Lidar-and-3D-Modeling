@@ -8,6 +8,29 @@
  "clipped_by_edge": 26,
  "cityjson_buildings": 130,
  "open_shells": {},
+ "naip": {
+  "year": 2019,
+  "dates": "2019-10-11",
+  "model": {
+   "k": -4.3656577602920344e-05,
+   "bx": -0.3847253262546989,
+   "by": -0.02228125488431237,
+   "rms_before": 10.529957264870545,
+   "rms_after": 3.3846921878207756,
+   "median_abs_before": 0.8999999999999999,
+   "median_abs_after": 0.8398801756230443,
+   "n": 24
+  },
+  "alignment": {
+   "n": 39,
+   "score_before": 0.12665733979114313,
+   "score_after": 0.187797030493467,
+   "offset_before_m": 2.6832815729997477,
+   "offset_after_m": 1.3416407864998738,
+   "improved_share": 0.7435897435897436
+  },
+  "occluded_share": 0.08901239381476758
+ },
  "height_check": {
   "height_m": {
    "n": 114,

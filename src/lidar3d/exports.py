@@ -171,3 +171,53 @@ def cityjson_open_edges(doc: dict) -> dict[str, int]:
         if n:
             bad[k] = n
     return bad
+
+
+def textured_parts(gdf, terrain_z, x0, y1, res, size, ortho_rgb, centre, step=4, wall_rgb=(186, 180, 170)):
+    """Terrain and flat roofs share one image texture (the lidar-corrected NAIP ortho); walls get a plain colour because no image shows them. Local coordinates, metres from `centre`.
+    Returns (surface mesh with UVs and texture, wall mesh)."""
+    from PIL import Image
+    from shapely.geometry import MultiPolygon
+    from trimesh.visual import TextureVisuals
+    from trimesh.visual.material import SimpleMaterial
+    y0 = y1 - size
+
+    def uv_of(xy):
+        return np.c_[(xy[:, 0] - x0) / size, (xy[:, 1] - y0) / size]
+
+    zs = terrain_z[::step, ::step]
+    h, w = zs.shape
+    jj, ii = np.meshgrid(np.arange(w), np.arange(h))
+    gx, gy = x0 + (jj.ravel() * step + 0.5) * res, y1 - (ii.ravel() * step + 0.5) * res
+    idx = np.arange(h * w).reshape(h, w)
+    a, b, d, e = idx[:-1, :-1].ravel(), idx[:-1, 1:].ravel(), idx[1:, :-1].ravel(), idx[1:, 1:].ravel()
+    V = [np.c_[gx, gy, zs.ravel()]]
+    F = [np.r_[np.c_[a, d, b], np.c_[b, d, e]]]
+    off = len(V[0])
+    wallV, wallF, woff = [], [], 0
+    for _, r in gdf[gdf.status == "ok"].iterrows():
+        if r.roof_z <= r.base_z + 0.5:
+            continue
+        parts = list(r.geometry.geoms) if isinstance(r.geometry, MultiPolygon) else [r.geometry]
+        for pg in parts:
+            m = trimesh.creation.extrude_polygon(pg, float(r.roof_z - r.base_z))
+            v = m.vertices.copy(); v[:, 2] += r.base_z
+            up = m.face_normals[:, 2] > 0.9
+            cap = m.faces[up]
+            used, inv = np.unique(cap, return_inverse=True)
+            V.append(v[used]); F.append(inv.reshape(-1, 3) + off); off += len(used)
+            wf = m.faces[~up]
+            wallV.append(v); wallF.append(wf + woff); woff += len(v)
+    Vs = np.vstack(V)
+    img = Image.fromarray(np.moveaxis(ortho_rgb[:3], 0, -1))
+    surf = trimesh.Trimesh(Vs - np.array(centre), np.vstack(F), process=False)
+    surf.visual = TextureVisuals(uv=uv_of(Vs[:, :2]), material=SimpleMaterial(image=img))
+    walls = trimesh.Trimesh(np.vstack(wallV) - np.array(centre), np.vstack(wallF), process=False)
+    walls.visual.face_colors = np.tile(np.r_[wall_rgb, 255], (len(walls.faces), 1)).astype(np.uint8)
+    return surf, walls
+
+
+def ortho_tif(rgbn, tf, crs, path, dates=""):
+    with rasterio.open(path, "w", driver="GTiff", height=rgbn.shape[1], width=rgbn.shape[2], count=rgbn.shape[0], dtype="uint8", crs=crs, transform=tf, compress="deflate", photometric="RGB") as d:
+        d.write(rgbn)
+        d.update_tags(dates=dates, note="NAIP re-sampled with lidar surface heights; bands R,G,B,NIR")

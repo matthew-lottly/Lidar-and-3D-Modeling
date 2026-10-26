@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import numpy as np
 import trimesh
 
-from lidar3d import buildings, city, exports, figures_city
+from lidar3d import buildings, city, exports, figures_city, naip
 from lidar3d.cloud import Rasters, hillshade, multi_hillshade
 from lidar3d.ept import CACHE
 
@@ -61,6 +61,21 @@ def main():
     figures_city.fig_buildings_3d(P, B, pts, hag[idx], terrain, dd)
     n_clipped = int(ok.clipped.sum())
     res = figures_city.fig_buildings_check(B, dd, len(foot))
+    # imagery: NAIP corrected with the lidar surface, draped on the models
+    year = 2019
+    rgbn, tf, ndates = naip.fetch(aoi, year)
+    R6 = Rasters(aoi, c, res=tf.a)
+    dsm6, gnd6 = R6.dsm(), R6.dtm()
+    rows = naip.measure_shifts(B, rgbn, tf, aoi)
+    model = naip.fit_displacement(rows[rows[:, 5] >= 0.3])
+    fixed, occ = naip.true_ortho(rgbn, tf, dsm6, gnd6, model, aoi.cx, aoi.cy)
+    evidence = naip.alignment_check(B, rgbn, fixed, tf)
+    print("displacement model", model, "\nevidence", evidence, "occluded share", float(occ.mean()))
+    exports.ortho_tif(fixed, tf, aoi.crs, out / f"naip_{year}_lidar_corrected.tif", ndates)
+    surf, walls = exports.textured_parts(B, dtm, R.x0, R.y1, 0.5, aoi.size_m, fixed, centre)
+    trimesh.Scene({"surface": surf, "walls": walls}).export(out / "seattle_center_textured.glb")
+    P["d0"] = dd
+    figures_city.fig_naip(P, B, rgbn, fixed, tf, model, evidence, surf, walls, year, ndates)
     # point-cloud sample + viewer
     sel = rng.choice(len(c), 600_000, replace=False)
     from matplotlib import colormaps
@@ -69,7 +84,7 @@ def main():
     exports.html_viewer(np.c_[c.x[sel], c.y[sel], c.z[sel]], col, ROOT / "outputs" / "seattle_point_cloud_viewer.html", len(c), dd, dd,
                         "height above ground (viridis, 0 to 45 m); ground and low objects in grey", title="Lidar point cloud, Seattle Center")
     stats = dict(points=len(c), area_km2=aoi.size_m ** 2 / 1e6, pts_per_m2=len(c) / aoi.size_m ** 2, collected=dd, footprints=len(foot), modelled=int(len(ok)), clipped_by_edge=int(ok.clipped.sum()), cityjson_buildings=n,
-                 open_shells=bad, height_check=res, roof_types=ok.roof_type.value_counts().to_dict(), total_footprint_m2=float(ok.area_m2.sum()), top10=top[["name", "height_m", "height_max_m"]].to_dict("records"))
+                 open_shells=bad, naip=dict(year=year, dates=ndates, model=model, alignment=evidence, occluded_share=float(occ.mean())), height_check=res, roof_types=ok.roof_type.value_counts().to_dict(), total_footprint_m2=float(ok.area_m2.sum()), top10=top[["name", "height_m", "height_max_m"]].to_dict("records"))
     (out / "stats.json").write_text(json.dumps(stats, indent=1, default=str))
     print(json.dumps({k: v for k, v in stats.items() if k != "top10"}, indent=1, default=str))
 
