@@ -1,0 +1,12 @@
+numpy
+scipy
+pandas
+rasterio
+pyproj
+laspy[lazrs]
+matplotlib
+scikit-image
+trimesh
+requests
+mgrs
+pillow
