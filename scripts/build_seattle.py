@@ -74,15 +74,27 @@ def main():
     dsm6, gnd6 = R6.dsm(), R6.dtm()
     rows = naip.measure_shifts(B, rgbn, tf, aoi)
     model = naip.fit_displacement(rows[rows[:, 5] >= 0.3])
-    fixed, occ = naip.true_ortho(rgbn, tf, dsm6, gnd6, model, aoi.cx, aoi.cy)
+    import rasterio.features
+    raw6 = R6._stat(np.ones(len(c), bool), np.maximum, -np.inf)
+    raw6[~np.isfinite(raw6)] = np.nan
+    fmask = rasterio.features.rasterize([(g, 1) for g in B[B.status == "ok"].geometry], out_shape=raw6.shape, transform=tf, fill=0, dtype="uint8").astype(bool)
+    zroof = naip.repaired_surface_abs(raw6, fmask, dsm6)
+    curvy = [i for i, r in B.iterrows() if r.status == "ok" and r.roof_spread_m > 6 and r["name"] != "Space Needle" and r.roof_z > r.base_z + 0.5]
+    hh6 = naip.per_cell_roofs(naip.rigid_roof_heights(naip.building_height_field(raw6, fmask, dsm6, gnd6), B, tf), B, curvy, zroof, gnd6, tf)
+    fixed, occ = naip.true_ortho(rgbn, tf, dsm6, gnd6, model, aoi.cx, aoi.cy, hh=hh6)
     evidence = naip.alignment_check(B, rgbn, fixed, tf)
     print("displacement model", model, "\nevidence", evidence, "occluded share", float(occ.mean()))
     exports.ortho_tif(fixed, tf, aoi.crs, out / f"naip_{year}_lidar_corrected.tif", ndates)
-    surf, walls = exports.textured_parts(B, dtm, R.x0, R.y1, 0.5, aoi.size_m, fixed, centre, solids=solids)
+    surf, walls = exports.textured_parts(B, dtm, R.x0, R.y1, 0.5, aoi.size_m, fixed, centre, solids=solids, roof_rows=set(curvy), roof_surface=(zroof, tf))
     surf_old, walls_old = exports.textured_parts(B, dtm, R.x0, R.y1, 0.5, aoi.size_m, fixed, centre)
+    surf_flat, walls_flat = exports.textured_parts(B, dtm, R.x0, R.y1, 0.5, aoi.size_m, fixed, centre, solids=solids)
     trimesh.Scene({"surface": surf, "walls": walls}).export(out / "seattle_center_textured.glb")
     P["d0"] = dd
+    mrow = B[B["name"] == "MoPOP: Museum of Pop Culture"].iloc[0]
+    mm = rasterio.features.rasterize([(mrow.geometry, 1)], out_shape=raw6.shape, transform=tf, fill=0, dtype="uint8").astype(bool)
+    hole_share = float(np.isnan(raw6[mm]).mean())
     figures_city.fig_naip(P, B, rgbn, fixed, tf, model, evidence, surf, walls, year, ndates)
+    figures_city.fig_curved_roof(P, B, rgbn, fixed, tf, (surf_flat, walls_flat), (surf, walls), hole_share, len(curvy))
     nq = needle.fit_quality(npts, nprof)
     sym_s, sym_l = needle.symmetry(npts, 154, 160), needle.symmetry(npts, 30, 60)
     nloc = (naxis[0] - aoi.cx, naxis[1] - aoi.cy)
@@ -96,7 +108,7 @@ def main():
     exports.html_viewer(np.c_[c.x[sel], c.y[sel], c.z[sel]], col, ROOT / "outputs" / "seattle_point_cloud_viewer.html", len(c), dd, dd,
                         "height above ground (viridis, 0 to 45 m); ground and low objects in grey", title="Lidar point cloud, Seattle Center")
     stats = dict(points=len(c), area_km2=aoi.size_m ** 2 / 1e6, pts_per_m2=len(c) / aoi.size_m ** 2, collected=dd, footprints=len(foot), modelled=int(len(ok)), clipped_by_edge=int(ok.clipped.sum()), cityjson_buildings=n,
-                 open_shells=bad, needle=dict(quality=nq, symmetry_saucer=sym_s, symmetry_legs=sym_l, volume_m3=float(nmesh.volume)), naip=dict(year=year, dates=ndates, model=model, alignment=evidence, occluded_share=float(occ.mean())), height_check=res, roof_types=ok.roof_type.value_counts().to_dict(), total_footprint_m2=float(ok.area_m2.sum()), top10=top[["name", "height_m", "height_max_m"]].to_dict("records"))
+                 open_shells=bad, needle=dict(quality=nq, symmetry_saucer=sym_s, symmetry_legs=sym_l, volume_m3=float(nmesh.volume)), naip=dict(curved_roofs=len(curvy), year=year, dates=ndates, model=model, alignment=evidence, occluded_share=float(occ.mean())), height_check=res, roof_types=ok.roof_type.value_counts().to_dict(), total_footprint_m2=float(ok.area_m2.sum()), top10=top[["name", "height_m", "height_max_m"]].to_dict("records"))
     (out / "stats.json").write_text(json.dumps(stats, indent=1, default=str))
     print(json.dumps({k: v for k, v in stats.items() if k != "top10"}, indent=1, default=str))
 

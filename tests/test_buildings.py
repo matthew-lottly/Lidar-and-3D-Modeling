@@ -90,3 +90,31 @@ def test_cityjson_accepts_a_modelled_solid_and_stays_closed(tmp_path):
     doc = json.loads(p.read_text())
     assert exports.cityjson_open_edges(doc) == {}
     assert next(iter(doc["CityObjects"].values()))["geometry"][0]["lod"] == "2"
+
+
+def test_rigid_roof_heights_make_a_footprint_one_height():
+    import geopandas as gpd
+    from rasterio.transform import from_origin
+    from shapely.geometry import box
+    from lidar3d import naip
+    tf = from_origin(0, 60, 1.0, 1.0)
+    hh = np.zeros((60, 60)); hh[10:30, 10:30] = np.random.default_rng(0).uniform(5, 25, (20, 20)); hh[45:50, 45:50] = 7.0
+    fp = gpd.GeoDataFrame([dict(status="ok", height_m=18.0, geometry=box(10, 30, 30, 50))], geometry="geometry", crs="EPSG:32610")
+    out = naip.rigid_roof_heights(hh, fp, tf)
+    assert np.allclose(out[10:30, 10:30], 18.0) and np.all(out[45:50, 45:50] == 7.0)
+
+
+def test_roof_heightfield_covers_the_footprint_and_closes_with_walls():
+    from rasterio.transform import from_origin
+    from lidar3d import exports
+    tf = from_origin(0, 60, 0.6, 0.6)
+    z = np.add.outer(np.linspace(0, 10, 100), np.zeros(100)) + 20          # ramp
+    pg = Polygon([(5, 5), (45, 5), (45, 40), (25, 40), (25, 25), (5, 25)])  # L shape
+    rv, rf, wv, wf = exports.roof_heightfield(pg, (z, tf), 10.0)
+    def area2d(f):
+        u, v = rv[f[1], :2] - rv[f[0], :2], rv[f[2], :2] - rv[f[0], :2]
+        return abs(u[0] * v[1] - u[1] * v[0]) / 2
+    plan = sum(area2d(f) for f in rf)
+    assert abs(plan - pg.area) / pg.area < 0.02                              # roof triangles tile the footprint, not its bounding box
+    assert all(np.cross(rv[f[1]] - rv[f[0]], rv[f[2]] - rv[f[0]])[2] > 0 for f in rf)   # all facing up
+    assert wv[:, 2].min() == 10.0 and len(wf) == len(wv)                      # two wall triangles per outline segment, one segment per outline point

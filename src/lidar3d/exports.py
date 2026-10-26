@@ -191,8 +191,9 @@ def cityjson_open_edges(doc: dict) -> dict[str, int]:
     return bad
 
 
-def textured_parts(gdf, terrain_z, x0, y1, res, size, ortho_rgb, centre, step=4, wall_rgb=(186, 180, 170), solids=None):
+def textured_parts(gdf, terrain_z, x0, y1, res, size, ortho_rgb, centre, step=4, wall_rgb=(186, 180, 170), solids=None, roof_rows=(), roof_surface=None):
     """Terrain and flat roofs share one image texture (the lidar-corrected NAIP ortho); walls get a plain colour because no image shows them. Local coordinates, metres from `centre`.
+    Footprints listed in `roof_rows` (index labels) get their real roof shape instead of a flat cap: roof_surface = (absolute z array, transform) is sampled on a ~1.2 m triangulation that includes the footprint outline.
     Returns (surface mesh with UVs and texture, wall mesh)."""
     from PIL import Image
     from shapely.geometry import MultiPolygon
@@ -214,12 +215,18 @@ def textured_parts(gdf, terrain_z, x0, y1, res, size, ortho_rgb, centre, step=4,
     off = len(V[0])
     wallV, wallF, woff = [], [], 0
     solids = solids or {}
-    for _, r in gdf[gdf.status == "ok"].iterrows():
+    for gi, r in gdf[gdf.status == "ok"].iterrows():
         if r.roof_z <= r.base_z + 0.5:
             continue
         parts = list(r.geometry.geoms) if isinstance(r.geometry, MultiPolygon) else [r.geometry]
         if r.get("name") in solids:
             parts = [None]
+        elif gi in roof_rows and roof_surface is not None:
+            for pg in parts:
+                rv, rf, wv, wf = roof_heightfield(pg, roof_surface, float(r.base_z))
+                V.append(rv); F.append(rf + off); off += len(rv)
+                wallV.append(wv); wallF.append(wf + woff); woff += len(wv)
+            continue
         for pg in parts:
             if pg is None:
                 m = solids[r.get("name")]
@@ -248,3 +255,46 @@ def ortho_tif(rgbn, tf, crs, path, dates=""):
     with rasterio.open(path, "w", driver="GTiff", height=rgbn.shape[1], width=rgbn.shape[2], count=rgbn.shape[0], dtype="uint8", crs=crs, transform=tf, compress="deflate", photometric="RGB") as d:
         d.write(rgbn)
         d.update_tags(dates=dates, note="NAIP re-sampled with lidar surface heights; bands R,G,B,NIR")
+
+
+def roof_heightfield(poly, roof_surface, base_z, step=1.2):
+    """Roof triangles following a surface raster, clipped to a footprint, plus the walls from the footprint outline down to base_z.
+    Points: the outline (every <= step m) and a grid inside the outline pulled back 0.6 m; triangulated by Delaunay and kept where the triangle centre is inside the footprint.
+    Returns (roof vertices, roof faces facing up, wall vertices, wall faces facing out); roof face indices are local to the returned vertices."""
+    import shapely
+    from scipy.spatial import Delaunay
+    from shapely.geometry.polygon import orient
+    z_abs, tf = roof_surface
+    poly = orient(poly, 1.0)
+    seg = shapely.segmentize(poly, step)
+    rings = [np.asarray(seg.exterior.coords)[:-1]] + [np.asarray(i.coords)[:-1] for i in seg.interiors]
+    inner = poly.buffer(-0.6)
+    x0, y0, x1, y1 = poly.bounds
+    gx, gy = np.meshgrid(np.arange(x0, x1, step), np.arange(y0, y1, step))
+    gp = np.c_[gx.ravel(), gy.ravel()]
+    gp = gp[shapely.contains_xy(inner, gp[:, 0], gp[:, 1])] if not inner.is_empty else gp[:0]
+    xy = np.vstack(rings + [gp])
+
+    def zat(p):
+        c = np.clip(((p[:, 0] - tf.c) / tf.a).astype(int), 0, z_abs.shape[1] - 1)
+        r = np.clip(((tf.f - p[:, 1]) / tf.a).astype(int), 0, z_abs.shape[0] - 1)
+        return z_abs[r, c]
+
+    roof_v = np.c_[xy, zat(xy)]
+    tri = Delaunay(xy).simplices
+    cen = xy[tri].mean(1)
+    keep = shapely.contains_xy(poly.buffer(0.05), cen[:, 0], cen[:, 1])
+    tri = tri[keep]
+    n = np.cross(roof_v[tri[:, 1]] - roof_v[tri[:, 0]], roof_v[tri[:, 2]] - roof_v[tri[:, 0]])
+    tri = np.where((n[:, 2] < 0)[:, None], tri[:, ::-1], tri)
+    wv, wf, o = [], [], 0
+    for rg in rings:
+        k = len(rg)
+        top = np.c_[rg, zat(rg)]
+        bot = np.c_[rg, np.full(k, base_z)]
+        wv.append(np.vstack([bot, top]))
+        for i in range(k):
+            j = (i + 1) % k
+            wf += [[o + i, o + j, o + k + j], [o + i, o + k + j, o + k + i]]
+        o += 2 * k
+    return roof_v, tri, np.vstack(wv), np.array(wf)

@@ -27,6 +27,7 @@
   "volume_m3": 68051.42835410312
  },
  "naip": {
+  "curved_roofs": 33,
   "year": 2019,
   "dates": "2019-10-11",
   "model": {
@@ -42,12 +43,12 @@
   "alignment": {
    "n": 39,
    "score_before": 0.12665733979114313,
-   "score_after": 0.187797030493467,
+   "score_after": 0.20733668201830965,
    "offset_before_m": 2.6832815729997477,
    "offset_after_m": 1.3416407864998738,
-   "improved_share": 0.7435897435897436
+   "improved_share": 0.7692307692307693
   },
-  "occluded_share": 0.08901239381476758
+  "occluded_share": 0.08121880711276763
  },
  "height_check": {
   "height_m": {

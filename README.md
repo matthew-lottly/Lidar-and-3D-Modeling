@@ -33,10 +33,12 @@ LOD1 building models for 132 footprints around the Space Needle, from the 2021 K
 ![Seattle 3D](outputs/10_seattle_3d.png)
 ![Seattle imagery](outputs/12_seattle_imagery.png)
 ![Space Needle](outputs/13_space_needle.png)
+![MoPOP](outputs/14_mopop_curved_roof.png)
 
 * [outputs/09_seattle_buildings.png](outputs/09_seattle_buildings.png), [10_seattle_3d.png](outputs/10_seattle_3d.png), [11_seattle_height_check.png](outputs/11_seattle_height_check.png)
 * `data/processed/seattle/`: CityJSON, GLB, GeoPackage; [outputs/seattle_point_cloud_viewer.html](outputs/seattle_point_cloud_viewer.html)
 * **Space Needle:** fitted to its own lidar returns as a shape of revolution instead of an extruded footprint: [outputs/13_space_needle.png](outputs/13_space_needle.png). About 54 m of its height (the open steel between shaft and saucer) is interpolated, not measured.
+* **Curved roofs:** the 33 buildings with strongly curved or stepped roofs (MoPOP the clearest) are built with their real lidar roof surface under the photo: [outputs/14_mopop_curved_roof.png](outputs/14_mopop_curved_roof.png). The red on MoPOP is the real roof colour.
 * **Aerial imagery:** NAIP 2019 (0.6 m) corrected for relief displacement with the lidar heights and draped on roofs and ground: [outputs/12_seattle_imagery.png](outputs/12_seattle_imagery.png), `seattle_center_textured.glb`.
 * Limits: flat-roof blocks only (no LOD2, apart from the Space Needle); heights compared with Overture's rather than a survey; imagery is a single downward photo from 2019, so roofs are photographic but walls are plain grey; and **no photogrammetry**: no overlapping photographs of the buildings could be obtained.
 

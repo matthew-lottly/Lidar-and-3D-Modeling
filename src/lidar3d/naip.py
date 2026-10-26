@@ -78,13 +78,13 @@ def fit_displacement(rows: np.ndarray):
                 median_abs_before=float(np.median(np.abs(np.r_[de, dn]))), median_abs_after=float(np.median(np.abs(r))), n=len(h))
 
 
-def true_ortho(rgbn, tf, dsm, ground, model, aoi_cx, aoi_cy, min_h=2.0):
+def true_ortho(rgbn, tf, dsm, ground, model, aoi_cx, aoi_cy, min_h=2.0, hh=None):
     """Re-sample the image so that every surface cell takes its colour from where the camera actually saw it (surface point shifted by the fitted displacement), using the lidar surface heights.
     dsm, ground: lidar surface and bare-earth elevation on the SAME grid as rgbn. Returns (corrected rgbn, occluded mask). Occluded cells (hidden behind a taller structure in the photo) are filled from the nearest visible ground and flagged."""
     from scipy import ndimage
     h_, w_ = dsm.shape
     res = tf.a
-    hh = np.clip(dsm - ground, 0, None)
+    hh = np.clip(dsm - ground, 0, None) if hh is None else hh
     rr, cc = np.mgrid[0:h_, 0:w_]
     x = tf.c + (cc + 0.5) * res - aoi_cx
     y = tf.f - (rr + 0.5) * tf.a - aoi_cy
@@ -175,3 +175,54 @@ def alignment_check(footprints, before, after, tf, min_h=8.0, min_area=250.0):
         out.append(row)
     A = np.array(out)
     return dict(n=len(A), score_before=float(np.median(A[:, 0])), score_after=float(np.median(A[:, 2])), offset_before_m=float(np.median(A[:, 1])), offset_after_m=float(np.median(A[:, 3])), improved_share=float((A[:, 2] > A[:, 0]).mean()))
+
+
+def building_height_field(raw_dsm, footprint_mask, dsm_filled, ground, size=3):
+    """Height above ground used to shift the image, with the glossy-roof dropouts repaired. Cells inside a footprint that have no lidar return (metal and glass roofs reflect the pulse away) take the
+    nearest real roof return instead of a blend with the ground around, and the heights inside footprints get a small median filter so noise does not tear the re-sampled image.
+    raw_dsm: highest return per cell with NaN where there is none; footprint_mask: bool; dsm_filled: the usual hole-filled surface; ground: bare earth."""
+    from scipy import ndimage
+    valid = np.isfinite(raw_dsm) & footprint_mask
+    if valid.any():
+        idx = ndimage.distance_transform_edt(~valid, return_distances=False, return_indices=True)
+        inside = raw_dsm[tuple(idx)]
+    else:
+        inside = dsm_filled
+    z = np.where(footprint_mask, inside, dsm_filled)
+    z = np.where(footprint_mask, ndimage.median_filter(z, size=size), z)
+    return np.clip(z - ground, 0, None)
+
+
+def rigid_roof_heights(hh, footprints, tf):
+    """Replace the per-cell height inside every measured footprint by that building's roof height above ground, so the roof photo is shifted as one rigid piece. Per-cell shifts tear curved, glossy
+    or stepped roofs (self-occlusion in the photo, lidar dropouts); a rigid shift cannot distort the roof, at the cost of a misalignment of about 0.4 x the height variation across the roof.
+    Cells outside footprints (ground, trees) keep their per-cell heights."""
+    import rasterio.features
+    out = hh.copy()
+    for _, r in footprints.iterrows():
+        if r.status != "ok":
+            continue
+        m = rasterio.features.rasterize([(r.geometry, 1)], out_shape=hh.shape, transform=tf, fill=0, dtype="uint8").astype(bool)
+        out[m] = r.height_m
+    return out
+
+
+def repaired_surface_abs(raw_dsm, footprint_mask, dsm_filled, sigma=2.0):
+    """Absolute roof surface inside footprints, for curved or stepped roofs: dropouts take the nearest real return inside the footprints and the result is Gaussian-smoothed (sigma in cells) so
+    it is a clean heightfield. Outside footprints it is the usual filled surface."""
+    from scipy import ndimage
+    valid = np.isfinite(raw_dsm) & footprint_mask
+    idx = ndimage.distance_transform_edt(~valid, return_distances=False, return_indices=True)
+    z = np.where(footprint_mask, raw_dsm[tuple(idx)], dsm_filled)
+    return ndimage.gaussian_filter(z, sigma)
+
+
+def per_cell_roofs(hh, footprints, rows, z_abs, ground, tf):
+    """Give the footprints listed in `rows` (index labels) their per-cell smoothed heights above ground instead of one rigid height."""
+    import rasterio.features
+    out = hh.copy()
+    for i in rows:
+        r = footprints.loc[i]
+        m = rasterio.features.rasterize([(r.geometry, 1)], out_shape=hh.shape, transform=tf, fill=0, dtype="uint8").astype(bool)
+        out[m] = np.clip(z_abs[m] - ground[m], 0, None)
+    return out

@@ -219,7 +219,7 @@ def fig_naip(P, B, raw, fixed, tf, model, evidence, surf, walls, year, dates):
         pl.label(0.6 + k * 4.2, 8.35, ttl)
     ev = evidence
     notes = [f"Yellow lines are the lidar footprints. A downward aerial photo is flattened onto the bare ground, so the top of a tall building appears displaced away from the point under the camera: the Space Needle's saucer sits about 65 m west of its own footprint on the left.",
-             f"The correction shifts each surface cell by an amount proportional to its lidar height above ground, with the shift fitted to {model['n']} tall buildings. After it, the roofs move onto their footprints.",
+             f"The correction shifts each roof, as one piece so the photo is not warped, by an amount proportional to its lidar height above ground; ground and trees use per-cell lidar heights, and strongly curved roofs (see plate 14) use smoothed per-cell heights. The shift is fitted to {model['n']} tall buildings. After it, the roofs move onto their footprints.",
              f"Check: across {ev['n']} tall footprints the median distance between each outline and its best image match fell from {ev['offset_before_m']:.1f} m to {ev['offset_after_m']:.1f} m, and the match score rose for {ev['improved_share'] * 100:.0f}% of them. It is not perfect: the fit leaves about {model['rms_after']:.0f} m typical error on some buildings, and surfaces hidden behind tall buildings in the photo cannot be recovered."]
     import textwrap
     y = 4.05
@@ -275,3 +275,44 @@ def fig_needle(P, pts, prof, quality, sym_saucer, sym_legs, parts_old, parts_new
         pl.text(0.9, y, w_, fontsize=8, color=MUTED, linespacing=1.3)
         y -= 0.17 * (w_.count("\n") + 1) + 0.08
     return pl.save("13_space_needle.png")
+
+
+# --------------------------------------------------------------------------------------------- 14 a curved roof: MoPOP
+def fig_curved_roof(P, B, raw, fixed, tf, parts_flat, parts_real, hole_share, n_curved, name="MoPOP: Museum of Pop Culture"):
+    import textwrap
+    g = B[B["name"] == name].iloc[0]
+    pl = Plate("A curved roof: the Museum of Pop Culture", "The red, blue, silver and gold roof is real; the first drape of it on a flat block looked distorted, so curved roofs now follow their lidar surface",
+               SRC.format(d0=P["d0"]) + " Imagery: USDA NAIP 2019, via the Microsoft Planetary Computer.", "Same camera in both 3D views")
+    x0, y0, x1, y1 = g.geometry.bounds
+    m = 25.0
+    ex = (tf.c, tf.c + tf.a * raw.shape[2], tf.f - tf.a * raw.shape[1], tf.f)
+    for k, (img, ttl) in enumerate(((raw, "Photograph as received"), (fixed, "Corrected with lidar heights"))):
+        a = pl.ax(0.9 + k * 3.3, 4.55, 3.0, 3.6)
+        a.imshow(np.moveaxis(img[:3], 0, -1), extent=ex)
+        gs = list(g.geometry.geoms) if isinstance(g.geometry, MultiPolygon) else [g.geometry]
+        for pg in gs:
+            xs, ys = pg.exterior.xy
+            a.plot(xs, ys, color="#FFD400", lw=0.9)
+        a.set_xlim(x0 - m, x1 + m); a.set_ylim(y0 - m, y1 + m); a.set_xticks([]); a.set_yticks([])
+        pl.label(0.9 + k * 3.3, 8.35, ttl)
+    cx, cy = g.geometry.centroid.x - P["cx"], g.geometry.centroid.y - P["cy"]
+    region = (cx - 50, cx + 50, cy - 70, cy + 70)
+    info = None
+    for k, ((surf, walls), ttl) in enumerate(((parts_flat, "Photo on a flat roof (first version)"), (parts_real, "Photo on the lidar roof surface"))):
+        p_, c_ = _sample_textured(surf, walls, region, 4_000_000)
+        if info is None:
+            cen = p_.mean(0)
+        img, inf = render3d.render(p_, c_, az=215, el=38, width=1000, height=720, zexag=1.0, center=cen, scale=info["scale"] if info else None, off=info["off"] if info else None, splat=2)
+        info = info or inf
+        a = pl.ax(0.9 + k * 4.7, 0.95, 4.5, 3.24); a.imshow(img); a.axis("off")
+        pl.label(0.9 + k * 4.7, 4.35, ttl)
+    notes = ["The red is not an error: it is in the unprocessed photograph, top left. The museum's roof is curved metal in several colours.",
+             f"Two things made the first version look distorted. A photo of a curved roof was stretched over a flat block, and the lidar has no returns for {hole_share * 100:.0f}% of this roof's cells (glossy metal reflects the laser away), so the height-based shift of the image was wrong and tore it.",
+             f"Now, for the {n_curved} buildings whose roofs vary by more than 6 m, dropouts take the nearest real roof return, the heights are smoothed, and the roof is built as the lidar surface (about 1.2 m triangles) so the photo lies on the shape it was taken from. Other roofs are shifted as one rigid piece.",
+             "Limits: the roof is a smoothed approximation, not a survey of the panels; walls are plain because no photo shows them; parts of the roof hidden from the camera in the photo are filled from neighbouring pixels."]
+    y = 7.9
+    for t in notes:
+        w_ = "\n".join(textwrap.wrap(t, 62))
+        pl.text(10.3, y, w_, fontsize=8.8, color=MUTED, linespacing=1.4)
+        y -= 0.2 * (w_.count("\n") + 1) + 0.3
+    return pl.save("14_mopop_curved_roof.png")
