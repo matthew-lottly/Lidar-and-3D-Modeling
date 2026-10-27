@@ -165,3 +165,54 @@ def test_regular_cores_one_point_per_cell():
     p = np.c_[rng.uniform(-50, 50, (5000, 2)), rng.uniform(0, 1, 5000)]
     c = change.regular_cores(p, 10.0)
     assert len(c) == 100 and np.all(np.abs((c[:, 0] + 300) % 10 - 5) < 1e-6)
+
+
+def test_fill_and_route_a_pit_on_a_tilted_plane():
+    from lidar3d import hydro
+    z = np.add.outer(np.linspace(10, 0, 40), np.zeros(40))
+    z[15:18, 15:18] -= 2.0                                                  # a pit
+    f = hydro.fill_depressions(z)
+    assert f[16, 16] > z[16, 16] + 1.3 and np.allclose(f[0], z[0])     # filled to the downhill rim, which is 2 m minus the slope across the pit
+    g = hydro.resolve_flats(f)
+    d = hydro.d8_direction(g)
+    assert ((d < 0)[1:-1, 1:-1]).sum() == 0                                 # every interior cell has somewhere to go
+    acc = hydro.flow_accumulation(g, d)
+    assert acc[-1].sum() >= 0.9 * 40 * 40                                   # most cells leave through the bottom edge; edge columns drain sideways
+
+
+def test_d8_accumulation_on_a_v_valley_follows_the_axis():
+    from lidar3d import hydro
+    x = np.abs(np.arange(41) - 20.0)
+    z = np.add.outer(np.linspace(20, 0, 61), x * 0.5)                      # valley axis at column 20, falling toward the last row
+    d = hydro.d8_direction(hydro.resolve_flats(z))
+    acc = hydro.flow_accumulation(z, d)
+    assert np.argmax(acc[-2]) in (19, 20, 21) and acc[-2].max() > 0.8 * acc.shape[1] * 59 / 1.0 * 0.9
+
+
+def test_hydro_flatten_sets_one_level_from_water_returns():
+    from lidar3d import hydro
+    dtm = np.random.default_rng(0).normal(100, 0.1, (50, 50))
+    m = np.zeros((50, 50), bool); m[10:30, 10:30] = True
+    lab = m.astype(int)
+    out, lv = hydro.hydro_flatten(dtm, m, lab, np.full(500, 99.7) + np.random.default_rng(1).normal(0, 0.02, 500), np.ones(500, int))
+    assert abs(lv[1] - 99.7) < 0.01 and np.ptp(out[m]) == 0 and np.array_equal(out[~m], dtm[~m])
+
+
+def test_pmf_rejects_a_shrub_on_flat_ground_but_keeps_a_steep_slope():
+    from lidar3d import hydro
+    z = np.zeros((80, 80)); z[:, 40:] += np.arange(40) * 0.9               # a 42 degree ramp on the right half
+    z[20:23, 10:13] += 1.5                                                  # a 3 m wide shrub on the flat half
+    g = hydro.pmf_ground(z)
+    assert not g[21, 11] and g[40, 60] and g[40, 20]
+
+
+def test_hand_and_catchment():
+    from lidar3d import hydro
+    z = np.add.outer(np.zeros(30), np.abs(np.arange(31) - 15.0))           # a trench at column 15, 1 m per column
+    z = z + np.linspace(3, 0, 30)[:, None]
+    d = hydro.d8_direction(hydro.resolve_flats(z))
+    ch = np.zeros(z.shape, bool); ch[:, 15] = True
+    h = hydro.hand(z, d, ch)
+    assert abs(h[10, 20] - 5.0) < 1.01 and h[10, 15] == 0
+    c = hydro.catchment_of(d, ch)
+    assert c[10, 5] and c[10, 25]

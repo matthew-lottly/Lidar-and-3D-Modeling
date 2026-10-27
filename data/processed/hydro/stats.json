@@ -1,0 +1,86 @@
+{
+ "ground_filter": {
+  "ground_share": 0.979838775510204,
+  "omission": 0.012362557399234695,
+  "commission": 0.6922347287213861,
+  "n_at": 1734997,
+  "n_above": 47442,
+  "canopy_omission": 0.0,
+  "canopy_commission": 0.47305429259160203,
+  "n_above_canopy": 14956
+ },
+ "lake": {
+  "cells": 7618,
+  "level_m": 1815.9200439453125,
+  "dtm_p5": 1815.8518618647001,
+  "dtm_p95": 1816.1899394321715,
+  "dtm_std_before_m": 0.10437907713068596,
+  "catchment_km2": 0.058528,
+  "water_points": 74828
+ },
+ "depressions": {
+  "cells": 2866,
+  "volume_m3": 236.5841923498847,
+  "max_depth_m": 1.2527693357842509,
+  "count": 1286,
+  "in_lake": 0.0
+ },
+ "d8": {
+  "interior_sinks": 6,
+  "max_accumulation_km2": 0.212426
+ },
+ "channels": {
+  "threshold_m2": 1000.0,
+  "length_m": 56417.82708903373,
+  "density_km_per_km2": 28.78460565767027,
+  "by_threshold": {
+   "250": 133902.16289241472,
+   "500": 86356.54294095415,
+   "1000": 56417.82708903373,
+   "2000": 37186.2913884135,
+   "5000": 22715.26607366014
+  },
+  "mapped_streams_in_area": 0,
+  "mapped_length_m": 0.0,
+  "matched_length_m": 0.0,
+  "unmapped_length_m": 56417.82708903373,
+  "unmapped_share": 1.0,
+  "incision_median_unmapped_m": 0.5201983664054524,
+  "incision_p90_unmapped_m": 1.659527321286737,
+  "share_unmapped_under_0p5m": 0.48706679004037684
+ },
+ "defined": {
+  "length_m": 28978.829416844404,
+  "density_km_per_km2": 14.785117049410411,
+  "unmapped_length_m": 28978.829416844404,
+  "mapped_stream_recall": null,
+  "incision_min_m": 0.5
+ },
+ "hand": {
+  "0.5": {
+   "area_m2_main": 44190.0,
+   "share_main": 0.02254591836734694,
+   "area_m2_defined": 42692.0,
+   "share_defined": 0.021781632653061225
+  },
+  "1": {
+   "area_m2_main": 67189.0,
+   "share_main": 0.03428010204081633,
+   "area_m2_defined": 73895.0,
+   "share_defined": 0.0377015306122449
+  },
+  "2": {
+   "area_m2_main": 111749.0,
+   "share_main": 0.05701479591836735,
+   "area_m2_defined": 141323.0,
+   "share_defined": 0.07210357142857143
+  },
+  "5": {
+   "area_m2_main": 227614.0,
+   "share_main": 0.1161295918367347,
+   "area_m2_defined": 342441.0,
+   "share_defined": 0.17471479591836736
+  }
+ },
+ "area_km2": 1.96
+}
