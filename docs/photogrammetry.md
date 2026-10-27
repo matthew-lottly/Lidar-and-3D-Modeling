@@ -13,12 +13,10 @@ If you have photos (drone, aerial or ground) with 60 to 80 % overlap:
 
 To check a photogrammetric surface against this lidar, georeference it (ground control points or image GPS), export a DSM, and difference it with `data/processed/dsm_1m.tif` (EPSG:32610). The lidar was collected in September 2022, so photos from another date will also show real change.
 
-## Seattle
+## Seattle buildings
 
-The same applies to the Seattle buildings. Street-level and aerial photo sources (Mapillary, Wikimedia Commons, Flickr, OpenAerialMap, USGS EarthExplorer) were tried from the build environment and none could be reached, so there are no photographs to reconstruct from. A photogrammetric model of a building needs your own photos of it, or access to one of those sources.
+The Seattle models are not photogrammetric either. Their imagery is NAIP aerial photography (0.6 m), a single downward image per area, draped on the lidar roofs and ground after correcting it for relief displacement (see [seattle-buildings.md](seattle-buildings.md)). That is texture mapping, not photogrammetry, and it leaves facades unphotographed.
 
-Photogrammetry and lidar would complement each other on a building: lidar gives the roof and overall form (this repository), photos give facade detail and texture. A real comparison would be a photo-based surface differenced against the lidar surface in the same coordinates.
+Photogrammetry needs overlapping oblique photographs. The street-level and oblique photo sources tried from the build environment (Mapillary, Wikimedia Commons, Flickr, OpenAerialMap, USGS EarthExplorer) could not be reached, apart from the NAIP mirror once its host was allowed, so there are no such photographs. A photogrammetric model of a building needs your own photos of it, or access to one of those sources.
 
-## Update: aerial imagery is now available, photogrammetry still is not
-
-NAIP aerial imagery (0.6 m) was retrieved from the Planetary Computer once its host was allowed, and is draped on the Seattle roofs (see [seattle-buildings.md](seattle-buildings.md)). That is texture mapping of a single downward photo, not photogrammetry. NAIP frames are not distributed as overlapping image sets with camera positions in the public mirror, and the roof-only result leaves facades unphotographed. Street-level photo hosts (Mapillary, Wikimedia Commons) were not allowed from the build environment.
+Photogrammetry and lidar would complement each other on a building: lidar gives the roof and overall form, photos give facade detail and texture. A real comparison would be a photo-based surface differenced against the lidar surface in the same coordinates.

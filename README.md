@@ -27,26 +27,34 @@ Lidar, radar and 3D terrain products for a 1.4 km square (2.0 km²) about 18 km 
 
 ## Second analysis: Seattle Center buildings
 
-LOD1 building models for 132 footprints around the Space Needle, from the 2021 King County lidar (12 points per m²) and Overture footprints. Details and numbers in [docs/seattle-buildings.md](docs/seattle-buildings.md).
+Building models for the 700 m square around the Space Needle (0.49 km²), from the 2021 King County lidar (5.9 million points, 12 per m²), Overture Maps footprints and USDA NAIP aerial imagery. 132 of 139 footprints were measured. Most are flat-roof (LOD1) blocks at the lidar roof height; the Space Needle is fitted to its own lidar returns; 25 curved or stepped roofs follow their lidar surface in the textured model. Method, numbers and limits: [docs/seattle-buildings.md](docs/seattle-buildings.md).
 
 ![Seattle buildings](outputs/09_seattle_buildings.png)
-![Seattle 3D](outputs/10_seattle_3d.png)
-![Seattle imagery](outputs/12_seattle_imagery.png)
+![Imagery on the models](outputs/12_seattle_imagery.png)
 ![Space Needle](outputs/13_space_needle.png)
-![MoPOP](outputs/14_mopop_curved_roof.png)
 
-* [outputs/09_seattle_buildings.png](outputs/09_seattle_buildings.png), [10_seattle_3d.png](outputs/10_seattle_3d.png), [11_seattle_height_check.png](outputs/11_seattle_height_check.png)
-* `data/processed/seattle/`: CityJSON, GLB, GeoPackage; [outputs/seattle_point_cloud_viewer.html](outputs/seattle_point_cloud_viewer.html)
-* **Space Needle:** fitted to its own lidar returns as a shape of revolution instead of an extruded footprint: [outputs/13_space_needle.png](outputs/13_space_needle.png). About 54 m of its height (the open steel between shaft and saucer) is interpolated, not measured.
-* **Curved roofs:** the buildings with strongly curved or stepped roofs (MoPOP the clearest) are built with their real lidar roof surface under the photo: [outputs/14_mopop_curved_roof.png](outputs/14_mopop_curved_roof.png). The red on MoPOP is the real roof colour.
-* **Aerial imagery:** NAIP 2019 (0.6 m) corrected for relief displacement with the lidar heights and draped on roofs and ground: [outputs/12_seattle_imagery.png](outputs/12_seattle_imagery.png), `seattle_center_textured.glb`.
-* Limits: flat-roof blocks only (no LOD2, apart from the Space Needle); heights compared with Overture's rather than a survey; imagery is a single downward photo from 2019, so roofs are photographic but walls are plain grey; and **no photogrammetry**: no overlapping photographs of the buildings could be obtained.
+| Product | File | What it is |
+|---|---|---|
+| Buildings by height | [outputs/09_seattle_buildings.png](outputs/09_seattle_buildings.png) | Footprints coloured by lidar height, the ten highest structures, height and roof-shape distributions |
+| 3D views | [outputs/10_seattle_3d.png](outputs/10_seattle_3d.png) | Lidar points by height above ground, and the block model |
+| Height check | [outputs/11_seattle_height_check.png](outputs/11_seattle_height_check.png) | Lidar heights against Overture's, largest differences |
+| Aerial imagery on the models | [outputs/12_seattle_imagery.png](outputs/12_seattle_imagery.png) | NAIP 2019 corrected with the lidar heights, before and after, draped in 3D |
+| Space Needle | [outputs/13_space_needle.png](outputs/13_space_needle.png) | Shape of revolution fitted to its returns; about 54 m of height is interpolated |
+| Curved roof | [outputs/14_mopop_curved_roof.png](outputs/14_mopop_curved_roof.png) | Museum of Pop Culture: the roof follows its lidar surface under the photo (the red is the real roof colour) |
+| Building model | `data/processed/seattle/seattle_center_lod1.city.json` | CityJSON 1.1: LOD1 blocks, the Space Needle as an LOD2 solid |
+| Textured model | `data/processed/seattle/seattle_center_textured.glb` | Photo on roofs and ground; curved roofs in 3D |
+| Block model | `data/processed/seattle/seattle_center_lod1.glb` | Terrain and blocks coloured by height |
+| Measurements | `data/processed/seattle/buildings_lod1.gpkg` | Footprints with ground, roof and maximum heights, roof shape |
+| Corrected imagery | `data/processed/seattle/naip_2019_lidar_corrected.tif` | NAIP re-sampled with lidar heights, R, G, B, NIR, EPSG:32610 |
+| Point cloud | [outputs/seattle_point_cloud_viewer.html](outputs/seattle_point_cloud_viewer.html) | 600,000 points, standalone viewer |
+
+Limits: roofs are flat blocks except the Space Needle and the curved roofs, and the CityJSON keeps all but the Needle as LOD1; heights are compared with Overture's, not with a survey; the imagery is a single downward photo from 2019, so roofs are photographic and walls are plain grey (curved roofs take their roof edge's colour); and there is **no photogrammetry**, because no overlapping photographs of the buildings could be obtained.
 
 ## Data
 
 * **Lidar:** USGS 3D Elevation Program project `WA_CentralWildfire_2_D22`, Entwine Point Tiles on AWS (`s3://usgs-lidar-public`). Collected 2022-09-04 to 2022-09-08 (dates derived from the point GPS times). 30.8 points per m². Published classes present: 1 unclassified, 2 ground, 9 water, 20 and 21 snow; there are no vegetation classes, so canopy comes from a height model.
 * **Radar:** Sentinel-1 radiometrically terrain-corrected Gamma0, VV and VH, 20 m, from the public `sentinel-s1-rtc-indigo` archive. 104 ascending acquisitions with the same geometry, 2017-01-21 to 2021-04-18.
-* **Aerial imagery (Seattle):** USDA NAIP 2019-10-11, 0.6 m, via the Microsoft Planetary Computer.
+* **Seattle lidar:** USGS 3DEP `WA_KingCo_1_2021`, collected 2021-04-14, 12 points per m², classes 1 and 2 only (no building class). **Footprints:** Overture Maps buildings, release 2026-09-23.1. **Aerial imagery:** USDA NAIP 2019-10-11, 0.6 m, via the Microsoft Planetary Computer.
 * **Optical, for checking and draping:** Sentinel-2 L2A scene `S2B_10TFS_20220909` (five days after the lidar).
 * **Check data:** ESA WorldCover 2021 v200. Place names: Overture Maps. Regional hillshade: USGS 3DEP 1 arc-second DEM.
 
@@ -85,4 +93,4 @@ python scripts/build_seattle.py        # Seattle Center buildings
 python -m pytest tests                 # pure-logic tests, no network
 ```
 
-`src/lidar3d`: `ept.py` reads the EPT index and tiles, `cloud.py` and `products.py` build the terrain and canopy rasters and the statistics, `landcover.py` classifies, `radar.py` and `imagery.py` read Sentinel data, `validate.py` runs the checks, `figures.py` and `plates.py` draw the plates, `exports.py` writes the mesh, point cloud and viewer.
+`src/lidar3d`: `ept.py` reads the EPT index and tiles, `cloud.py` and `products.py` build the terrain and canopy rasters and the statistics, `landcover.py` classifies, `radar.py` and `imagery.py` read Sentinel data, `validate.py` runs the checks, `figures.py` and `plates.py` draw the plates, `exports.py` writes the meshes, CityJSON, point clouds and viewers, `render3d.py` is the software renderer. Seattle buildings: `city.py` fetches the cloud and footprints, `buildings.py` measures them, `needle.py` fits the Space Needle, `naip.py` fetches and corrects the aerial imagery, `figures_city.py` draws plates 09 to 14.

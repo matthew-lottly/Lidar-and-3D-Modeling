@@ -8,7 +8,6 @@ import rasterio
 import requests
 from rasterio.enums import Resampling
 from rasterio.vrt import WarpedVRT
-from rasterio.windows import from_bounds
 
 from .aoi import AOI
 from .ept import CACHE
@@ -109,17 +108,18 @@ def true_ortho(rgbn, tf, dsm, ground, model, aoi_cx, aoi_cy, min_h=2.0, hh=None)
     return out, occluded
 
 
-def _edge_maps(rgbn):
-    g = rgbn[:3].astype(float).mean(0)
-    return ndimage_gauss(np.hypot(*np.gradient(ndimage_gauss(g, 1.0))), 0.7)
-
-
 def ndimage_gauss(a, s):
     from scipy import ndimage
     return ndimage.gaussian_filter(a, s)
 
 
-def measure_shifts(footprints, rgbn, tf, aoi, search_per_m=0.5, min_h=8.0, min_area=250.0, sizes_only=False):
+def _edge_maps(rgbn):
+    """Edge strength of the image (gradient magnitude of the grey, lightly smoothed): what an outline looks like to the matcher."""
+    g = rgbn[:3].astype(float).mean(0)
+    return ndimage_gauss(np.hypot(*np.gradient(ndimage_gauss(g, 1.0))), 0.7)
+
+
+def measure_shifts(footprints, rgbn, tf, aoi, search_per_m=0.5, min_h=8.0, min_area=250.0):
     """For each tall footprint, find how far its roof outline appears displaced in the image: slide the outline's edge map (from the lidar footprint) over the image's edge strength and
     take the best normalised cross-correlation within a search window proportional to the building height. Returns an (n, 6) array: height, x, y (m from the AOI centre), east shift m, north shift m, score."""
     import rasterio.features

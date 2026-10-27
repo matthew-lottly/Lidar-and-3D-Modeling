@@ -9,8 +9,7 @@ from shapely.affinity import translate
 from shapely.geometry import MultiPolygon
 
 from . import render3d
-from .cloud import Rasters, hillshade
-from .plates import FAINT, INK, MUTED, RULE, Plate, colorbar, map_frame, north_arrow, scalebar
+from .plates import FAINT, INK, MUTED, Plate, colorbar, map_frame, north_arrow, scalebar
 
 SRC = ("Lidar: USGS 3D Elevation Program (3DEP) project WA_KingCo_1_2021, public on AWS (usgs-lidar-public), collected {d0}. Classes present: 1 unclassified, 2 ground; no building class. "
        "Footprints: Overture Maps buildings, release 2026-09-23.1 (aggregated from open sources; the footprints come from a 2026 release, five years after the lidar).")
@@ -172,36 +171,6 @@ def fig_buildings_check(B, d0, n_all):
 
 
 # --------------------------------------------------------------------------------------------- 12 imagery draped on the models
-def clear_window(region, footprints, max_shift=45.0, step=1.5, limits=None):
-    """Move each edge of a view window (xmin, xmax, ymin, ymax, local metres) by the smallest amount so that the edge does not cut through any footprint, which would leave a sliver of wall.
-    `limits` = (xmin_lo, xmax_hi, ymin_lo, ymax_hi) bounds an edge may not pass (e.g. the area edge or a building to keep out)."""
-    from shapely.geometry import LineString
-    from shapely.ops import unary_union
-    u = unary_union(list(footprints))
-    x0, x1, y0, y1 = region
-    lim = limits or (-1e9, 1e9, -1e9, 1e9)
-
-    def free(side, v):
-        seg = LineString([(v, y0), (v, y1)]) if side < 2 else LineString([(x0, v), (x1, v)])
-        return not seg.intersects(u)
-
-    out = [x0, x1, y0, y1]
-    for side, v in enumerate((x0, x1, y0, y1)):
-        lo, hi = (lim[0], lim[1]) if side < 2 else (lim[2], lim[3])
-        for d in np.arange(0, max_shift + step, step):
-            for sgn in (1, -1):
-                w = v + sgn * d
-                if (side in (0, 2) and (w < lo)) or (side in (1, 3) and (w > hi)):
-                    continue
-                if free(side, w):
-                    out[side] = w
-                    break
-            else:
-                continue
-            break
-    return tuple(out)
-
-
 def _sample_textured(surf, walls, region, n, seed=7):
     """Points on the textured surface and walls inside region (xmin, xmax, ymin, ymax in local metres), colours shaded by a fixed light.
     Triangles are chosen by overlap with the region (big roof triangles reach far outside it) and the sampled points are then clipped to it."""
@@ -237,7 +206,7 @@ def fig_naip(P, B, raw, fixed, tf, model, evidence, surf, walls, year, dates, pa
                SRC.format(d0=P["d0"]) + " Imagery: USDA National Agriculture Imagery Program (NAIP), via the Microsoft Planetary Computer.", "Photogrammetry was not possible: single downward photos only")
     ex = (tf.c, tf.c + tf.a * raw.shape[2], tf.f - tf.a * raw.shape[1], tf.f)
     mrow = B[B["name"] == "MoPOP: Museum of Pop Culture"].iloc[0]                 # shown on plate 14; kept out of this plate's windows
-    mx0, my0, mx1, my1 = (mrow.geometry.bounds[0] - P["cx"], mrow.geometry.bounds[1] - P["cy"], mrow.geometry.bounds[2] - P["cx"], mrow.geometry.bounds[3] - P["cy"])
+    mx0, my0 = mrow.geometry.bounds[0] - P["cx"], mrow.geometry.bounds[1] - P["cy"]
     nx, ny = 129.0, -109.0                                                         # the Space Needle, metres from the area centre
     half = 100.0
     cx, cy = P["cx"] + nx - 40.0, P["cy"] + ny - 50.0
@@ -253,7 +222,7 @@ def fig_naip(P, B, raw, fixed, tf, model, evidence, surf, walls, year, dates, pa
         a.set_xlim(cx - half, cx + half); a.set_ylim(cy - half, cy + half); a.set_xticks([]); a.set_yticks([])
         pl.label(0.6 + k * 4.2, 8.35, ttl)
     ev = evidence
-    notes = [f"Yellow lines are the lidar footprints. A downward aerial photo is flattened onto the bare ground, so the top of a tall building appears displaced away from the point under the camera: the Space Needle's saucer sits about 65 m west of its own footprint on the left.",
+    notes = ["Yellow lines are the lidar footprints. A downward aerial photo is flattened onto the bare ground, so the top of a tall building appears displaced away from the point under the camera: the Space Needle's saucer sits about 65 m west of its own footprint on the left.",
              f"The correction shifts each roof, as one piece so the photo is not warped, by an amount proportional to its lidar height above ground; ground and trees use per-cell lidar heights, and strongly curved roofs (see plate 14) use smoothed per-cell heights. The shift is fitted to {model['n']} tall buildings. After it, the roofs move onto their footprints.",
              f"Check: across {ev['n']} tall footprints the median distance between each outline and its best image match fell from {ev['offset_before_m']:.1f} m to {ev['offset_after_m']:.1f} m, and the match score rose for {ev['improved_share'] * 100:.0f}% of them. It is not perfect: the fit leaves about {model['rms_after']:.0f} m typical error on some buildings, and surfaces hidden behind tall buildings in the photo cannot be recovered.",
              "In the two 3D views, buildings cut by the edge of the view are left undrawn and show as flat photo on the ground, and the museum is kept out of both (plate 14)."]
@@ -264,11 +233,8 @@ def fig_naip(P, B, raw, fixed, tf, model, evidence, surf, walls, year, dates, pa
         pl.text(0.6, y, w_, fontsize=8.5, color=MUTED, linespacing=1.35)
         y -= 0.19 * (w_.count("\n") + 1) + 0.2
     size = P["w"]
-    centre = (P["cx"], P["cy"], P["cz"])
-    fps = [translate(g, -P["cx"], -P["cy"]) for g in B[B.status == "ok"].geometry]
-    west = clear_window((-size / 2, mx0 - 10.0, -size / 2, size / 2), fps, limits=(-size / 2, size / 2, -size / 2, size / 2))   # everything west of the museum
-    west = (west[0], min(west[1], mx0 - 5.0), west[2], west[3])
-    zoom = clear_window((nx - 110, nx + 110, ny - 95, my0 - 10.0), fps, limits=(-1e9, 1e9, -1e9, my0 - 5.0))                  # around the Needle, stopping before the museum
+    west = (-size / 2, mx0 - 10.0, -size / 2, size / 2)                            # everything west of the museum
+    zoom = (nx - 110, nx + 110, ny - 95, my0 - 10.0)                               # around the Needle, stopping before the museum
     for k, (reg, ttl, n_pts, b0) in enumerate(((west, "Western two thirds of the area (the museum is on plate 14)", 5_000_000, 4.75), (zoom, "Close up around the Space Needle (shape fitted to its lidar returns)", 4_000_000, 0.95))):
         if parts_fn is not None:                                                   # buildings straddling this view's edge are left out so no sliver of wall shows
             from shapely.geometry import box as _box
@@ -301,7 +267,7 @@ def fig_needle(P, pts, prof, quality, sym_saucer, sym_legs, parts_old, parts_new
     a.set_xlabel("m from the axis", fontsize=8, color=MUTED); a.set_ylabel("height above ground, m", fontsize=8, color=MUTED)
     pl.label(0.9, 8.3, "Lidar returns and fitted outline")
     region = (axis_local[0] - 48, axis_local[0] + 48, axis_local[1] - 48, axis_local[1] + 48)
-    imgs, info = [], None
+    info = None
     for k, ((surf, walls), ttl, x0) in enumerate(((parts_new, "After: fitted to the lidar", 4.1), (parts_old, "Before: footprint extruded to the main roof", 9.4))):
         p_, c_ = _sample_textured(surf, walls, region, 5_000_000)
         if info is None:

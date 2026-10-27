@@ -10,8 +10,7 @@ import numpy as np
 import trimesh
 
 from lidar3d import buildings, city, exports, figures_city, naip, needle
-from lidar3d.cloud import Rasters, hillshade, multi_hillshade
-from lidar3d.ept import CACHE
+from lidar3d.cloud import Rasters, multi_hillshade
 
 
 def main():
@@ -65,7 +64,6 @@ def main():
     a_, b_, d_, e_ = ix[:-1, :-1].ravel(), ix[:-1, 1:].ravel(), ix[1:, :-1].ravel(), ix[1:, 1:].ravel()
     terrain = trimesh.Trimesh(v, np.r_[np.c_[a_, d_, b_], np.c_[b_, d_, e_]], process=False)
     figures_city.fig_buildings_3d(P, B, pts, hag[idx], terrain, dd)
-    n_clipped = int(ok.clipped.sum())
     res = figures_city.fig_buildings_check(B, dd, len(foot))
     # imagery: NAIP corrected with the lidar surface, draped on the models
     year = 2019
