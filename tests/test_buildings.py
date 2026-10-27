@@ -118,3 +118,50 @@ def test_roof_heightfield_covers_the_footprint_and_closes_with_walls():
     assert abs(plan - pg.area) / pg.area < 0.02                              # roof triangles tile the footprint, not its bounding box
     assert all(np.cross(rv[f[1]] - rv[f[0]], rv[f[2]] - rv[f[0]])[2] > 0 for f in rf)   # all facing up
     assert wv[:, 2].min() == 10.0 and len(wf) == len(wv)                      # two wall triangles per outline segment, one segment per outline point
+
+
+def _plane(rng, n, dz, slope=0.05):
+    x, y = rng.uniform(0, 40, (2, n))
+    return np.c_[x, y, slope * x + rng.normal(0, 0.03, n) + dz]
+
+
+def test_m3c2_recovers_a_known_displacement_and_flags_nothing_on_stable_ground():
+    from lidar3d import change
+    rng = np.random.default_rng(0)
+    a, b = _plane(rng, 30000, 0.0), _plane(rng, 30000, 0.30)
+    core = np.c_[rng.uniform(5, 35, (500, 2)), np.zeros(500)]
+    core[:, 2] = 0.05 * core[:, 0]
+    d, lod, *_ = change.m3c2(a, b, core, normal_radii=(2.0,), cyl_radius=1.0, max_distance=3.0)
+    assert abs(np.nanmedian(d) - 0.30 * np.cos(np.arctan(0.05))) < 0.01
+    d0, lod0, *_ = change.m3c2(a, _plane(rng, 30000, 0.0), core, normal_radii=(2.0,), cyl_radius=1.0, max_distance=3.0)
+    assert change.significant(d0, lod0).mean() < 0.15
+
+
+def test_surface_points_rejects_a_canopy_floating_above_ground():
+    from lidar3d import change
+    rng = np.random.default_rng(1)
+    g = np.c_[rng.uniform(-100, 100, (20000, 2)), rng.normal(5, 0.03, 20000)]
+    canopy = np.c_[rng.uniform(-100, 0, (4000, 2)), 12 + rng.uniform(0, 2, 4000)]
+    xyz = np.vstack([g, canopy])
+    e = change.Epoch("t", "p", "2020-01-01", xyz[:, 0], xyz[:, 1], xyz[:, 2], np.ones(len(xyz), np.uint8), np.ones(len(xyz), np.uint8), np.ones(len(xyz), np.uint8))
+    m = change.surface_points(e)
+    assert m[:20000].mean() > 0.9 and m[20000:].mean() < 0.05
+
+
+def test_volume_from_normals_and_helpers():
+    from lidar3d import change
+    d = np.array([-1.0, -1.0, 0.5, 2.0])
+    nrm = np.array([[0, 0, 1.0], [0, 0, 0.5], [0, 0, 1.0], [0, 0, 1.0]])
+    sig = np.array([True, True, True, False])
+    loss, gain = change.volume_from_normals(d, nrm, sig, 4.0)
+    assert loss == 4.0 + 8.0 and gain == 2.0                         # a steeper cell has more surface area per plan cell
+    assert abs(change.robust_sd(np.random.default_rng(0).normal(0, 0.05, 20000)) - 0.05) < 0.003
+    assert change.gps_date(np.full(10, 1.3e9 - 1e9 + 1e9 - 1e9)) == change.gps_date(np.full(10, 3.0e8))
+
+
+def test_regular_cores_one_point_per_cell():
+    from lidar3d import change
+    rng = np.random.default_rng(2)
+    p = np.c_[rng.uniform(-50, 50, (5000, 2)), rng.uniform(0, 1, 5000)]
+    c = change.regular_cores(p, 10.0)
+    assert len(c) == 100 and np.all(np.abs((c[:, 0] + 300) % 10 - 5) < 1e-6)

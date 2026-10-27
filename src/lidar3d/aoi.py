@@ -30,7 +30,7 @@ class AOI:
     @property
     def bbox_ll(self):                   # W, S, E, N with a small margin
         x0, y0, x1, y1 = self.bounds
-        t = Transformer.from_crs(CRS, "EPSG:4326", always_xy=True)
+        t = Transformer.from_crs(self.crs, "EPSG:4326", always_xy=True)
         pts = [t.transform(x, y) for x in (x0 - 30, x1 + 30) for y in (y0 - 30, y1 + 30)]
         return min(p[0] for p in pts), min(p[1] for p in pts), max(p[0] for p in pts), max(p[1] for p in pts)
 

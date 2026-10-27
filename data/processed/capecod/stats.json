@@ -1,0 +1,108 @@
+{
+ "epochs": [
+  {
+   "tag": "2014",
+   "project": "MA_NE_CMGP_Sandy_Z19_A1_2015",
+   "date": "2014-04-04",
+   "points": 1171699,
+   "surface_points": 946776,
+   "pts_per_m2": 3.2547194444444445,
+   "surface_pts_per_m2": 2.6299333333333332
+  },
+  {
+   "tag": "2021",
+   "project": "MA_CentralEastern_2_2021",
+   "date": "2021-04-09",
+   "points": 4891292,
+   "surface_points": 3430431,
+   "pts_per_m2": 13.586922222222222,
+   "surface_pts_per_m2": 9.528975
+  }
+ ],
+ "years_between": 7.0,
+ "core": {
+  "spacing_m": 2.0,
+  "n": 78106,
+  "valid": 75143,
+  "smooth": 44334,
+  "rough_excluded_share": 0.41000492394501153
+ },
+ "stable": {
+  "x_max": -120.0,
+  "n": 11394,
+  "median_m": 0.017405263336546746,
+  "robust_sd_m": 0.04542610007840254,
+  "std_m": 0.05246660485494133,
+  "share_over_lod": 0.012023872213445674,
+  "share_over_015": 0.006055818852027383,
+  "lod_median_m": 0.12987874317760717
+ },
+ "registration_error_m": 0.045,
+ "change": {
+  "significant": 15683,
+  "loss_m3": 33798.3471017259,
+  "gain_m3": 14655.578263645748,
+  "net_m3": -19142.768838080152,
+  "max_loss_m": 4.5782257279851795,
+  "max_gain_m": 1.9978861449133338
+ },
+ "zones": {
+  "north bluff": {
+   "cells": 1432,
+   "surface_area_m2": 6565.89537361045,
+   "loss_m3": 13365.847116262443,
+   "gain_m3": 258.27925626533727,
+   "net_m3": -13107.567859997105,
+   "uncertainty_m3": 295.46529181247024
+  },
+  "middle bluff": {
+   "cells": 1425,
+   "surface_area_m2": 6508.575187316414,
+   "loss_m3": 7567.561718078412,
+   "gain_m3": 211.29647289516993,
+   "net_m3": -7356.265245183242,
+   "uncertainty_m3": 292.8858834292386
+  },
+  "south bank": {
+   "cells": 6100,
+   "surface_area_m2": 24931.510145503707,
+   "loss_m3": 321.69262514706315,
+   "gain_m3": 511.73875366698087,
+   "net_m3": 190.04612851991772,
+   "uncertainty_m3": 1121.9179565476668
+  },
+  "beach": {
+   "cells": 8529,
+   "surface_area_m2": 34200.235472757005,
+   "loss_m3": 6596.25332239749,
+   "gain_m3": 9045.071962400347,
+   "net_m3": 2448.818640002857,
+   "uncertainty_m3": 1539.0105962740652
+  }
+ },
+ "dod_check": {
+  "north bluff": {
+   "cells": 1415,
+   "dod_net_m3": -12604.78003168106,
+   "m3c2_net_m3": -13076.610890393302,
+   "difference_pct": -3.743269279799676
+  },
+  "middle bluff": {
+   "cells": 1408,
+   "dod_net_m3": -7020.039895057678,
+   "m3c2_net_m3": -7346.454945852051,
+   "difference_pct": -4.649760623499866
+  },
+  "south bank": {
+   "cells": 6098,
+   "dod_net_m3": 303.45995712280273,
+   "m3c2_net_m3": 188.64024438289607,
+   "difference_pct": -37.83685789339315
+  }
+ },
+ "along_length_m": {
+  "north bluff": 180,
+  "middle bluff": 180,
+  "south bank": 200
+ }
+}
