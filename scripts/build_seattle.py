@@ -79,7 +79,7 @@ def main():
     raw6[~np.isfinite(raw6)] = np.nan
     fmask = rasterio.features.rasterize([(g, 1) for g in B[B.status == "ok"].geometry], out_shape=raw6.shape, transform=tf, fill=0, dtype="uint8").astype(bool)
     zroof = naip.repaired_surface_abs(raw6, fmask, dsm6)
-    curvy = [i for i, r in B.iterrows() if r.status == "ok" and r.roof_spread_m > 6 and r["name"] != "Space Needle" and r.roof_z > r.base_z + 0.5]
+    curvy = [i for i, r in B.iterrows() if r.status == "ok" and r.roof_spread_m > 6 and r.area_m2 >= 150 and r["name"] != "Space Needle" and r.roof_z > r.base_z + 0.5]
     hh6 = naip.per_cell_roofs(naip.rigid_roof_heights(naip.building_height_field(raw6, fmask, dsm6, gnd6), B, tf), B, curvy, zroof, gnd6, tf)
     fixed, occ = naip.true_ortho(rgbn, tf, dsm6, gnd6, model, aoi.cx, aoi.cy, hh=hh6)
     evidence = naip.alignment_check(B, rgbn, fixed, tf)
@@ -93,7 +93,8 @@ def main():
     mrow = B[B["name"] == "MoPOP: Museum of Pop Culture"].iloc[0]
     mm = rasterio.features.rasterize([(mrow.geometry, 1)], out_shape=raw6.shape, transform=tf, fill=0, dtype="uint8").astype(bool)
     hole_share = float(np.isnan(raw6[mm]).mean())
-    figures_city.fig_naip(P, B, rgbn, fixed, tf, model, evidence, surf, walls, year, ndates)
+    parts_fn = lambda excl: exports.textured_parts(B.drop(index=list(excl)), dtm, R.x0, R.y1, 0.5, aoi.size_m, fixed, centre, solids=solids, roof_rows=set(curvy) - set(excl), roof_surface=(zroof, tf))
+    figures_city.fig_naip(P, B, rgbn, fixed, tf, model, evidence, surf, walls, year, ndates, parts_fn=parts_fn)
     figures_city.fig_curved_roof(P, B, rgbn, fixed, tf, (surf_flat, walls_flat), (surf, walls), hole_share, len(curvy))
     nq = needle.fit_quality(npts, nprof)
     sym_s, sym_l = needle.symmetry(npts, 154, 160), needle.symmetry(npts, 30, 60)

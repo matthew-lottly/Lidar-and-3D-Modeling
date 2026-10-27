@@ -5,6 +5,7 @@ import numpy as np
 import trimesh
 from matplotlib import colormaps
 from matplotlib.colors import Normalize
+from shapely.affinity import translate
 from shapely.geometry import MultiPolygon
 
 from . import render3d
@@ -171,6 +172,36 @@ def fig_buildings_check(B, d0, n_all):
 
 
 # --------------------------------------------------------------------------------------------- 12 imagery draped on the models
+def clear_window(region, footprints, max_shift=45.0, step=1.5, limits=None):
+    """Move each edge of a view window (xmin, xmax, ymin, ymax, local metres) by the smallest amount so that the edge does not cut through any footprint, which would leave a sliver of wall.
+    `limits` = (xmin_lo, xmax_hi, ymin_lo, ymax_hi) bounds an edge may not pass (e.g. the area edge or a building to keep out)."""
+    from shapely.geometry import LineString
+    from shapely.ops import unary_union
+    u = unary_union(list(footprints))
+    x0, x1, y0, y1 = region
+    lim = limits or (-1e9, 1e9, -1e9, 1e9)
+
+    def free(side, v):
+        seg = LineString([(v, y0), (v, y1)]) if side < 2 else LineString([(x0, v), (x1, v)])
+        return not seg.intersects(u)
+
+    out = [x0, x1, y0, y1]
+    for side, v in enumerate((x0, x1, y0, y1)):
+        lo, hi = (lim[0], lim[1]) if side < 2 else (lim[2], lim[3])
+        for d in np.arange(0, max_shift + step, step):
+            for sgn in (1, -1):
+                w = v + sgn * d
+                if (side in (0, 2) and (w < lo)) or (side in (1, 3) and (w > hi)):
+                    continue
+                if free(side, w):
+                    out[side] = w
+                    break
+            else:
+                continue
+            break
+    return tuple(out)
+
+
 def _sample_textured(surf, walls, region, n, seed=7):
     """Points on the textured surface and walls inside region (xmin, xmax, ymin, ymax in local metres), colours shaded by a fixed light.
     Triangles are chosen by overlap with the region (big roof triangles reach far outside it) and the sampled points are then clipped to it."""
@@ -200,13 +231,17 @@ def _sample_textured(surf, walls, region, n, seed=7):
     return np.vstack(pts), np.vstack(cols)
 
 
-def fig_naip(P, B, raw, fixed, tf, model, evidence, surf, walls, year, dates):
+def fig_naip(P, B, raw, fixed, tf, model, evidence, surf, walls, year, dates, parts_fn=None):
     """raw / fixed: (4, h, w) NAIP before / after the lidar-based correction."""
     pl = Plate("High-resolution aerial imagery on the lidar buildings", f"NAIP aerial photography ({dates}, 0.6 m pixels) corrected with the lidar surface and draped on the building model; roofs are photographic, walls are plain because no photo shows them",
                SRC.format(d0=P["d0"]) + " Imagery: USDA National Agriculture Imagery Program (NAIP), via the Microsoft Planetary Computer.", "Photogrammetry was not possible: single downward photos only")
     ex = (tf.c, tf.c + tf.a * raw.shape[2], tf.f - tf.a * raw.shape[1], tf.f)
-    cx, cy = P["cx"] + 129.0, P["cy"] - 109.0           # the Space Needle
-    half = 150.0
+    mrow = B[B["name"] == "MoPOP: Museum of Pop Culture"].iloc[0]                 # shown on plate 14; kept out of this plate's windows
+    mx0, my0, mx1, my1 = (mrow.geometry.bounds[0] - P["cx"], mrow.geometry.bounds[1] - P["cy"], mrow.geometry.bounds[2] - P["cx"], mrow.geometry.bounds[3] - P["cy"])
+    nx, ny = 129.0, -109.0                                                         # the Space Needle, metres from the area centre
+    half = 100.0
+    cx, cy = P["cx"] + nx - 40.0, P["cy"] + ny - 50.0
+    assert cy + half < P["cy"] + my0 - 5, "photo crop would include MoPOP"
     for k, (img, ttl) in enumerate(((raw, "As photographed"), (fixed, "Corrected with lidar heights"))):
         a = pl.ax(0.6 + k * 4.2, 4.35, 3.9, 3.9)
         a.imshow(np.moveaxis(img[:3], 0, -1), extent=ex)
@@ -220,7 +255,8 @@ def fig_naip(P, B, raw, fixed, tf, model, evidence, surf, walls, year, dates):
     ev = evidence
     notes = [f"Yellow lines are the lidar footprints. A downward aerial photo is flattened onto the bare ground, so the top of a tall building appears displaced away from the point under the camera: the Space Needle's saucer sits about 65 m west of its own footprint on the left.",
              f"The correction shifts each roof, as one piece so the photo is not warped, by an amount proportional to its lidar height above ground; ground and trees use per-cell lidar heights, and strongly curved roofs (see plate 14) use smoothed per-cell heights. The shift is fitted to {model['n']} tall buildings. After it, the roofs move onto their footprints.",
-             f"Check: across {ev['n']} tall footprints the median distance between each outline and its best image match fell from {ev['offset_before_m']:.1f} m to {ev['offset_after_m']:.1f} m, and the match score rose for {ev['improved_share'] * 100:.0f}% of them. It is not perfect: the fit leaves about {model['rms_after']:.0f} m typical error on some buildings, and surfaces hidden behind tall buildings in the photo cannot be recovered."]
+             f"Check: across {ev['n']} tall footprints the median distance between each outline and its best image match fell from {ev['offset_before_m']:.1f} m to {ev['offset_after_m']:.1f} m, and the match score rose for {ev['improved_share'] * 100:.0f}% of them. It is not perfect: the fit leaves about {model['rms_after']:.0f} m typical error on some buildings, and surfaces hidden behind tall buildings in the photo cannot be recovered.",
+             "In the two 3D views, buildings cut by the edge of the view are left undrawn and show as flat photo on the ground, and the museum is kept out of both (plate 14)."]
     import textwrap
     y = 4.05
     for t in notes:
@@ -229,10 +265,19 @@ def fig_naip(P, B, raw, fixed, tf, model, evidence, surf, walls, year, dates):
         y -= 0.19 * (w_.count("\n") + 1) + 0.2
     size = P["w"]
     centre = (P["cx"], P["cy"], P["cz"])
-    full = (-size / 2, size / 2, -size / 2, size / 2)
-    zoom = (129 - 130, 129 + 130, -109 - 130, -109 + 130)
-    for k, (reg, ttl, n_pts, b0) in enumerate(((full, "Whole area", 5_000_000, 4.75), (zoom, "Close up around the Space Needle (shape fitted to its lidar returns)", 4_000_000, 0.95))):
-        p_, c_ = _sample_textured(surf, walls, reg, n_pts)
+    fps = [translate(g, -P["cx"], -P["cy"]) for g in B[B.status == "ok"].geometry]
+    west = clear_window((-size / 2, mx0 - 10.0, -size / 2, size / 2), fps, limits=(-size / 2, size / 2, -size / 2, size / 2))   # everything west of the museum
+    west = (west[0], min(west[1], mx0 - 5.0), west[2], west[3])
+    zoom = clear_window((nx - 110, nx + 110, ny - 95, my0 - 10.0), fps, limits=(-1e9, 1e9, -1e9, my0 - 5.0))                  # around the Needle, stopping before the museum
+    for k, (reg, ttl, n_pts, b0) in enumerate(((west, "Western two thirds of the area (the museum is on plate 14)", 5_000_000, 4.75), (zoom, "Close up around the Space Needle (shape fitted to its lidar returns)", 4_000_000, 0.95))):
+        if parts_fn is not None:                                                   # buildings straddling this view's edge are left out so no sliver of wall shows
+            from shapely.geometry import box as _box
+            win = _box(reg[0], reg[2], reg[1], reg[3])
+            cut = [i for i, g in zip(B.index, [translate(q, -P["cx"], -P["cy"]) for q in B.geometry]) if g.intersects(win.boundary) and B.loc[i, "status"] == "ok" and B.loc[i, "name"] != "Space Needle"]
+            surf_w, walls_w = parts_fn(cut)
+        else:
+            surf_w, walls_w = surf, walls
+        p_, c_ = _sample_textured(surf_w, walls_w, reg, n_pts)
         img, _ = render3d.render(p_, c_, az=215, el=42, width=1500, height=800, zexag=1.0, center=p_.mean(0), splat=2)
         a = pl.ax(9.0, b0, 6.4, 3.41); a.imshow(img); a.axis("off")
         pl.label(9.0, b0 + 3.55, ttl)
@@ -308,8 +353,8 @@ def fig_curved_roof(P, B, raw, fixed, tf, parts_flat, parts_real, hole_share, n_
         pl.label(0.9 + k * 4.7, 4.35, ttl)
     notes = ["The red is not an error: it is in the unprocessed photograph, top left. The museum's roof is curved metal in several colours.",
              f"Two things made the first version look distorted. A photo of a curved roof was stretched over a flat block, and the lidar has no returns for {hole_share * 100:.0f}% of this roof's cells (glossy metal reflects the laser away), so the height-based shift of the image was wrong and tore it.",
-             f"Now, for the {n_curved} buildings whose roofs vary by more than 6 m, dropouts take the nearest real roof return, the heights are smoothed, and the roof is built as the lidar surface (about 1.2 m triangles) so the photo lies on the shape it was taken from. Other roofs are shifted as one rigid piece.",
-             "Limits: the roof is a smoothed approximation, not a survey of the panels; walls are plain because no photo shows them; parts of the roof hidden from the camera in the photo are filled from neighbouring pixels."]
+             f"Now, for the {n_curved} buildings over 150 m² whose roofs vary by more than 6 m, dropouts take the nearest real roof return, the heights are smoothed, and the roof is built as the lidar surface (about 1.2 m triangles) so the photo lies on the shape it was taken from. Other roofs are shifted as one rigid piece.",
+             "Limits: the roof is a smoothed approximation, not a survey of the panels; the sides of curved roofs take the roof edge's colour from the photo, darkened, because no photo shows them; parts of the roof hidden from the camera in the photo are filled from neighbouring pixels."]
     y = 7.9
     for t in notes:
         w_ = "\n".join(textwrap.wrap(t, 62))

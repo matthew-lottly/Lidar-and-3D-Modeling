@@ -213,7 +213,13 @@ def textured_parts(gdf, terrain_z, x0, y1, res, size, ortho_rgb, centre, step=4,
     V = [np.c_[gx, gy, zs.ravel()]]
     F = [np.r_[np.c_[a, d, b], np.c_[b, d, e]]]
     off = len(V[0])
-    wallV, wallF, woff = [], [], 0
+    wallV, wallF, wallC, woff = [], [], [], 0
+    otile = size / ortho_rgb.shape[2]
+
+    def photo_at(xy):
+        c = np.clip(((xy[:, 0] - x0) / otile).astype(int), 0, ortho_rgb.shape[2] - 1)
+        r = np.clip(((y1 - xy[:, 1]) / otile).astype(int), 0, ortho_rgb.shape[1] - 1)
+        return ortho_rgb[:3, r, c].T
     solids = solids or {}
     for gi, r in gdf[gdf.status == "ok"].iterrows():
         if r.roof_z <= r.base_z + 0.5:
@@ -226,6 +232,8 @@ def textured_parts(gdf, terrain_z, x0, y1, res, size, ortho_rgb, centre, step=4,
                 rv, rf, wv, wf = roof_heightfield(pg, roof_surface, float(r.base_z))
                 V.append(rv); F.append(rf + off); off += len(rv)
                 wallV.append(wv); wallF.append(wf + woff); woff += len(wv)
+                top_xy = wv[wf].mean(1)[:, :2]                      # sides of a curved metal roof continue the roof: colour each wall triangle from the photo at its top edge, darkened
+                wallC.append(np.c_[(photo_at(top_xy) * 0.7).astype(np.uint8), np.full(len(wf), 255, np.uint8)])
             continue
         for pg in parts:
             if pg is None:
@@ -242,12 +250,13 @@ def textured_parts(gdf, terrain_z, x0, y1, res, size, ortho_rgb, centre, step=4,
             V.append(v[used]); F.append(inv.reshape(-1, 3) + off); off += len(used)
             wf = m.faces[~up]
             wallV.append(v); wallF.append(wf + woff); woff += len(v)
+            wallC.append(np.tile(np.r_[wall_rgb, 255].astype(np.uint8), (len(wf), 1)))
     Vs = np.vstack(V)
     img = Image.fromarray(np.moveaxis(ortho_rgb[:3], 0, -1))
     surf = trimesh.Trimesh(Vs - np.array(centre), np.vstack(F), process=False)
     surf.visual = TextureVisuals(uv=uv_of(Vs[:, :2]), material=SimpleMaterial(image=img))
     walls = trimesh.Trimesh(np.vstack(wallV) - np.array(centre), np.vstack(wallF), process=False)
-    walls.visual.face_colors = np.tile(np.r_[wall_rgb, 255], (len(walls.faces), 1)).astype(np.uint8)
+    walls.visual.face_colors = np.vstack(wallC)
     return surf, walls
 
 
