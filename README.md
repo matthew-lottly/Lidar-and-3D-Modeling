@@ -81,6 +81,12 @@ At the best site from the search, wires, vertical columns and substation structu
 
 Run `python scripts/build_utility.py`. Outputs in `data/processed/utility/`.
 
+## Seventh item: fusing lidar, imagery and radar for lines and poles, checked against OpenStreetMap
+
+Broken wire fragments are joined into conductors and gaps are filled with fitted sag curves; supports come from the wires' height peaks and a signed-score fusion of lidar, NAIP imagery and Sentinel-1 radar. OpenStreetMap (via Overture Maps) is used only afterwards, as the check.
+Lidar carries the signal (AUC 0.81 against mapped supports); imagery and radar add nothing measurable at this site, and gap filling adds only 0.6 points of line coverage but is accurate. 39% of mapped line length is confirmed, 11% has no lidar evidence (all 230 kV, likely a detector limit).
+Plates 22 to 24, method and numbers in [docs/fusion-model.md](docs/fusion-model.md). Run `python scripts/build_fusion.py`.
+
 ## Data
 
 * **Lidar:** USGS 3D Elevation Program project `WA_CentralWildfire_2_D22`, Entwine Point Tiles on AWS (`s3://usgs-lidar-public`). Collected 2022-09-04 to 2022-09-08 (dates derived from the point GPS times). 30.8 points per m². Published classes present: 1 unclassified, 2 ground, 9 water, 20 and 21 snow; there are no vegetation classes, so canopy comes from a height model.

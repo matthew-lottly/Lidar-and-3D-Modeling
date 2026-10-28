@@ -28,7 +28,7 @@ OUT = ROOT / "data" / "processed" / "utility"
 
 
 def load_points():
-    npz = CACHE / "utility" / "white_river.npz"
+    npz = CACHE / "utility" / "white_river_v2.npz"
     tr = Transformer.from_crs(4326, CRS, always_xy=True)
     cx, cy = tr.transform(*LONLAT)
     if not npz.exists():
@@ -41,8 +41,9 @@ def load_points():
         v = float(np.median(g))
         v += 1e9 if v < 1e9 else 0.0
         npz.parent.mkdir(parents=True, exist_ok=True)
-        np.savez(npz, x=c.x[m] - cx, y=c.y[m] - cy, z=c.z[m], cls=c.cls[m], date=str((dt.datetime(1980, 1, 6) + dt.timedelta(seconds=v)).date()))
+        np.savez(npz, x=c.x[m] - cx, y=c.y[m] - cy, z=c.z[m], cls=c.cls[m], inten=c.intensity[m], ret=c.ret[m], nret=c.nret[m], date=str((dt.datetime(1980, 1, 6) + dt.timedelta(seconds=v)).date()))
     d = np.load(npz)
+    load_points.extra = dict(inten=d["inten"], ret=d["ret"], nret=d["nret"])
     return d["x"], d["y"], d["z"], d["cls"], str(d["date"]), cx, cy, tr
 
 

@@ -263,3 +263,51 @@ def test_line_coverage_counts_only_the_covered_length():
     line = np.array([[0.0, 0.0], [100.0, 0.0]])
     wires = np.c_[np.arange(0, 50, 1.0), np.full(50, 1.0)]                 # wire points along the first half only
     assert abs(utility.line_coverage([line], wires, 3.0) - 0.5) < 0.06
+
+
+def test_conductor_model_bridges_a_gap_and_finds_supports_at_peaks():
+    from lidar3d import conductors
+    rng = np.random.default_rng(0)
+    # two spans of 80 m each between supports at s = 0, 80, 160 (wire hangs 12 m at the supports, sags 4 m)
+    s = np.arange(0, 160.0, 0.4)
+    local = np.where(s < 80, s, s - 80)
+    h = 12.0 - 4.0 * (1 - ((local - 40.0) / 40.0) ** 2)
+    keep = ~((s > 20) & (s < 50))                                            # a 30 m gap in the first span
+    x, y, hh = s[keep], 5.0 + 0.0 * s[keep] + rng.normal(0, 0.03, keep.sum()), h[keep] + rng.normal(0, 0.04, keep.sum())
+    # cut the observed wire into two chains at the gap
+    left, right = x < 20, x > 50
+    chains = [np.c_[x[m], y[m], hh[m]] for m in (left, right)]
+    cond = conductors.build_conductors(chains, [c[:, 2] for c in chains])
+    assert len(cond) == 1 and cond[0]["interpolated_bins"] > 5
+    sx = np.sort(cond[0]["support_xy"][:, 0])
+    assert len(sx) == 3 and np.allclose(sx, [0, 80, 160], atol=6)
+    xs_all = cond[0]["xy"][:, 0]
+    gap = (xs_all > 22) & (xs_all < 48)
+    zf = cond[0]["z_fill"][gap]
+    xs = xs_all[gap]
+    assert (cond[0]["flag"][gap] == 2).mean() > 0.8                            # the gap bins are marked interpolated
+    exp = 12.0 - 4.0 * (1 - ((xs - 40.0) / 40.0) ** 2)
+    assert np.nanmax(np.abs(zf - exp)) < 0.5                                   # the filled sag matches the true catenary within half a metre
+
+
+def test_group_chains_does_not_join_parallel_conductors():
+    from lidar3d import conductors
+    s = np.arange(0, 50.0, 0.5)
+    a = np.c_[s, np.zeros_like(s), np.full_like(s, 10.0)]; b = np.c_[s, np.full_like(s, 4.0), np.full_like(s, 10.0)]
+    assert len(set(conductors.group_chains([a, b]))) == 2
+    c = np.c_[s + 70.0, np.zeros_like(s), np.full_like(s, 10.0)]
+    assert len(set(conductors.group_chains([a, c]))) == 1
+
+
+def test_merge_supports_merges_nearby_and_keeps_far():
+    from lidar3d.conductors import merge_supports
+    out = merge_supports([[(0.0, 0.0)], [(3.0, 0.0), (50.0, 0.0)]], radius=6.0)
+    assert len(out) == 2
+
+
+def test_composite_score_orders_by_signed_evidence():
+    import pandas as pd
+    from lidar3d.fusion import composite_score
+    f = pd.DataFrame(dict(a=[1.0, 2.0, 3.0, 4.0], b=[4.0, 3.0, 2.0, 1.0]))
+    sc = composite_score(f, {"a": 1, "b": -1})
+    assert np.all(np.diff(sc) > 0)

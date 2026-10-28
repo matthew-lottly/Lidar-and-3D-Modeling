@@ -1,0 +1,212 @@
+{
+ "site": {
+  "project": "WA_PierceCounty_1_2020",
+  "collected": "2020-04-13",
+  "imagery": "NAIP 2019-10-11",
+  "radar": "Sentinel-1 RTC, 105 ASC scenes 2017-01-02 to 2021-04-23, 20 m"
+ },
+ "conductors": {
+  "n": 88,
+  "fragments": 155,
+  "observed_bins": 2860,
+  "interpolated_bins": 234,
+  "bin_m": 2.0,
+  "spans": 97,
+  "spans_filled": 69,
+  "median_span_m": 50.0,
+  "median_sag_m": 1.1214864417389432
+ },
+ "supports": {
+  "sag_peak_supports": 157,
+  "outside_yard": 110,
+  "final_detected": 48,
+  "osm_supports_outside_yard": 55,
+  "ablation": {
+   "wire geometry only (every sag peak)": {
+    "3": {
+     "detected": 110,
+     "reference": 55,
+     "matched": 12,
+     "precision": 0.10909090909090909,
+     "recall": 0.21818181818181817,
+     "median_offset_m": 2.0148484064379986
+    },
+    "5": {
+     "detected": 110,
+     "reference": 55,
+     "matched": 22,
+     "precision": 0.2,
+     "recall": 0.4,
+     "median_offset_m": 2.6175008077199236
+    },
+    "8": {
+     "detected": 110,
+     "reference": 55,
+     "matched": 24,
+     "precision": 0.21818181818181817,
+     "recall": 0.43636363636363634,
+     "median_offset_m": 2.843599121350869
+    },
+    "ranking": {
+     "auc": 0.5,
+     "ap": 0.23636363636363636,
+     "base_rate": 0.23636363636363636
+    }
+   },
+   "lidar score": {
+    "3": {
+     "detected": 56,
+     "reference": 55,
+     "matched": 11,
+     "precision": 0.19642857142857142,
+     "recall": 0.2,
+     "median_offset_m": 2.119221803465725
+    },
+    "5": {
+     "detected": 56,
+     "reference": 55,
+     "matched": 20,
+     "precision": 0.35714285714285715,
+     "recall": 0.36363636363636365,
+     "median_offset_m": 2.6175008077199236
+    },
+    "8": {
+     "detected": 56,
+     "reference": 55,
+     "matched": 20,
+     "precision": 0.35714285714285715,
+     "recall": 0.36363636363636365,
+     "median_offset_m": 2.6175008077199236
+    },
+    "ranking": {
+     "auc": 0.8141025641025641,
+     "ap": 0.5498693838753644,
+     "base_rate": 0.23636363636363636,
+     "auc_ci95": [
+      0.7291319444444445,
+      0.8937293397659252
+     ],
+     "auc_minus_lidar_ci95": [
+      0.0,
+      0.0
+     ]
+    }
+   },
+   "lidar + imagery": {
+    "3": {
+     "detected": 48,
+     "reference": 55,
+     "matched": 11,
+     "precision": 0.22916666666666666,
+     "recall": 0.2,
+     "median_offset_m": 2.119221803465725
+    },
+    "5": {
+     "detected": 48,
+     "reference": 55,
+     "matched": 18,
+     "precision": 0.375,
+     "recall": 0.32727272727272727,
+     "median_offset_m": 2.4417226935696306
+    },
+    "8": {
+     "detected": 48,
+     "reference": 55,
+     "matched": 18,
+     "precision": 0.375,
+     "recall": 0.32727272727272727,
+     "median_offset_m": 2.4417226935696306
+    },
+    "ranking": {
+     "auc": 0.8076923076923077,
+     "ap": 0.5557150679523388,
+     "base_rate": 0.23636363636363636,
+     "auc_ci95": [
+      0.7129430782632002,
+      0.8952816091954023
+     ],
+     "auc_minus_lidar_ci95": [
+      -0.06884132830279083,
+      0.06125263278388281
+     ]
+    }
+   },
+   "lidar + imagery + radar": {
+    "3": {
+     "detected": 55,
+     "reference": 55,
+     "matched": 9,
+     "precision": 0.16363636363636364,
+     "recall": 0.16363636363636364,
+     "median_offset_m": 2.119221803465725
+    },
+    "5": {
+     "detected": 55,
+     "reference": 55,
+     "matched": 17,
+     "precision": 0.3090909090909091,
+     "recall": 0.3090909090909091,
+     "median_offset_m": 2.634586813281003
+    },
+    "8": {
+     "detected": 55,
+     "reference": 55,
+     "matched": 17,
+     "precision": 0.3090909090909091,
+     "recall": 0.3090909090909091,
+     "median_offset_m": 2.634586813281003
+    },
+    "ranking": {
+     "auc": 0.7687728937728938,
+     "ap": 0.526285240279061,
+     "base_rate": 0.23636363636363636,
+     "auc_ci95": [
+      0.6678107356964088,
+      0.8577218988312801
+     ],
+     "auc_minus_lidar_ci95": [
+      -0.13453685232682097,
+      0.05998898324117283
+     ]
+    }
+   },
+   "unsupervised two-component mixture, same features": {
+    "ranking": {
+     "auc": 0.7788461538461539,
+     "ap": 0.48663088791016357,
+     "base_rate": 0.23636363636363636
+    }
+   }
+  }
+ },
+ "osm_lines": {
+  "total_length_m": 6542.0,
+  "coverage_observed": 0.41669214307551206,
+  "coverage_with_interpolation": 0.42250076429226535,
+  "by_status": {
+   "confirmed": {
+    "lines": 6,
+    "length_m": 2546.0
+   },
+   "elevated returns, no wire found": {
+    "lines": 5,
+    "length_m": 1590.0
+   },
+   "no lidar evidence": {
+    "lines": 4,
+    "length_m": 744.0
+   },
+   "partial": {
+    "lines": 4,
+    "length_m": 1662.0
+   }
+  },
+  "median_offset_m": 1.2211891704482387,
+  "network_points_beyond_10m_of_any_osm_line": 0.0
+ },
+ "sensors": {
+  "radar_tower_auc": 0.41,
+  "radar_tower_n": 10,
+  "imagery_line_contrast": 0.023
+ }
+}

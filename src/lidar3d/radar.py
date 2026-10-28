@@ -82,11 +82,11 @@ def read_window(url: str, aoi: AOI):
         return a, src.window_transform(w), src.nodata
 
 
-def fetch_stack(sc: list[Scene], aoi: AOI, pols=("VV", "VH"), workers=6, log=print):
+def fetch_stack(sc: list[Scene], aoi: AOI, pols=("VV", "VH"), workers=6, log=print, tag=""):
     """Reads every scene's AOI window for each polarisation; caches as one npz per (pol). Returns dict pol -> (dates, array[n, rows, cols])."""
     out = {}
     for pol in pols:
-        f = CACHE / "s1" / f"stack_{pol}.npz"
+        f = CACHE / "s1" / f"stack_{pol}{tag}.npz"
         if f.exists():
             d = np.load(f, allow_pickle=True)
             out[pol] = (list(d["dates"]), list(d["dirs"]), d["arr"])
@@ -137,10 +137,10 @@ def to_db(a):
     return d
 
 
-def load_set(aoi: AOI, sc: list[Scene], min_scenes=25) -> RadarSet:
+def load_set(aoi: AOI, sc: list[Scene], min_scenes=25, tag="") -> RadarSet:
     """Load the cached stacks and keep the largest group of scenes that share viewing geometry (same direction and local incidence angle within 1 degree),
     so that differences between dates reflect the surface and not the look angle."""
-    st = fetch_stack(sc, aoi, pols=("VV", "VH", "LIA"), log=lambda s: None)
+    st = fetch_stack(sc, aoi, pols=("VV", "VH", "LIA"), log=lambda s: None, tag=tag)
     keys = {p: [f"{d}|{r}" for d, r in zip(st[p][0], st[p][1])] for p in st}
     common = [k for k in keys["VV"] if k in set(keys["VH"]) and k in set(keys["LIA"])]
     ix = lambda p: np.array([keys[p].index(k) for k in common])

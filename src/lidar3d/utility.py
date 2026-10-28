@@ -96,9 +96,9 @@ def detect_wires(xyz, hag, min_hag=4.0, max_hag=60.0, lin_min=0.9, max_dz=0.6, l
     return mask, label, info
 
 
-def detect_poles(xyz, hag, exclude=None, min_hag=2.5, max_hag=60.0, lin_min=0.7, min_dz=0.85, link=1.5, min_height=4.0, max_radius=1.0, k=12, rmax=1.5, ring=(1.5, 3.5), ring_ratio=2.0):
+def detect_poles(xyz, hag, exclude=None, min_hag=2.5, max_hag=60.0, lin_min=0.7, min_dz=0.85, link=1.5, min_height=4.0, max_radius=1.0, k=12, rmax=1.5, ring=(1.5, 3.5), ring_ratio=2.0, ring_all=False):
     """Vertical columns: elevated points on a vertical line (|direction z| > min_dz), joined in plan and height, kept when the chain rises at least `min_height` and stays within `max_radius`
-    of its axis. `exclude` is a bool mask of points to ignore (for example wire points). Columns with more than `ring_ratio` times their own point count of elevated points in a plan ring around them (inside a tree crown or beside a wall) are dropped. Returns a list of dicts: x, y, top_hag, height, points."""
+    of its axis. `exclude` is a bool mask of points to ignore (for example wire points). Columns with more than `ring_ratio` times (all columns keep their ring_ratio when `ring_all` is set and ring_ratio is None) their own point count of elevated points in a plan ring around them (inside a tree crown or beside a wall) are dropped. Returns a list of dicts: x, y, top_hag, height, points."""
     el = np.flatnonzero((hag >= min_hag) & (hag <= max_hag) & (~exclude if exclude is not None else True))
     f = shape_features(xyz[el], k=k, rmax=rmax)
     cand = (f["linearity"] >= lin_min) & (np.abs(f["direction"][:, 2]) > min_dz)
@@ -116,8 +116,9 @@ def detect_poles(xyz, hag, exclude=None, min_hag=2.5, max_hag=60.0, lin_min=0.7,
         cxy = np.median(p[:, :2], axis=0)
         if np.hypot(*(p[:, :2] - cxy).T).max() > max_radius:
             continue
-        out.append(dict(x=float(cxy[0]), y=float(cxy[1]), top_hag=float(hag[s].max()), height=float(rise), points=int(len(s))))
-    if ring_ratio is not None and out:
+        out.append(dict(x=float(cxy[0]), y=float(cxy[1]), top_hag=float(hag[s].max()), height=float(rise), points=int(len(s)), radius=float(np.hypot(*(p[:, :2] - cxy).T).max()),
+                        linearity=float(np.nanmean(f["linearity"][np.flatnonzero(cand)[lab == c]]))))
+    if (ring_ratio is not None or ring_all) and out:
         # a pole stands in the open: few elevated points in a ring around its axis compared with the column itself; a trunk inside a crown does not
         elp = np.flatnonzero((hag >= min_hag) & (hag <= max_hag))
         tree = cKDTree(xyz[elp, :2])
@@ -125,7 +126,7 @@ def detect_poles(xyz, hag, exclude=None, min_hag=2.5, max_hag=60.0, lin_min=0.7,
         for o in out:
             a = len(tree.query_ball_point([o["x"], o["y"]], ring[1])) - len(tree.query_ball_point([o["x"], o["y"]], ring[0]))
             o["ring_ratio"] = a / max(o["points"], 1)
-            if o["ring_ratio"] <= ring_ratio:
+            if ring_ratio is None or o["ring_ratio"] <= ring_ratio:
                 kept.append(o)
         out = kept
     return out
@@ -179,4 +180,33 @@ def yard_structures(xyz, hag, inside: np.ndarray, wire_mask: np.ndarray, min_hag
             continue
         p = xyz[s]
         out.append(dict(x=float(np.median(p[:, 0])), y=float(np.median(p[:, 1])), top_hag=float(hag[s].max()), extent_m=float(np.hypot(*np.ptp(p[:, :2], axis=0))), points=int(len(s))))
+    return out
+
+
+def compact_objects(xyz, hag, extent, grid=2.0, radius=2.5, min_hag=3.0, max_hag=60.0, min_points=15, ring=(3.5, 6.0)):
+    """Candidate tall, compact objects without assuming a line shape. On a `grid` m lattice, every location with at least `min_points` elevated points (hag between min_hag and max_hag)
+    within `radius` m in plan is described by those points: count, plan spread (root of the xy covariance trace), vertical extent (5th to 95th percentile), top height, share of points in the upper
+    40% of the height, vertical share of the first eigenvector, and isolation (elevated points in a plan ring around it relative to inside). A pole is tall, narrow and isolated; a tree crown is wide and
+    surrounded. `extent` = (xmin, ymin, xmax, ymax). Returns a list of dicts (x, y at the point centroid)."""
+    el = (hag >= min_hag) & (hag <= max_hag)
+    P, H = xyz[el], hag[el]
+    tree = cKDTree(P[:, :2])
+    x0, y0, x1, y1 = extent
+    gx, gy = np.meshgrid(np.arange(x0 + grid / 2, x1, grid), np.arange(y0 + grid / 2, y1, grid))
+    cen = np.c_[gx.ravel(), gy.ravel()]
+    idx = tree.query_ball_point(cen, radius)
+    n_ring = np.array([len(a) for a in tree.query_ball_point(cen, ring[1])]) - np.array([len(a) for a in tree.query_ball_point(cen, ring[0])])
+    out = []
+    for k, ids in enumerate(idx):
+        if len(ids) < min_points:
+            continue
+        p, h = P[ids], H[ids]
+        c = p.mean(0)
+        d = p - c
+        cov = d.T @ d / len(p)
+        w, v = np.linalg.eigh(cov)
+        top = float(np.percentile(h, 99))
+        ext = float(np.percentile(h, 95) - np.percentile(h, 5))
+        out.append(dict(x=float(c[0]), y=float(c[1]), n=int(len(p)), spread=float(np.sqrt(cov[0, 0] + cov[1, 1])), extent=ext, top_hag=top, upper_share=float((h >= 0.6 * top).mean()),
+                        vertical=float(abs(v[2, 2])), linearity=float((w[2] - w[1]) / max(w[2], 1e-9)), ring_ratio=float(n_ring[k] / max(len(p), 1))))
     return out
