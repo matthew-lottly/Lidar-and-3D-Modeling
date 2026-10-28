@@ -72,6 +72,15 @@ Run `python scripts/build_hydro.py`. Outputs in `data/processed/hydro/`: hydro-f
 
 A search for 3DEP projects that cover Overture-mapped substations, powerlines, towers and poles. Nine projects, 36 sites probed. Wire and tower lidar classes (14, 15) are absent everywhere, but poles and towers show up as columns of returns above their mapped positions. Candidate sites include Pierce County WA, southern New Jersey, Dighton MA and San Francisco. Method, table and limits: [docs/utilities-data-search.md](docs/utilities-data-search.md). Data: `data/processed/utilities/`. Run `python scripts/search_utilities.py`.
 
+## Sixth item: poles, wires and a substation from lidar (White River, WA)
+
+At the best site from the search, wires, vertical columns and substation structures were found from the points (no wire or tower classes exist) and compared with Overture's mapped features. 155 wire chains (5.7 km), 93% of them on mapped lines; blind pole detection is weak (12% recall); the yard's mapped equipment sits at lidar structures 72% of the time against 28% for random points. Method, numbers and limits: [docs/utility-extraction.md](docs/utility-extraction.md).
+
+![Utility overview](outputs/20_utility_overview.png)
+![Utility profile](outputs/21_utility_profile.png)
+
+Run `python scripts/build_utility.py`. Outputs in `data/processed/utility/`.
+
 ## Data
 
 * **Lidar:** USGS 3D Elevation Program project `WA_CentralWildfire_2_D22`, Entwine Point Tiles on AWS (`s3://usgs-lidar-public`). Collected 2022-09-04 to 2022-09-08 (dates derived from the point GPS times). 30.8 points per m². Published classes present: 1 unclassified, 2 ground, 9 water, 20 and 21 snow; there are no vegetation classes, so canopy comes from a height model.
@@ -116,6 +125,7 @@ python scripts/build_seattle.py        # Seattle Center buildings
 python scripts/build_change.py         # Cape Cod bluff change (M3C2)
 python scripts/build_hydro.py          # hydro-flattening and D8 drainage
 python scripts/search_utilities.py     # utility candidate sites
+python scripts/build_utility.py        # wires, poles and substation structures at White River
 python -m pytest tests                 # pure-logic tests, no network
 ```
 

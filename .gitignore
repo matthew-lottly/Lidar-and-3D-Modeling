@@ -4,3 +4,4 @@ __pycache__/
 .pytest_cache/
 py4dgeo.log
 data/processed/hydro/arrays.npz
+data/processed/utility/detections.npz

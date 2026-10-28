@@ -216,3 +216,50 @@ def test_hand_and_catchment():
     assert abs(h[10, 20] - 5.0) < 1.01 and h[10, 15] == 0
     c = hydro.catchment_of(d, ch)
     assert c[10, 5] and c[10, 25]
+
+
+def _scene(rng):
+    t = np.linspace(0, 40, 400)
+    wire = np.c_[t, 5 + 0.02 * t + rng.normal(0, 0.03, 400), 10 - 0.004 * (t - 20) ** 2 + 6 + rng.normal(0, 0.03, 400)]      # a sagging wire, 40 m, 8 to 12 m above ground
+    pole = np.c_[rng.normal(0, 0.1, 150), rng.normal(0, 0.1, 150), rng.uniform(0, 12, 150)] + [-5, 5, 0]                          # a 12 m pole
+    tree = rng.normal(0, 1.6, (4000, 3)) * [1, 1, 1.4] + [25, -10, 9]                                                                # a tree crown
+    ground = np.c_[rng.uniform(-10, 50, (6000, 2)), rng.normal(0, 0.02, 6000)]
+    pts = np.vstack([ground, wire, pole, tree])
+    return pts, np.r_[np.zeros(6000), np.ones(400), 2 * np.ones(150), 3 * np.ones(4000)]
+
+
+def test_detect_wires_finds_the_wire_not_the_tree_or_pole():
+    from lidar3d import utility
+    pts, kind = _scene(np.random.default_rng(0))
+    hag = pts[:, 2]
+    mask, lab, info = utility.detect_wires(pts, hag, min_hag=4, link=1.5)
+    assert mask[kind == 1].mean() > 0.8 and mask[kind == 3].mean() < 0.02 and mask[kind == 2].mean() < 0.05
+    assert len(info) == 1 and next(iter(info.values()))["length_m"] > 35
+
+
+def test_detect_poles_finds_the_pole_only():
+    from lidar3d import utility
+    pts, kind = _scene(np.random.default_rng(1))
+    poles = utility.detect_poles(pts, pts[:, 2], link=1.0)
+    assert len(poles) == 1 and abs(poles[0]["x"] + 5) < 0.5 and abs(poles[0]["y"] - 5) < 0.5 and poles[0]["height"] > 9
+
+
+def test_height_above_ground_uses_the_ground_cell():
+    from lidar3d import utility
+    x = np.array([0.5, 0.5, 5.5]); y = np.array([0.5, 0.5, 5.5]); z = np.array([100.0, 108.0, 103.0]); cls = np.array([2, 1, 2])
+    hag, g = utility.height_above_ground(x, y, z, cls, (0, 0, 10, 10), res=1.0)
+    assert np.allclose(hag, [0, 8, 0])
+
+
+def test_match_points_is_one_to_one_and_respects_the_radius():
+    from lidar3d import utility
+    det = np.array([[0.0, 0.0], [10.0, 0.0], [50.0, 50.0]]); ref = np.array([[1.0, 0.0], [9.0, 1.0], [30.0, 30.0]])
+    pairs, ud, ur = utility.match_points(det, ref, 3.0)
+    assert sorted((i, j) for i, j, _ in pairs) == [(0, 0), (1, 1)] and ud == [2] and ur == [2]
+
+
+def test_line_coverage_counts_only_the_covered_length():
+    from lidar3d import utility
+    line = np.array([[0.0, 0.0], [100.0, 0.0]])
+    wires = np.c_[np.arange(0, 50, 1.0), np.full(50, 1.0)]                 # wire points along the first half only
+    assert abs(utility.line_coverage([line], wires, 3.0) - 0.5) < 0.06

@@ -1,0 +1,62 @@
+{
+ "project": "WA_PierceCounty_1_2020",
+ "collected": "2020-04-13",
+ "center_lonlat": [
+  -122.21035,
+  47.23898
+ ],
+ "window_m": 800.0,
+ "points": 16304187,
+ "pts_per_m2": 25.4752921875,
+ "classes": {
+  "1": 13455989,
+  "2": 2832666,
+  "18": 15532
+ },
+ "overture": {
+  "power_line": 50,
+  "power_pole": 48,
+  "power_tower": 24,
+  "switch": 87,
+  "transformer": 3,
+  "substation": 1,
+  "portal": 7
+ },
+ "wires": {
+  "chains": 155,
+  "points": 23774,
+  "total_chain_length_m": 5691.471298327007,
+  "median_hag_m": 12.927315194266184,
+  "share_points_within_5m_of_mapped_line": 0.9315218305712123,
+  "mapped_line_length_in_window_m": 9379.498506413065,
+  "mapped_line_share_with_wire_within_6m": 0.42832909245122985
+ },
+ "poles": {
+  "detected": 19,
+  "overture_towers": 24,
+  "overture_poles": 48,
+  "matched_3m": 9,
+  "detected_unmatched": 10,
+  "overture_found": 9,
+  "overture_missed": 63,
+  "recall": 0.125,
+  "precision": 0.47368421052631576,
+  "median_match_distance_m": 1.6912103229773767,
+  "median_height_m": 12.365997314453125
+ },
+ "yard": {
+  "area_m2": 33765.12823382753,
+  "equipment_mapped": 97,
+  "structures_found": 432,
+  "mapped_equipment_with_structure_within_3m": 70,
+  "median_structure_top_hag_m": 6.792503356933594,
+  "versus_random_points": {
+   "mapped_within_1p5m": 0.4639175257731959,
+   "random_within_1p5m": 0.0858,
+   "mapped_within_3m": 0.7216494845360825,
+   "random_within_3m": 0.2768,
+   "median_distance_mapped_m": 1.5655419012900063,
+   "median_distance_random_m": 4.574578900577507
+  }
+ }
+}

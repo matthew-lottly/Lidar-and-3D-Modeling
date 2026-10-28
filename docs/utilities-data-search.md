@@ -53,6 +53,10 @@ Yes, where tested. Share of Overture towers and poles with a column of returns m
 * A separate manual look (not in the script) at **Dighton, MA** (`MA_CentralEastern_2_2021`, 36 pts/m², 20 towers, 8 lines): all 20 towers have returns up to 17 to 27 m above them, in a cleared right-of-way through forest, with a second line of elevated returns crossing it that looks like a distribution line. That makes it a good site for vegetation encroachment as well as tower and wire extraction.
 * A manual look at **Franklin Square, Providence, RI** (`RI_Statewide_1_D22`, 9 pts/m²): 54 of 54 mapped "towers" have columns, but median heights are only 5 to 10 m: they are substation structures, not transmission towers.
 
+## Follow-up: White River extraction
+
+The White River site was analysed in [utility-extraction.md](utility-extraction.md): wires are found well, blind pole detection is weak, and the yard equipment positions check out against a random baseline.
+
 ## Recommended next steps
 
 1. **Facilities + lines + poles together:** White River Substation (Pierce County, WA) and Lewis Substation (southern New Jersey) have the largest mix of features at 19 to 28 points per m².
