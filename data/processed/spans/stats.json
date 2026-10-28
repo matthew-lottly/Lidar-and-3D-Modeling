@@ -1,0 +1,95 @@
+{
+ "anchors": 191,
+ "pairs": 619,
+ "wires": 620,
+ "wire_length_m": 32310.55300230038,
+ "observed_share": 0.7961849219366989,
+ "supports": 59,
+ "attachment_only": 89,
+ "supports_outside_yard": 44,
+ "support_kinds": {
+  "tower": 45,
+  "pole": 14
+ },
+ "null": {
+  "shifts": 4,
+  "null_length_m": [
+   3627.0940509457046,
+   2216.256023607769,
+   4898.631285412673,
+   2465.2502895163943
+  ],
+  "null_to_real_ratio": 0.10218976791067487
+ },
+ "osm": {
+  "coverage_new": 0.4379341588643914,
+  "coverage_new_observed_only": 0.40682573240712777,
+  "coverage_old_chain_model": 0.427061310782241,
+  "mapped_points": 3311,
+  "uncovered_median_offset_to_nearest_wire_m": 30.108676065581495,
+  "uncovered_share_within_15m": 0.31166039763567976,
+  "wire_near_map_10m": 1.0
+ },
+ "lidar_recall": {
+  "new": 0.6458003169572107
+ },
+ "interpolation_holdout": {
+  "20": {
+   "n": 84,
+   "rms_linear_m": 0.07551863223582833,
+   "rms_parabola_m": 0.03694028947587446
+  },
+  "40": {
+   "n": 84,
+   "rms_linear_m": 0.2444337569993603,
+   "rms_parabola_m": 0.03823186146161703
+  }
+ },
+ "supports_vs_osm": {
+  "3.0": {
+   "detected": 44,
+   "matched": 13,
+   "precision": 0.29545454545454547,
+   "recall": 0.21818181818181817,
+   "median_offset_m": 1.4113966346054392
+  },
+  "5.0": {
+   "detected": 44,
+   "matched": 17,
+   "precision": 0.38636363636363635,
+   "recall": 0.2909090909090909,
+   "median_offset_m": 1.7912327550081237
+  },
+  "8.0": {
+   "detected": 44,
+   "matched": 18,
+   "precision": 0.4090909090909091,
+   "recall": 0.3090909090909091,
+   "median_offset_m": 1.9456199429033179
+  }
+ },
+ "all_attachments_vs_osm": {
+  "3.0": {
+   "detected": 120,
+   "matched": 15,
+   "precision": 0.125,
+   "recall": 0.2545454545454545,
+   "median_offset_m": 1.3504599236621686
+  },
+  "5.0": {
+   "detected": 120,
+   "matched": 21,
+   "precision": 0.175,
+   "recall": 0.36363636363636365,
+   "median_offset_m": 1.7912327550081237
+  },
+  "8.0": {
+   "detected": 120,
+   "matched": 24,
+   "precision": 0.2,
+   "recall": 0.41818181818181815,
+   "median_offset_m": 2.2137724628391178
+  }
+ },
+ "osm_supports_outside_yard": 55
+}

@@ -311,3 +311,27 @@ def test_composite_score_orders_by_signed_evidence():
     f = pd.DataFrame(dict(a=[1.0, 2.0, 3.0, 4.0], b=[4.0, 3.0, 2.0, 1.0]))
     sc = composite_score(f, {"a": 1, "b": -1})
     assert np.all(np.diff(sc) > 0)
+
+
+def test_fit_pair_recovers_a_wire_and_fills_a_gap():
+    from lidar3d import spans
+    s = np.arange(5, 95, 0.4)
+    z = 20 + 0.0016 * (s - 50) ** 2                                 # a hanging curve, lowest (20 m) in the middle
+    keep = (s < 40) | (s > 60)                                      # a 20 m stretch with no returns
+    P = np.c_[s[keep], 1.0 + 0.0 * s[keep], z[keep]]
+    w = spans.fit_pair(P, (0.0, 0.0), (100.0, 0.0), None, min_cov=0.5, min_n=25)
+    assert len(w) == 1
+    pts, flag = spans.wire_xyz(w[0], 1.0)
+    mid = np.argmin(np.abs(pts[:, 0] - 50))
+    assert flag[mid] == 2 and abs(pts[mid, 2] - 20.0) < 0.2
+
+
+def test_tube_has_expected_vertex_count_and_through_wire_counts():
+    from lidar3d import infra3d
+    import pandas as pd
+    v, f = infra3d.tube(np.array([[0, 0, 0], [0, 0, 5.0], [0, 0, 10.0]]), 0.1, 6)
+    assert v.shape == (18, 3) and f.shape == (24, 3)
+    w = dict(a=np.array([0.0, 0.0]), b=np.array([100.0, 0.0]), L=100.0, side0=0.0, side1=0.0, observed=np.ones(50, bool))
+    sup = pd.DataFrame(dict(x=[50.0, 100.0], y=[0.0, 0.0], anchor=[7, 1]))
+    n = infra3d.through_wire_counts([(0, 1, w)], sup)
+    assert list(n) == [1, 0]
