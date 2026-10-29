@@ -74,9 +74,11 @@ def main():
         sp = np.concatenate(sp) if sp else np.zeros(0)
         return sp[(sp > 8) & (sp < 150)], by
     stats_side = {}
+    spacings = {}
     for nm, sign in (("north_relict_set", 1), ("south_point_bar", -1)):
         spc, by = spacing(C, sign)
         spw, _ = spacing(S, sign)
+        spacings[nm] = spc
         stats_side[nm] = dict(crest_lines=int(sum(1 for c in C if (np.mean(c["d"]) > 60) == (sign > 0) and abs(np.mean(c["d"])) > (60 if sign > 0 else 300))), crests_per_transect_median=float(np.median([len(v) for v in by.values()])) if by else 0.0,
                               crest_spacing_median_m=float(np.median(spc)), crest_spacing_iqr_m=[float(np.percentile(spc, 25)), float(np.percentile(spc, 75))], crest_spacing_n=int(len(spc)),
                               swale_spacing_median_m=float(np.median(spw)) if len(spw) else None)
@@ -119,21 +121,38 @@ def main():
         shifts[y] = dict(shift_px=[float(v) for v in sh], mad_px=[float(v) for v in mad], tiles=int(nt))
         nd[y] = ndimage.shift(nd[y], sh, order=1, mode="nearest")
     st["imagery"] = dict(dates=dates, registration_to_2011=shifts, ndvi_veg_min=0.40, ndvi_bare_max=0.25)
-    # NDVI strips on the same transects as the lidar rectification
-    strips = {y: M.sample_image(nd[y], HALF, X, Y) for y in YEARS}
-    edge_n = np.array([M.vegetation_edge(strips[y], d, +1, start=-30.0) for y in YEARS]).T
-    edge_s = np.array([M.vegetation_edge(strips[y], d, -1, start=-60.0) for y in YEARS]).T
+    # NDVI strips on the same transects as the lidar rectification; active-channel edges per year
+    strips = {y: M.sample_image(nd[y], HALF, X, Y).astype("float32") for y in YEARS}
+    edges = {y: M.channel_edges(strips[y], d) for y in YEARS}
+    edge_n = np.array([edges[y][0] for y in YEARS]).T
+    edge_s = np.array([edges[y][1] for y in YEARS]).T
     t = np.array([float(dates[y].split(",")[0][:4]) + (int(dates[y].split(",")[0][5:7]) - 1) / 12 for y in YEARS])
     st["migration"] = {}
-    for nm, E in (("outer_bank_north_vegetation_edge", edge_n), ("point_bar_south_vegetation_edge", edge_s)):
+    for nm, E in (("outer_bank_north_edge", edge_n), ("point_bar_south_edge", edge_s)):
         med, lo, hi, per = M.slope_ci(t, E)
-        st["migration"][nm] = dict(rate_m_per_yr=med, ci95=[lo, hi], stations_with_rate=int(np.isfinite(per).sum()), median_edge_distance_m={str(y): float(np.nanmedian(E[:, i])) for i, y in enumerate(YEARS)},
-                                   edge_found_share={str(y): float(np.isfinite(E[:, i]).mean()) for i, y in enumerate(YEARS)})
-    # lidar water edge (d = 0 by construction) against the vegetation edge in the nearest image (2011-08-25, 23 days before the flight)
+        st["migration"][nm] = dict(rate_m_per_yr=med, ci95=[lo, hi], stations_with_rate=int(np.isfinite(per).sum()), share_stations_rate_abs_below_0p5=float(np.nanmean(np.abs(per) < 0.5)),
+                                   median_edge_distance_m={str(y): float(np.nanmedian(E[:, i])) for i, y in enumerate(YEARS)}, edge_found_share={str(y): float(np.isfinite(E[:, i]).mean()) for i, y in enumerate(YEARS)})
+    # how much the rate depends on single years (stage and season differ between flights)
+    for nm, E in (("outer_bank_north_edge", edge_n), ("point_bar_south_edge", edge_s)):
+        loo = {}
+        for drop in YEARS:
+            k = [i for i, y in enumerate(YEARS) if y != drop]
+            m_, lo_, hi_, _ = M.slope_ci(t[k], E[:, k])
+            loo[str(drop)] = dict(rate=m_, ci95=[lo_, hi_])
+        k = [i for i, y in enumerate(YEARS) if y not in (2017, 2019)]
+        m_, lo_, hi_, _ = M.slope_ci(t[k], E[:, k])
+        loo["without_2017_and_2019"] = dict(rate=m_, ci95=[lo_, hi_])
+        st["migration"][nm]["leave_one_year_out"] = loo
+        st["migration"][nm]["between_year_sd_of_median_edge_m"] = float(np.nanstd([np.nanmedian(E[:, i]) for i in range(len(YEARS))]))
+    # the lidar water edge is d = 0 by construction; the imagery edge nearest in time (2011-08-25, 23 days before the flight) is not the same thing (a water line against the edge of bare ground) but a fixed offset is expected
     off = edge_n[:, 0][np.isfinite(edge_n[:, 0])]
     st["channel_vs_imagery_2011"] = dict(n=int(len(off)), median_offset_m=float(np.median(off)), iqr_m=[float(np.percentile(off, 25)), float(np.percentile(off, 75))], p05_p95_m=[float(np.percentile(off, 5)), float(np.percentile(off, 95))])
     (OUT / "stats.json").write_text(json.dumps(st, indent=1, default=float))
-    pickle.dump(dict(dem_small=M.coarsen(dem, 2), ch=ch, line=line, nrm=nrm, s=s, d=d, V=V, C=C, S=S, X=X, Y=Y, edge_n=edge_n, edge_s=edge_s, t=t, years=YEARS, nd=nd, picks=pk, hag=None), open(CACHE / "meander" / "final.pkl", "wb"))
+    pickle.dump(dict(dem_small=M.coarsen(dem, 2).astype("float32"), ch=ch, line=line, nrm=nrm, s=s, d=d, V=V.astype("float32"), C=C, S=S, X=X.astype("float32"), Y=Y.astype("float32"), edge_n=edge_n, edge_s=edge_s, t=t, years=YEARS,
+                     strips={y: strips[y] for y in (2011, 2023)}, picks=pk, spacing=spacings), open(CACHE / "meander" / "final.pkl", "wb"))
+    from lidar3d import figures_meander as FG
+    F = pickle.loads((CACHE / "meander" / "final.pkl").read_bytes())
+    FG.fig_site(st, F); FG.fig_ridges(st, F); FG.fig_tests(st); FG.fig_imagery(st, F)
     print(json.dumps(st, indent=1, default=float))
 
 

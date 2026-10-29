@@ -335,3 +335,42 @@ def test_tube_has_expected_vertex_count_and_through_wire_counts():
     sup = pd.DataFrame(dict(x=[50.0, 100.0], y=[0.0, 0.0], anchor=[7, 1]))
     n = infra3d.through_wire_counts([(0, 1, w)], sup)
     assert list(n) == [1, 0]
+
+
+def test_dem_from_points_recovers_a_plane_and_holdout_samples():
+    from lidar3d import meander as M
+    rng = np.random.default_rng(0)
+    x, y = rng.uniform(-50, 50, 40000), rng.uniform(-50, 50, 40000)
+    z = 100 + 0.01 * x + 0.02 * y
+    dem, _ = M.dem_from_points(x, y, z, 50.0, 1.0)
+    v = M.sample_dem(dem, 50.0, 1.0, np.array([0.0, 10.0]), np.array([0.0, -20.0]))
+    assert np.allclose(v, [100.0, 100 + 0.1 - 0.4], atol=0.05)
+    assert np.isnan(M.sample_dem(np.full((10, 10), np.nan), 5.0, 1.0, np.array([0.0]), np.array([0.0]))[0])
+
+
+def test_strip_tracking_finds_planted_ridges_and_rejects_cross_lines():
+    from lidar3d import meander as M
+    d = np.arange(-300.0, 600.0, 2.0)
+    st = np.arange(60)
+    V = np.zeros((60, len(d)))
+    for c in (100.0, 160.0):                                       # two ridges parallel to the bank
+        V += 0.3 * np.exp(-((d[None] - c) / 6.0) ** 2)
+    for i in st:                                                   # one line across the arcs (slope 3 m of distance per m along the bank)
+        V[i] += 0.3 * np.exp(-((d - (-250 + 30.0 * i)) / 6.0) ** 2)
+    C = M.track_ridges(V, d, 10.0, prominence=0.1)
+    ds = sorted(round(float(np.mean(c["d"]))) for c in C)
+    assert ds == [100, 160]
+    pk = M.pick_positions(C)
+    assert M.pick_agreement(pk, pk) == 1.0 and M.pick_agreement(pk, np.zeros((0, 2))) == 0.0
+
+
+def test_channel_edges_and_slope_ci():
+    from lidar3d import meander as M
+    d = np.arange(-400.0, 200.0, 2.0)
+    V = np.where((d > -250) & (d < 40), 0.05, 0.6)[None].repeat(30, 0)
+    n, s = M.channel_edges(V, d)
+    assert np.allclose(n, 38.0, atol=3) and np.allclose(s, -248.0, atol=3)
+    t = np.arange(5.0)
+    y = np.tile(2.0 * t, (40, 1)) + np.random.default_rng(0).normal(0, 0.1, (40, 5))
+    med, lo, hi, _ = M.slope_ci(t, y, n_boot=50)
+    assert lo < 2.0 < hi

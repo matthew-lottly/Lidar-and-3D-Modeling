@@ -489,27 +489,32 @@ def estimate_shift(ref, mov, mask, tile=700):
     return np.median(o, 0), np.median(np.abs(o - np.median(o, 0)), 0) * 1.4826, len(o)
 
 
-def vegetation_edge(V, d, side, start=-30.0, veg_min=0.40, bare_max=0.25, run_m=10.0, min_bare_m=20.0):
-    """Distance at which vegetation starts, scanning away from the channel along each row of an NDVI strip. side=+1 scans north from `start` (outer bank), side=-1 south (point bar).
-    A row gives NaN unless it has at least `min_bare_m` of low-NDVI ground (water or bare bar) before the vegetation, and the vegetation lasts `run_m`."""
+def channel_edges(V, d, seed_d=-120.0, thr=0.20, gap_m=6.0, smooth_rows=3, max_north=120.0):
+    """North and south edge of the active channel (open water plus bare bars) in each row of an NDVI strip: the contiguous run of low-NDVI ground (below `thr`) that contains the seed distance
+    `seed_d` (the middle of the channel in the strip), bridged over gaps shorter than `gap_m`. Rows are median-smoothed along the bank (`smooth_rows`). Returns (north_edge, south_edge) in metres from
+    the lidar bank line; NaN where the seed is not on low-NDVI ground or the run reaches `max_north` metres north of the bank line (bare fields behind the bank would otherwise be taken as channel)."""
     step = abs(d[1] - d[0])
-    out = np.full(V.shape[0], np.nan)
-    idx = np.arange(len(d))
-    if side > 0:
-        scan = idx[d >= start]
-    else:
-        scan = idx[d <= start][::-1]
-    run = max(int(run_m / step), 1)
-    bare_n = max(int(min_bare_m / step), 1)
+    W = ndimage.median_filter(np.nan_to_num(V, nan=1.0), size=(smooth_rows, 1)) < thr
+    k0 = int(np.argmin(np.abs(d - seed_d)))
+    g = max(int(gap_m / step), 1)
+    n_e, s_e = np.full(V.shape[0], np.nan), np.full(V.shape[0], np.nan)
     for i in range(V.shape[0]):
-        v = V[i, scan]
-        veg = v > veg_min
-        bare = v < bare_max
-        for k in range(bare_n, len(v) - run):
-            if veg[k:k + run].all() and bare[max(k - bare_n, 0):k].mean() > 0.7:
-                out[i] = d[scan[k]]
-                break
-    return out
+        w = W[i]
+        if not w[k0]:
+            continue
+        j = k0
+        miss = 0
+        while j + 1 < len(d) and miss <= g:
+            j += 1
+            miss = 0 if w[j] else miss + 1
+        hi = j - miss
+        j, miss = k0, 0
+        while j - 1 >= 0 and miss <= g:
+            j -= 1
+            miss = 0 if w[j] else miss + 1
+        lo = j + miss
+        n_e[i], s_e[i] = (d[hi] if d[hi] < max_north else np.nan), d[lo]
+    return n_e, s_e
 
 
 def slope_ci(t, y, n_boot=500, block=10, seed=0):

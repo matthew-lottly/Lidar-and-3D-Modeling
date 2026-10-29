@@ -93,6 +93,11 @@ Instead of growing wires from fragments, every pair of nearby anchors is tested 
 Supports are where wires end with no wire passing over (59, 17 of 44 outside the yard within 5 m of a mapped tower or pole). A 3D scene shows lattice towers, poles, cross-arms, insulators and wires over lidar coloured from NAIP imagery, with GLB files and an interactive viewer in `outputs/utility3d/`.
 Plates 25 to 27, method and limits in [docs/span-model.md](docs/span-model.md). Run `python scripts/build_spans.py` then `python scripts/build_spans_3d.py`.
 
+## Ninth item: scroll bars of a meandering river from one lidar flight (Wabash, Illinois)
+
+No repeat lidar is needed to map the ridges a migrating bend leaves behind: one 2011 flight gives 144 crest and 128 swale lines (median crest relief 33 cm; neighbouring crests 58 m apart on the point bar, 72 m on the older arcs north of the river). Tests: DEM hold-out error 5.3 cm (3 cm on flat ground), flight-line agreement 2 to 6 cm, planted-ridge detection (5 cm ridges found 99% with white noise, 73% with correlated error; 8 cm 96%), and repeatability between independent halves of the returns (about 90%).
+NAIP imagery from 2011 to 2023 could not give a reliable migration rate (the rate changes sign when one year is dropped), so no ridge ages are claimed. Plates 28 to 31, method and limits in [docs/meander-scroll-bars.md](docs/meander-scroll-bars.md). Run `python scripts/build_meander.py`.
+
 ## Data
 
 * **Lidar:** USGS 3D Elevation Program project `WA_CentralWildfire_2_D22`, Entwine Point Tiles on AWS (`s3://usgs-lidar-public`). Collected 2022-09-04 to 2022-09-08 (dates derived from the point GPS times). 30.8 points per m². Published classes present: 1 unclassified, 2 ground, 9 water, 20 and 21 snow; there are no vegetation classes, so canopy comes from a height model.
