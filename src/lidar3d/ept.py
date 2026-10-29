@@ -32,8 +32,9 @@ class Cloud:
     intensity: np.ndarray
     ret: np.ndarray          # return number
     nret: np.ndarray         # number of returns
-    gps: np.ndarray          # GPS time (adjusted standard GPS seconds)
+    gps: np.ndarray          # GPS time (adjusted standard GPS seconds); a sample unless fetched with full_gps=True
     crs: str
+    psid: np.ndarray | None = None     # point source id (flight line), only with full_gps=True
 
     def __len__(self):
         return len(self.x)
@@ -86,7 +87,7 @@ class EPT:
         """Approximate point spacing at an octree depth, in true metres at the dataset's latitude is not applied here (units of the dataset CRS)."""
         return (self.cube[3] - self.cube[0]) / self.span / 2 ** depth
 
-    def fetch(self, bbox_ll: tuple[float, float, float, float], max_depth: int = 20, workers: int = 6, log=print) -> Cloud:
+    def fetch(self, bbox_ll: tuple[float, float, float, float], max_depth: int = 20, workers: int = 6, log=print, full_gps: bool = False) -> Cloud:
         """Points inside (W, S, E, N) WGS84, as a Cloud in the UTM zone of the box centre."""
         W, S, E, N = bbox_ll
         t3857 = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
@@ -124,9 +125,11 @@ class EPT:
                 return None
             E_, N_ = to_utm.transform(X[m], Y[m])
             keep = (E_ >= e0) & (E_ <= e1) & (N_ >= n0) & (N_ <= n1)
-            gps = np.asarray(las.gps_time)[m][keep][::500] if "gps_time" in las.point_format.dimension_names else np.zeros(0)     # a sample is enough to date the survey
+            has_t = "gps_time" in las.point_format.dimension_names
+            gps = (np.asarray(las.gps_time)[m][keep] if full_gps else np.asarray(las.gps_time)[m][keep][::500]) if has_t else np.zeros(0)     # a sample is enough to date the survey
+            psid = np.asarray(las.point_source_id)[m][keep] if full_gps else np.zeros(0, np.uint16)
             g = lambda n: np.asarray(las[n])[m][keep]
-            return E_[keep], N_[keep], np.asarray(las.z)[m][keep].astype(np.float32), g("classification"), g("intensity"), g("return_number"), g("number_of_returns"), gps
+            return E_[keep], N_[keep], np.asarray(las.z)[m][keep].astype(np.float32), g("classification"), g("intensity"), g("return_number"), g("number_of_returns"), gps, psid
 
         parts = []
         with ThreadPoolExecutor(workers) as ex:
@@ -135,5 +138,5 @@ class EPT:
                     parts.append(r)
                 if i % 200 == 0:
                     log(f"  {i}/{len(nodes)} nodes")
-        cat = [np.concatenate([p[i] for p in parts]) for i in range(8)]
-        return Cloud(*cat, crs=utm)
+        cat = [np.concatenate([p[i] for p in parts]) for i in range(9)]
+        return Cloud(*cat[:8], crs=utm, psid=cat[8] if full_gps else None)
