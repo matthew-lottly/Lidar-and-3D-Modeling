@@ -1,0 +1,922 @@
+{
+ "site": "Pacifica coastal bluffs and Mori Point, California",
+ "lonlat": [
+  -122.4985,
+  37.6175
+ ],
+ "crs": "EPSG:32610",
+ "half_m": 450.0,
+ "res_m": 2.0,
+ "epochs": {
+  "2010": {
+   "project": "ARRA-CA_SanFranCoast_2010",
+   "date": "unknown",
+   "points": 1262492,
+   "ground_points": 396437,
+   "ground_density_per_m2": 0.4894283950617284
+  },
+  "2016": {
+   "project": "USGS_LPC_CA_WestCoastElNinoUTM10_2016_LAS_2017",
+   "date": "2016-04-16",
+   "points": 7818426,
+   "ground_points": 3046942,
+   "ground_density_per_m2": 3.7616567901234568
+  },
+  "2023": {
+   "project": "CA_CaliforniaGaps_3_B23",
+   "date": "2023-11-27",
+   "points": 11148886,
+   "ground_points": 5808934,
+   "ground_density_per_m2": 7.171523456790124
+  }
+ },
+ "stable_zone": {
+  "cells": 1098,
+  "area_ha": 0.4392,
+  "rule": "at least 150 m from the sea, slope 8 degrees or less in the 2023 ground DEM"
+ },
+ "registration": {
+  "2010": {
+   "translation_m": [
+    -0.1166821283446181,
+    0.04462658133967212,
+    0.16209810957329157
+   ],
+   "rotation_deg": [
+    0.0034658988306597582,
+    0.03022335902208992,
+    -0.006672932444201224
+   ],
+   "icp_rms_start": 0.039656557913565454,
+   "icp_rms_end": 0.037320691338941205,
+   "iterations": 40,
+   "bootstrap_translation_sd_m": [
+    0.02647048346785003,
+    0.02515751618629289,
+    0.014722222334262978
+   ],
+   "south_fit_translation_m": [
+    -0.6280000903526407,
+    -0.4371690003563082,
+    0.10613358661472429
+   ],
+   "held_out_north_half": {
+    "before": {
+     "median_m": 0.02250017943205762,
+     "robust_sd_m": 0.04231921783023304,
+     "rms_trim1m": 0.06698689691183925,
+     "n": 239
+    },
+    "after_fit_on_south_half": {
+     "median_m": 0.03132513331270914,
+     "robust_sd_m": 0.05652051704738074,
+     "rms_trim1m": 0.0813560381277268,
+     "n": 238
+    },
+    "after_fit_on_all": {
+     "median_m": 7.436856028419925e-05,
+     "robust_sd_m": 0.04042324736303582,
+     "rms_trim1m": 0.06270473292118947,
+     "n": 239
+    }
+   }
+  },
+  "2016": {
+   "translation_m": [
+    -0.22917420881003792,
+    -0.1811954392022167,
+    -0.0868088925312379
+   ],
+   "rotation_deg": [
+    0.000427223011675878,
+    -0.0145727843373757,
+    0.0003181269057881648
+   ],
+   "icp_rms_start": 0.02796209594240367,
+   "icp_rms_end": 0.019811638469952944,
+   "iterations": 19,
+   "bootstrap_translation_sd_m": [
+    0.0049121053322106955,
+    0.005440086715103854,
+    0.002206381507621415
+   ],
+   "south_fit_translation_m": [
+    -0.21657237646374272,
+    -0.174043614638045,
+    -0.07024967067561155
+   ],
+   "held_out_north_half": {
+    "before": {
+     "median_m": -0.0045275761657279645,
+     "robust_sd_m": 0.027810939781192832,
+     "rms_trim1m": 0.04384424743588644,
+     "n": 240
+    },
+    "after_fit_on_south_half": {
+     "median_m": -0.022201439391189126,
+     "robust_sd_m": 0.017034219478514738,
+     "rms_trim1m": 0.048142150774795424,
+     "n": 240
+    },
+    "after_fit_on_all": {
+     "median_m": 0.0008925776921593354,
+     "robust_sd_m": 0.01605250156556233,
+     "rms_trim1m": 0.04215307766234013,
+     "n": 240
+    }
+   }
+  }
+ },
+ "dod": {
+  "2010-2016": {
+   "sigma_z_stable_m": 0.06003171695362919,
+   "sigma_z_robust_mad_m": 0.04285239595667493,
+   "sigma_xy_m": 0.07071067811865475,
+   "median_stable_m": 0.009048544842265471,
+   "stable_cells": 1051,
+   "false_positive_share_on_stable": 0.056137012369172214,
+   "lod_flat_m": 0.11766216522911321,
+   "coastal_band_60m": {
+    "lod95": {
+     "erosion_m3": 17652.857381183007,
+     "deposition_m3": 14982.734137917463,
+     "net_m3": -2670.1232432655415,
+     "below_lod_net_m3": 632.9862526940171,
+     "cells": 29775,
+     "significant_cells": 14585,
+     "area_m2": 119100.0,
+     "significant_area_m2": 58340.0,
+     "net_volume_sd_block_bootstrap_m3": NaN,
+     "bootstrap_blocks": 0
+    },
+    "lod68": {
+     "erosion_m3": 18869.244610877875,
+     "deposition_m3": 16748.88952102625,
+     "net_m3": -2120.355089851624,
+     "below_lod_net_m3": 83.21809928009932,
+     "cells": 29775,
+     "significant_cells": 20942,
+     "area_m2": 119100.0,
+     "significant_area_m2": 83768.0
+    },
+    "lod99": {
+     "erosion_m3": 16885.84453405588,
+     "deposition_m3": 13591.103592280662,
+     "net_m3": -3294.740941775216,
+     "below_lod_net_m3": 1257.603951203691,
+     "cells": 29775,
+     "significant_cells": 11470,
+     "area_m2": 119100.0,
+     "significant_area_m2": 45880.0
+    },
+    "none": {
+     "erosion_m3": 19645.939655133378,
+     "deposition_m3": 17608.802664561852,
+     "net_m3": -2037.1369905715255,
+     "below_lod_net_m3": 0.0,
+     "cells": 29775,
+     "significant_cells": 29775,
+     "area_m2": 119100.0,
+     "significant_area_m2": 119100.0
+    }
+   },
+   "inland": {
+    "lod95": {
+     "erosion_m3": 10864.44167368333,
+     "deposition_m3": 8684.696015321662,
+     "net_m3": -2179.7456583616677,
+     "below_lod_net_m3": 398.32629235004475,
+     "cells": 40588,
+     "significant_cells": 13101,
+     "area_m2": 162352.0,
+     "significant_area_m2": 52404.0
+    },
+    "lod68": {
+     "erosion_m3": 12614.658071847198,
+     "deposition_m3": 10814.67419913128,
+     "net_m3": -1799.9838727159176,
+     "below_lod_net_m3": 18.56450670429399,
+     "cells": 40588,
+     "significant_cells": 23172,
+     "area_m2": 162352.0,
+     "significant_area_m2": 92688.0
+    },
+    "lod99": {
+     "erosion_m3": 9864.525883645689,
+     "deposition_m3": 7325.026653133556,
+     "net_m3": -2539.499230512134,
+     "below_lod_net_m3": 758.0798645005106,
+     "cells": 40588,
+     "significant_cells": 9263,
+     "area_m2": 162352.0,
+     "significant_area_m2": 37052.0
+    },
+    "none": {
+     "erosion_m3": 13747.778144788337,
+     "deposition_m3": 11966.358778776714,
+     "net_m3": -1781.4193660116234,
+     "below_lod_net_m3": 0.0,
+     "cells": 40588,
+     "significant_cells": 40588,
+     "area_m2": 162352.0,
+     "significant_area_m2": 162352.0
+    }
+   },
+   "all_land": {
+    "lod95": {
+     "erosion_m3": 28517.299054866333,
+     "deposition_m3": 23667.430153239126,
+     "net_m3": -4849.86890162721,
+     "below_lod_net_m3": 1031.3125450440618,
+     "cells": 70363,
+     "significant_cells": 27686,
+     "area_m2": 281452.0,
+     "significant_area_m2": 110744.0
+    },
+    "lod68": {
+     "erosion_m3": 31483.902682725067,
+     "deposition_m3": 27563.56372015753,
+     "net_m3": -3920.3389625675404,
+     "below_lod_net_m3": 101.78260598439331,
+     "cells": 70363,
+     "significant_cells": 44114,
+     "area_m2": 281452.0,
+     "significant_area_m2": 176456.0
+    },
+    "lod99": {
+     "erosion_m3": 26750.370417701568,
+     "deposition_m3": 20916.13024541422,
+     "net_m3": -5834.240172287351,
+     "below_lod_net_m3": 2015.6838157042016,
+     "cells": 70363,
+     "significant_cells": 20733,
+     "area_m2": 281452.0,
+     "significant_area_m2": 82932.0
+    },
+    "none": {
+     "erosion_m3": 33393.71779992171,
+     "deposition_m3": 29575.16144333857,
+     "net_m3": -3818.5563565831476,
+     "below_lod_net_m3": 0.0,
+     "cells": 70363,
+     "significant_cells": 70363,
+     "area_m2": 281452.0,
+     "significant_area_m2": 281452.0
+    }
+   }
+  },
+  "2016-2023": {
+   "sigma_z_stable_m": 0.03519588848742056,
+   "sigma_z_robust_mad_m": 0.01569825105778486,
+   "sigma_xy_m": 0.07071067811865475,
+   "median_stable_m": -0.0008893687077957679,
+   "stable_cells": 1070,
+   "false_positive_share_on_stable": 0.048598130841121495,
+   "lod_flat_m": 0.0689839414353443,
+   "coastal_band_60m": {
+    "lod95": {
+     "erosion_m3": 33078.18231653311,
+     "deposition_m3": 7668.826221086074,
+     "net_m3": -25409.356095447034,
+     "below_lod_net_m3": -1531.1061966765817,
+     "cells": 32434,
+     "significant_cells": 15070,
+     "area_m2": 129736.0,
+     "significant_area_m2": 60280.0,
+     "net_volume_sd_block_bootstrap_m3": NaN,
+     "bootstrap_blocks": 0
+    },
+    "lod68": {
+     "erosion_m3": 34832.81132337531,
+     "deposition_m3": 8395.927815464296,
+     "net_m3": -26436.883507911007,
+     "below_lod_net_m3": -503.5787842126059,
+     "cells": 32434,
+     "significant_cells": 21885,
+     "area_m2": 129736.0,
+     "significant_area_m2": 87540.0
+    },
+    "lod99": {
+     "erosion_m3": 31971.84961837579,
+     "deposition_m3": 7204.459816952387,
+     "net_m3": -24767.3898014234,
+     "below_lod_net_m3": -2173.072490700217,
+     "cells": 32434,
+     "significant_cells": 12222,
+     "area_m2": 129736.0,
+     "significant_area_m2": 48888.0
+    },
+    "none": {
+     "erosion_m3": 35869.346893666894,
+     "deposition_m3": 8928.884601543274,
+     "net_m3": -26940.462292123615,
+     "below_lod_net_m3": 0.0,
+     "cells": 32434,
+     "significant_cells": 32434,
+     "area_m2": 129736.0,
+     "significant_area_m2": 129736.0
+    }
+   },
+   "inland": {
+    "lod95": {
+     "erosion_m3": 12459.375938939713,
+     "deposition_m3": 3715.1224060746413,
+     "net_m3": -8744.253532865072,
+     "below_lod_net_m3": -457.11231341033385,
+     "cells": 41785,
+     "significant_cells": 11213,
+     "area_m2": 167140.0,
+     "significant_area_m2": 44852.0
+    },
+    "lod68": {
+     "erosion_m3": 13816.70507762487,
+     "deposition_m3": 4753.634011207107,
+     "net_m3": -9063.071066417764,
+     "below_lod_net_m3": -138.29477985764294,
+     "cells": 41785,
+     "significant_cells": 20186,
+     "area_m2": 167140.0,
+     "significant_area_m2": 80744.0
+    },
+    "lod99": {
+     "erosion_m3": 11750.92569633646,
+     "deposition_m3": 3192.1537788223372,
+     "net_m3": -8558.771917514123,
+     "below_lod_net_m3": -642.593928761282,
+     "cells": 41785,
+     "significant_cells": 8307,
+     "area_m2": 167140.0,
+     "significant_area_m2": 33228.0
+    },
+    "none": {
+     "erosion_m3": 14811.116113663746,
+     "deposition_m3": 5609.750267388344,
+     "net_m3": -9201.365846275405,
+     "below_lod_net_m3": 0.0,
+     "cells": 41785,
+     "significant_cells": 41785,
+     "area_m2": 167140.0,
+     "significant_area_m2": 167140.0
+    }
+   },
+   "all_land": {
+    "lod95": {
+     "erosion_m3": 45537.55825547282,
+     "deposition_m3": 11383.948627160713,
+     "net_m3": -34153.6096283121,
+     "below_lod_net_m3": -1988.2185100869156,
+     "cells": 74219,
+     "significant_cells": 26283,
+     "area_m2": 296876.0,
+     "significant_area_m2": 105132.0
+    },
+    "lod68": {
+     "erosion_m3": 48649.516401000175,
+     "deposition_m3": 13149.561826671405,
+     "net_m3": -35499.95457432877,
+     "below_lod_net_m3": -641.8735640702489,
+     "cells": 74219,
+     "significant_cells": 42071,
+     "area_m2": 296876.0,
+     "significant_area_m2": 168284.0
+    },
+    "lod99": {
+     "erosion_m3": 43722.77531471224,
+     "deposition_m3": 10396.613595774725,
+     "net_m3": -33326.16171893752,
+     "below_lod_net_m3": -2815.6664194614987,
+     "cells": 74219,
+     "significant_cells": 20529,
+     "area_m2": 296876.0,
+     "significant_area_m2": 82116.0
+    },
+    "none": {
+     "erosion_m3": 50680.46300733063,
+     "deposition_m3": 14538.634868931618,
+     "net_m3": -36141.82813839902,
+     "below_lod_net_m3": 0.0,
+     "cells": 74219,
+     "significant_cells": 74219,
+     "area_m2": 296876.0,
+     "significant_area_m2": 296876.0
+    }
+   }
+  },
+  "2010-2023": {
+   "sigma_z_stable_m": 0.0691141031256601,
+   "sigma_z_robust_mad_m": 0.04471663064327744,
+   "sigma_xy_m": 0.07071067811865475,
+   "median_stable_m": 0.008469250996910205,
+   "stable_cells": 1079,
+   "false_positive_share_on_stable": 0.05004633920296571,
+   "lod_flat_m": 0.1354636421262938,
+   "coastal_band_60m": {
+    "lod95": {
+     "erosion_m3": 34864.328847392935,
+     "deposition_m3": 8493.350967806862,
+     "net_m3": -26370.977879586077,
+     "below_lod_net_m3": -983.3518483204024,
+     "cells": 34666,
+     "significant_cells": 15402,
+     "area_m2": 138664.0,
+     "significant_area_m2": 61608.0,
+     "net_volume_sd_block_bootstrap_m3": NaN,
+     "bootstrap_blocks": 0
+    },
+    "lod68": {
+     "erosion_m3": 37148.00103480676,
+     "deposition_m3": 10270.94939038678,
+     "net_m3": -26877.051644419975,
+     "below_lod_net_m3": -477.2780834865016,
+     "cells": 34666,
+     "significant_cells": 23189,
+     "area_m2": 138664.0,
+     "significant_area_m2": 92756.0
+    },
+    "lod99": {
+     "erosion_m3": 33498.101838897885,
+     "deposition_m3": 7288.724079691036,
+     "net_m3": -26209.37775920685,
+     "below_lod_net_m3": -1144.951968699626,
+     "cells": 34666,
+     "significant_cells": 12032,
+     "area_m2": 138664.0,
+     "significant_area_m2": 48128.0
+    },
+    "none": {
+     "erosion_m3": 38596.102805282804,
+     "deposition_m3": 11241.773077376321,
+     "net_m3": -27354.32972790648,
+     "below_lod_net_m3": 0.0,
+     "cells": 34666,
+     "significant_cells": 34666,
+     "area_m2": 138664.0,
+     "significant_area_m2": 138664.0
+    }
+   },
+   "inland": {
+    "lod95": {
+     "erosion_m3": 18131.49417053099,
+     "deposition_m3": 7380.01005844068,
+     "net_m3": -10751.484112090315,
+     "below_lod_net_m3": -168.99003105157078,
+     "cells": 42058,
+     "significant_cells": 12460,
+     "area_m2": 168232.0,
+     "significant_area_m2": 49840.0
+    },
+    "lod68": {
+     "erosion_m3": 20473.642922416708,
+     "deposition_m3": 9624.360180508207,
+     "net_m3": -10849.282741908502,
+     "below_lod_net_m3": -71.19140123338151,
+     "cells": 42058,
+     "significant_cells": 23091,
+     "area_m2": 168232.0,
+     "significant_area_m2": 92364.0
+    },
+    "lod99": {
+     "erosion_m3": 16920.491453845705,
+     "deposition_m3": 5902.402076221049,
+     "net_m3": -11018.089377624654,
+     "below_lod_net_m3": 97.61523448277126,
+     "cells": 42058,
+     "significant_cells": 8541,
+     "area_m2": 168232.0,
+     "significant_area_m2": 34164.0
+    },
+    "none": {
+     "erosion_m3": 21892.63507395567,
+     "deposition_m3": 10972.160930813789,
+     "net_m3": -10920.474143141884,
+     "below_lod_net_m3": 0.0,
+     "cells": 42058,
+     "significant_cells": 42058,
+     "area_m2": 168232.0,
+     "significant_area_m2": 168232.0
+    }
+   },
+   "all_land": {
+    "lod95": {
+     "erosion_m3": 52995.82301792393,
+     "deposition_m3": 15873.361026247541,
+     "net_m3": -37122.46199167639,
+     "below_lod_net_m3": -1152.341879371973,
+     "cells": 76724,
+     "significant_cells": 27862,
+     "area_m2": 306896.0,
+     "significant_area_m2": 111448.0
+    },
+    "lod68": {
+     "erosion_m3": 57621.64395722347,
+     "deposition_m3": 19895.30957089499,
+     "net_m3": -37726.33438632848,
+     "below_lod_net_m3": -548.469484719883,
+     "cells": 76724,
+     "significant_cells": 46280,
+     "area_m2": 306896.0,
+     "significant_area_m2": 185120.0
+    },
+    "lod99": {
+     "erosion_m3": 50418.59329274359,
+     "deposition_m3": 13191.126155912087,
+     "net_m3": -37227.4671368315,
+     "below_lod_net_m3": -1047.336734216855,
+     "cells": 76724,
+     "significant_cells": 20573,
+     "area_m2": 306896.0,
+     "significant_area_m2": 82292.0
+    },
+    "none": {
+     "erosion_m3": 60488.73787923847,
+     "deposition_m3": 22213.93400819011,
+     "net_m3": -38274.80387104836,
+     "below_lod_net_m3": 0.0,
+     "cells": 76724,
+     "significant_cells": 76724,
+     "area_m2": 306896.0,
+     "significant_area_m2": 306896.0
+    }
+   }
+  }
+ },
+ "closure": {
+  "coastal_band_60m": {
+   "sum_of_parts_m3": -28079.479338712576,
+   "whole_m3": -26370.977879586077,
+   "difference_m3": 1708.501459126499
+  },
+  "all_land": {
+   "sum_of_parts_m3": -39003.47852993931,
+   "whole_m3": -37122.46199167639,
+   "difference_m3": 1881.0165382629202
+  }
+ },
+ "segments": [
+  {
+   "segment": 1,
+   "y_from_m": -450.0,
+   "y_to_m": -338.0,
+   "coastal_cells": 7960,
+   "2010-2016_net_m3": 1161.483320477435,
+   "2010-2016_erosion_m3": 1920.6113555607135,
+   "2010-2016_deposition_m3": 3082.0946760381485,
+   "2016-2023_net_m3": -3712.9837324345044,
+   "2016-2023_erosion_m3": 4442.265376549345,
+   "2016-2023_deposition_m3": 729.2816441148412,
+   "2010-2023_net_m3": -2577.41190578672,
+   "2010-2023_erosion_m3": 4697.73883237661,
+   "2010-2023_deposition_m3": 2120.32692658989
+  },
+  {
+   "segment": 2,
+   "y_from_m": -338.0,
+   "y_to_m": -226.0,
+   "coastal_cells": 3446,
+   "2010-2016_net_m3": -2381.463084042829,
+   "2010-2016_erosion_m3": 3658.903802775752,
+   "2010-2016_deposition_m3": 1277.440718732923,
+   "2016-2023_net_m3": -4289.948977398507,
+   "2016-2023_erosion_m3": 4765.2302775679245,
+   "2016-2023_deposition_m3": 475.2813001694171,
+   "2010-2023_net_m3": -6805.754270974812,
+   "2010-2023_erosion_m3": 7518.460680236302,
+   "2010-2023_deposition_m3": 712.7064092614921
+  },
+  {
+   "segment": 3,
+   "y_from_m": -226.0,
+   "y_to_m": -114.0,
+   "coastal_cells": 3810,
+   "2010-2016_net_m3": 410.46038270196016,
+   "2010-2016_erosion_m3": 1559.5894600351378,
+   "2010-2016_deposition_m3": 1970.049842737098,
+   "2016-2023_net_m3": -3652.0603435057483,
+   "2016-2023_erosion_m3": 4360.88653988415,
+   "2016-2023_deposition_m3": 708.8261963784016,
+   "2010-2023_net_m3": -3190.0513727734606,
+   "2010-2023_erosion_m3": 4103.586705068636,
+   "2010-2023_deposition_m3": 913.5353322951747
+  },
+  {
+   "segment": 4,
+   "y_from_m": -114.0,
+   "y_to_m": 0.0,
+   "coastal_cells": 3538,
+   "2010-2016_net_m3": 979.2899457441935,
+   "2010-2016_erosion_m3": 965.869799128749,
+   "2010-2016_deposition_m3": 1945.1597448729426,
+   "2016-2023_net_m3": -2073.2703370607574,
+   "2016-2023_erosion_m3": 2237.839328807114,
+   "2016-2023_deposition_m3": 164.5689917463563,
+   "2010-2023_net_m3": -1738.9360253572781,
+   "2010-2023_erosion_m3": 2674.2506073171257,
+   "2010-2023_deposition_m3": 935.3145819598476
+  },
+  {
+   "segment": 5,
+   "y_from_m": 0.0,
+   "y_to_m": 112.0,
+   "coastal_cells": 3481,
+   "2010-2016_net_m3": 48.22740347015383,
+   "2010-2016_erosion_m3": 1037.2657442001068,
+   "2010-2016_deposition_m3": 1085.4931476702604,
+   "2016-2023_net_m3": -2111.2505201530066,
+   "2016-2023_erosion_m3": 2334.8317665805266,
+   "2016-2023_deposition_m3": 223.5812464275204,
+   "2010-2023_net_m3": -1988.374413516343,
+   "2010-2023_erosion_m3": 2514.804375300464,
+   "2010-2023_deposition_m3": 526.4299617841215
+  },
+  {
+   "segment": 6,
+   "y_from_m": 112.0,
+   "y_to_m": 224.0,
+   "coastal_cells": 3902,
+   "2010-2016_net_m3": 1358.2611203871131,
+   "2010-2016_erosion_m3": 1265.9319163796313,
+   "2010-2016_deposition_m3": 2624.1930367667446,
+   "2016-2023_net_m3": -5875.298232469989,
+   "2016-2023_erosion_m3": 6392.65704007317,
+   "2016-2023_deposition_m3": 517.3588076031806,
+   "2010-2023_net_m3": -3146.367542736698,
+   "2010-2023_erosion_m3": 3718.796734182335,
+   "2010-2023_deposition_m3": 572.4291914456369
+  },
+  {
+   "segment": 7,
+   "y_from_m": 224.0,
+   "y_to_m": 336.0,
+   "coastal_cells": 4935,
+   "2010-2016_net_m3": -1113.9219219606025,
+   "2010-2016_erosion_m3": 2703.1782438279524,
+   "2010-2016_deposition_m3": 1589.2563218673497,
+   "2016-2023_net_m3": -2293.22460295584,
+   "2016-2023_erosion_m3": 3557.9365229020445,
+   "2016-2023_deposition_m3": 1264.7119199462045,
+   "2010-2023_net_m3": -3507.1049640225992,
+   "2010-2023_erosion_m3": 4536.532329105283,
+   "2010-2023_deposition_m3": 1029.4273650826835
+  },
+  {
+   "segment": 8,
+   "y_from_m": 336.0,
+   "y_to_m": 450.0,
+   "coastal_cells": 6864,
+   "2010-2016_net_m3": -3132.460410042966,
+   "2010-2016_erosion_m3": 4541.507059274962,
+   "2010-2016_deposition_m3": 1409.0466492319956,
+   "2016-2023_net_m3": -1401.3193494686798,
+   "2016-2023_erosion_m3": 4986.535464168832,
+   "2016-2023_deposition_m3": 3585.216114700152,
+   "2010-2023_net_m3": -3416.9773844181673,
+   "2010-2023_erosion_m3": 5100.158583806182,
+   "2010-2023_deposition_m3": 1683.1811993880153
+  }
+ ],
+ "contour_retreat": {
+  "6.0": {
+   "2010-2016": {
+    "transects": 69,
+    "median_m": -0.40827124999725584,
+    "p10_m": -1.951468761232695,
+    "p90_m": 1.277561091939515,
+    "median_rate_m_per_yr": -0.06804520833287597,
+    "retreat_gt_lod_share": 0.2463768115942029
+   },
+   "2016-2023": {
+    "transects": 67,
+    "median_m": 1.0454106958829925,
+    "p10_m": -0.42879459964860855,
+    "p90_m": 5.082434971073008,
+    "median_rate_m_per_yr": 0.1375540389319727,
+    "retreat_gt_lod_share": 0.6119402985074627
+   },
+   "2010-2023": {
+    "transects": 68,
+    "median_m": 0.5454329282563322,
+    "p10_m": -0.6620397087041624,
+    "p90_m": 3.7494296772523077,
+    "median_rate_m_per_yr": 0.04010536237178913,
+    "retreat_gt_lod_share": 0.5147058823529411
+   }
+  },
+  "12.0": {
+   "2010-2016": {
+    "transects": 66,
+    "median_m": -0.02880834493862494,
+    "p10_m": -2.203944769990528,
+    "p90_m": 0.8865068642358551,
+    "median_rate_m_per_yr": -0.004801390823104157,
+    "retreat_gt_lod_share": 0.16666666666666666
+   },
+   "2016-2023": {
+    "transects": 67,
+    "median_m": 0.7689817927326885,
+    "p10_m": -0.06967280471592402,
+    "p90_m": 4.456608248358066,
+    "median_rate_m_per_yr": 0.10118181483324849,
+    "retreat_gt_lod_share": 0.5373134328358209
+   },
+   "2010-2023": {
+    "transects": 65,
+    "median_m": 0.3013140730715804,
+    "p10_m": -0.5369122732462074,
+    "p90_m": 3.0014247564650987,
+    "median_rate_m_per_yr": 0.022155446549380915,
+    "retreat_gt_lod_share": 0.4307692307692308
+   }
+  },
+  "20.0": {
+   "2010-2016": {
+    "transects": 67,
+    "median_m": 0.029201743811995584,
+    "p10_m": -0.9678659246431379,
+    "p90_m": 2.7342029926970324,
+    "median_rate_m_per_yr": 0.004866957301999264,
+    "retreat_gt_lod_share": 0.19402985074626866
+   },
+   "2016-2023": {
+    "transects": 66,
+    "median_m": 0.23630740292094288,
+    "p10_m": -0.16601988740768547,
+    "p90_m": 2.414407042277901,
+    "median_rate_m_per_yr": 0.03109307933170301,
+    "retreat_gt_lod_share": 0.3787878787878788
+   },
+   "2010-2023": {
+    "transects": 67,
+    "median_m": 0.08635052699605694,
+    "p10_m": -0.4302194562131717,
+    "p90_m": 4.150635162769731,
+    "median_rate_m_per_yr": 0.006349303455592422,
+    "retreat_gt_lod_share": 0.3283582089552239
+   }
+  }
+ },
+ "m3c2_face": {
+  "2010-2016": {
+   "cores": 16161,
+   "valid": 13591,
+   "significant": 2186,
+   "erosion_m3": 7043.859060149327,
+   "deposition_m3": 2900.834111609577,
+   "net_m3": -4143.02494853975,
+   "dod_net_same_cells_m3": -2762.6801992096625,
+   "dod_erosion_same_cells_m3": 12541.062191211779,
+   "median_normal_change_m": -0.30334301675911013,
+   "median_lod_m": 0.22333364559698932,
+   "corr_with_dod_vertical": 0.7346722692084864,
+   "face_cells": 16161
+  },
+  "2016-2023": {
+   "cores": 16161,
+   "valid": 15087,
+   "significant": 3264,
+   "erosion_m3": 16399.513579516526,
+   "deposition_m3": 1713.1142951266502,
+   "net_m3": -14686.399284389876,
+   "dod_net_same_cells_m3": -22645.605441149855,
+   "dod_erosion_same_cells_m3": 26247.263018178495,
+   "median_normal_change_m": -0.4440780354543753,
+   "median_lod_m": 0.1818142204371491,
+   "corr_with_dod_vertical": 0.7683908939815419,
+   "face_cells": 16161
+  }
+ },
+ "lod_by_slope_coastal_band": {
+  "0-5": {
+   "cells": 6289,
+   "median_lod95_2010_2023_m": 0.1356258085711683,
+   "median_lod95_2016_2023_m": 0.06930184549070531
+  },
+  "5-15": {
+   "cells": 12003,
+   "median_lod95_2010_2023_m": 0.13721904185229444,
+   "median_lod95_2016_2023_m": 0.07237023756141851
+  },
+  "15-30": {
+   "cells": 9180,
+   "median_lod95_2010_2023_m": 0.14614581605251492,
+   "median_lod95_2016_2023_m": 0.08813050201033396
+  },
+  "30-45": {
+   "cells": 5229,
+   "median_lod95_2010_2023_m": 0.16955532076975016,
+   "median_lod95_2016_2023_m": 0.12311536313217486
+  },
+  "45-90": {
+   "cells": 5235,
+   "median_lod95_2010_2023_m": 0.318713954766695,
+   "median_lod95_2016_2023_m": 0.2966259779602274
+  }
+ },
+ "planted_change_on_stable_ground": {
+  "note": "a step of known size is added to the measured 2016-2023 difference over patches of gentle stable ground; recovery measured with the same level of detection",
+  "results": {
+   "6m_0.05m": {
+    "patches": 24,
+    "cells_detected_share": 0.0787037037037037,
+    "volume_recovered_share": 0.12307841000221328,
+    "patch_detected_share": 0.0
+   },
+   "6m_0.1m": {
+    "patches": 26,
+    "cells_detected_share": 0.9658119658119658,
+    "volume_recovered_share": 0.9728616282592204,
+    "patch_detected_share": 1.0
+   },
+   "6m_0.2m": {
+    "patches": 20,
+    "cells_detected_share": 1.0,
+    "volume_recovered_share": 0.9972583957337616,
+    "patch_detected_share": 1.0
+   },
+   "6m_0.3m": {
+    "patches": 24,
+    "cells_detected_share": 1.0,
+    "volume_recovered_share": 0.9913242393358681,
+    "patch_detected_share": 1.0
+   },
+   "6m_0.5m": {
+    "patches": 29,
+    "cells_detected_share": 1.0,
+    "volume_recovered_share": 0.9973567458324207,
+    "patch_detected_share": 1.0
+   },
+   "6m_1.0m": {
+    "patches": 21,
+    "cells_detected_share": 1.0,
+    "volume_recovered_share": 1.0020459808792352,
+    "patch_detected_share": 1.0
+   },
+   "12m_0.05m": {
+    "patches": 7,
+    "cells_detected_share": 0.08333333333333334,
+    "volume_recovered_share": 0.12843514560462485,
+    "patch_detected_share": 0.0
+   },
+   "12m_0.1m": {
+    "patches": 5,
+    "cells_detected_share": 0.9666666666666666,
+    "volume_recovered_share": 0.9587957461631369,
+    "patch_detected_share": 1.0
+   },
+   "12m_0.2m": {
+    "patches": 5,
+    "cells_detected_share": 1.0,
+    "volume_recovered_share": 0.9958094166637568,
+    "patch_detected_share": 1.0
+   },
+   "12m_0.3m": {
+    "patches": 3,
+    "cells_detected_share": 1.0,
+    "volume_recovered_share": 1.006156955294865,
+    "patch_detected_share": 1.0
+   },
+   "12m_0.5m": {
+    "patches": 5,
+    "cells_detected_share": 1.0,
+    "volume_recovered_share": 1.0007723027476931,
+    "patch_detected_share": 1.0
+   },
+   "12m_1.0m": {
+    "patches": 5,
+    "cells_detected_share": 1.0,
+    "volume_recovered_share": 1.0027394800864124,
+    "patch_detected_share": 1.0
+   }
+  }
+ },
+ "sensitivity_2010_2023_coastal_band": {
+  "cell_1m": {
+   "sigma_z_m": 0.07185301013199082,
+   "coastal_cells_with_both_dems_share": 0.7054569134528123,
+   "erosion_m3": 22990.63285487326,
+   "deposition_m3": 4643.888398845507,
+   "net_m3": -18346.74445602775,
+   "significant_area_m2": 41285.0
+  },
+  "cell_2m": {
+   "sigma_z_m": 0.0691141031256601,
+   "coastal_cells_with_both_dems_share": 0.9138021931674399,
+   "erosion_m3": 34864.328847392935,
+   "deposition_m3": 8493.350967806862,
+   "net_m3": -26370.977879586077,
+   "significant_area_m2": 61608.0
+  },
+  "cell_4m": {
+   "sigma_z_m": 0.05228042754904621,
+   "coastal_cells_with_both_dems_share": 0.9608700071145442,
+   "erosion_m3": 40156.77111854061,
+   "deposition_m3": 14325.24609478135,
+   "net_m3": -25831.52502375926,
+   "significant_area_m2": 81728.0
+  },
+  "no_registration_2010_2023": {
+   "erosion_m3": 32402.729651202597,
+   "deposition_m3": 10509.363325179862,
+   "net_m3": -21893.36632602274
+  }
+ }
+}

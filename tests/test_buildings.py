@@ -441,3 +441,22 @@ def test_roof_plane_ransac_and_solar_geometry():
     X, Y = np.meshgrid(c, c); dsm[(np.abs(X) <= 10) & (np.abs(Y) <= 10)] = 20.0
     h = SO.horizon_angles(np.array([[0.0, 40.0]]), np.array([0.0]), dsm, 100.0)
     assert abs(h[0, 36] - np.degrees(np.arctan(19.85 / 30.0))) < 2.5 and h[0, 0] == 0.0
+
+
+def test_topodiff_icp_dod_lod_and_volumes():
+    from lidar3d import topodiff as TD
+    rng = np.random.default_rng(0)
+    x, y = rng.uniform(-40, 40, 8000), rng.uniform(-40, 40, 8000)
+    z = 5 + 0.05 * x + 0.5 * np.sin(x / 9) * np.cos(y / 11)
+    dst = np.c_[x, y, z]
+    src = dst + np.array([0.30, -0.20, 0.15])                       # the same ground, shifted
+    R, t, _ = TD.icp_point_to_plane(src, dst, iters=60, max_dist=2.0)
+    assert np.allclose(src @ R.T + t, dst, atol=0.06)
+    d0 = np.zeros((20, 20)); d1 = d0.copy(); d1[5:10, 5:10] = -1.0; d1[12:15, 3:6] = 0.8
+    lod = TD.level_of_detection(np.zeros((20, 20)), 0.05, 0.1)
+    v = TD.dod_volumes(d1 - d0, lod, 2.0)
+    assert abs(v["erosion_m3"] - 25 * 1.0 * 4) < 1e-6 and abs(v["deposition_m3"] - 9 * 0.8 * 4) < 1e-6
+    assert TD.level_of_detection(np.array([45.0]), 0.05, 0.1)[0] > TD.level_of_detection(np.array([0.0]), 0.05, 0.1)[0]
+    far = np.zeros((40, 40), bool)
+    sd = TD.error_sd(np.random.default_rng(1).normal(0, 0.05, 5000))
+    assert 0.045 < sd < 0.06 and not far.any()
