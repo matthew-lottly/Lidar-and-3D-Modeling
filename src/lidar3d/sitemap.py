@@ -74,19 +74,22 @@ def draw_regional(ax, L, bbox, aoi_lonlat, aoi_half_deg, label_places=(), water_
         if gg.is_empty:
             continue
         if cl == "river":
-            _lines(ax, gg, color="#8FB8DE", lw=0.7, zorder=2)
+            _lines(ax, gg, color="#A9C8E6", lw=0.5, zorder=2)
         elif gg.area > water_min_deg2:
             _fill(ax, gg, fc="#B9D6EE", ec="#8FB8DE", lw=0.3, zorder=2)
     for nm, g in L["counties"]:
         _lines(ax, g.intersection(clip), color="#9A9A9A", lw=0.9, ls="--", zorder=3)
     for cl, g in L["roads"]:
-        _lines(ax, g.intersection(clip), color="#C0392B" if cl == "motorway" else "#E59866", lw=0.9 if cl == "motorway" else 0.6, zorder=4)
-    seen = set()
+        _lines(ax, g.intersection(clip), color="#C0392B" if cl == "motorway" else "#E59866", lw=0.7 if cl == "motorway" else 0.5, alpha=0.85, zorder=4)
+    import matplotlib.patheffects as pe
+    halo = [pe.withStroke(linewidth=2.6, foreground="white")]
+    seen, placed = set(), []
+    minx, miny = 0.085 * (E - W), 0.035 * (N - S)           # labels closer than this to an earlier label are dropped, so names never stack
     for nm, pop, g in sorted(L["places"], key=lambda t: -t[1]):
-        if nm in label_places and clip.contains(g) and nm not in seen:
-            seen.add(nm)
-            ax.plot(g.x, g.y, "o", ms=3.5, color="#333333", zorder=6)
-            ax.text(g.x + (E - W) * 0.008, g.y + (N - S) * 0.008, nm, fontsize=8.5, color="#222222", zorder=7, bbox=dict(fc="white", ec="none", alpha=0.7, pad=0.8))
+        if nm in label_places and clip.contains(g) and nm not in seen and all(abs(g.x - px) > minx or abs(g.y - py) > miny for px, py in placed):
+            seen.add(nm); placed.append((g.x, g.y))
+            ax.plot(g.x, g.y, "o", ms=3.5, color="#333333", zorder=6, mec="white", mew=0.6)
+            ax.text(g.x + (E - W) * 0.008, g.y + (N - S) * 0.008, nm, fontsize=8.5, color="#222222", zorder=7, path_effects=halo)
     lon, lat = aoi_lonlat
     ax.add_patch(__import__("matplotlib.patches", fromlist=["Rectangle"]).Rectangle((lon - aoi_half_deg[0], lat - aoi_half_deg[1]), 2 * aoi_half_deg[0], 2 * aoi_half_deg[1], fill=False, ec="#E74C3C", lw=2.0, zorder=8))
     ax.set_xlim(W, E); ax.set_ylim(S, N); ax.set_aspect(1 / np.cos(np.radians((S + N) / 2)))
