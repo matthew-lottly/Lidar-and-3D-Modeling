@@ -236,13 +236,22 @@ def road_raster(lines, half, res):
     return rasterio.features.rasterize(shapes, out_shape=(int(round(2 * half / res)),) * 2, transform=tf, fill=0, dtype="uint8").astype(bool) if shapes else np.zeros((int(round(2 * half / res)),) * 2, bool)
 
 
-def sample_line(grid, coords, half, res, step=2.0):
-    """Values of a grid (row 0 = south) at points every `step` m along a polyline; returns (xy points, values)."""
+def sample_line(grid, coords, half, res, step=2.0, across=0.0):
+    """Values of a grid (row 0 = south) at points every `step` m along a polyline; returns (xy points, values). With `across` > 0 each value is the median of three samples, on the centreline and `across` m to
+    either side, so a gutter or crown on one side does not decide the depth for the whole width of the road."""
     from shapely.geometry import LineString
     ln = LineString(coords)
     n = max(int(ln.length // step), 1)
-    pts = np.array([ln.interpolate(i * ln.length / n).coords[0] for i in range(n + 1)])
-    return pts, FO.sample(grid, half, res, pts[:, 0], pts[:, 1])
+    d = np.linspace(0, ln.length, n + 1)
+    pts = np.array([ln.interpolate(v).coords[0] for v in d])
+    v0 = FO.sample(grid, half, res, pts[:, 0], pts[:, 1])
+    if across <= 0:
+        return pts, v0
+    ahead = np.array([ln.interpolate(min(v + 1.0, ln.length)).coords[0] for v in d]) - np.array([ln.interpolate(max(v - 1.0, 0.0)).coords[0] for v in d])
+    nrm = np.c_[-ahead[:, 1], ahead[:, 0]] / np.maximum(np.hypot(ahead[:, 0], ahead[:, 1]), 1e-9)[:, None]
+    vl = FO.sample(grid, half, res, pts[:, 0] + across * nrm[:, 0], pts[:, 1] + across * nrm[:, 1])
+    vr = FO.sample(grid, half, res, pts[:, 0] - across * nrm[:, 0], pts[:, 1] - across * nrm[:, 1])
+    return pts, np.nanmedian(np.c_[v0, vl, vr], axis=1)
 
 
 def network_access(segments, flooded, min_length=0.0):
@@ -258,3 +267,37 @@ def network_access(segments, flooded, min_length=0.0):
     comps = sorted(nx.connected_components(G), key=lambda c: -sum(d["length"] for _, _, d in G.subgraph(c).edges(data=True)))
     big = sum(d["length"] for _, _, d in G.subgraph(comps[0]).edges(data=True))
     return big / tot, len(comps)
+
+
+# ------------------------------------------------------------------ what each road segment sits on
+def road_structure(coords, dtm, top, cnt, half, res, tagged_bridge, tagged_tunnel, step=3.0, deck_min=3.0):
+    """Classify a road segment from the lidar and the map tags, so overpasses and the roads beneath them are not confused (the highest return above a road is a deck for both).
+    Samples every `step` m along the centreline: `observed_share` = share of samples with ground or road-surface returns within one cell (the road surface itself was seen); `deck_share` (overhead share) = share where the highest
+    return stands more than `deck_min` m above the terrain: a deck, but also tree canopy or a roof, so by itself it does not mean an overpass. Categories:
+      tunnel: tagged as tunnel and covered; not assessed (the lidar cannot see inside).
+      at_grade_open_cut: tagged as tunnel but the road surface is seen from above (a trench approach); assessed like at-grade roads, and the lowest, most flood-prone kind.
+      bridge: tagged as bridge or elevated, with a deck seen or no road surface seen at ground level; the road surface is the deck, so water at ground level does not reach it.
+      at_grade: the road surface was observed at ground level.
+      at_grade_unobserved: untagged, surface not seen (an underpass or heavy overhead cover); treated as at ground level on the interpolated terrain and flagged, because this is the road that floods under an overpass.
+    A bridge tag with no deck and an observed surface is treated as at_grade (tag_conflict). Returns a dict with category, shares, deck height (median of top minus terrain over deck samples), tag_conflict and the samples."""
+    from shapely.geometry import LineString
+    ln = LineString(coords)
+    n = max(int(ln.length // step), 1)
+    pts = np.array([ln.interpolate(i * ln.length / n).coords[0] for i in range(n + 1)])
+    iy, ix, _ = FO._cells(pts[:, 0], pts[:, 1], half, res)
+    obs = ndimage.maximum_filter((cnt > 0).astype("uint8"), size=3)[iy, ix] > 0
+    z = dtm[iy, ix]
+    zt = ndimage.maximum_filter(np.nan_to_num(top, nan=-9999.0), size=3)[iy, ix]
+    deck = (zt - z) > deck_min
+    obs_s, deck_s = float(obs.mean()), float(deck.mean())
+    conflict = False
+    if tagged_tunnel:
+        cat = "at_grade_open_cut" if obs_s >= 0.6 and deck_s < 0.3 else "tunnel"       # a tunnel tag on a stretch whose road surface the lidar sees is an open-cut approach, which floods like any road in a trench
+    elif tagged_bridge:
+        if deck_s < 0.2 and obs_s >= 0.6:
+            cat, conflict = "at_grade", True
+        else:
+            cat = "bridge"
+    else:
+        cat = "at_grade" if obs_s >= 0.5 else "at_grade_unobserved"
+    return dict(category=cat, observed_share=obs_s, deck_share=deck_s, deck_height_m=float(np.median((zt - z)[deck])) if deck.any() else 0.0, tag_conflict=conflict, pts=pts, terrain=z, top=np.where(zt > -9000, zt, np.nan))

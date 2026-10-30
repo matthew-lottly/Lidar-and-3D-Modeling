@@ -104,13 +104,22 @@ def main():
     drivable = [r for r in roads if r["cls"] in FL.DRIVABLE]
     road_mask = FL.road_raster([(r["cls"], r["coords"]) for r in drivable], HALF, RES)
     st["roads"] = dict(segments_total=len(roads), drivable_segments=len(drivable), drivable_km=float(sum(LineString(r["coords"]).length for r in drivable) / 1000), by_class_km={k: float(sum(LineString(r["coords"]).length for r in drivable if r["cls"] == k) / 1000) for k in FL.DRIVABLE})
-    # elevated segments (bridges, overpasses): highest return along the centreline well above the terrain
+    # what each segment sits on: bridge deck, at-grade road, a road beneath a structure, or a tunnel
     for r in drivable:
-        pts, tz = FL.sample_line(top, r["coords"], HALF, RES, 3.0)
-        _, dz = FL.sample_line(dtm, r["coords"], HALF, RES, 3.0)
-        r["elevated"] = bool(np.nanmedian(tz - dz) > 3.0) or r["bridge"] or r["tunnel"]
-    st["roads"]["bridge_tunnel_or_elevated_segments_excluded_from_flooding"] = int(sum(r["elevated"] for r in drivable))
-    st["roads"]["tunnel_segments"] = int(sum(r["tunnel"] for r in drivable)); st["roads"]["bridge_segments"] = int(sum(r["bridge"] for r in drivable))
+        r.update(FL.road_structure(r["coords"], dtm, top, cnt, HALF, RES, r["bridge"], r["tunnel"]))
+        r["elevated"] = r["category"] in ("bridge", "tunnel")           # only these are exempt from flooding
+    cat_km = {}
+    for k in ("at_grade", "at_grade_open_cut", "at_grade_unobserved", "bridge", "tunnel"):
+        cat_km[k] = dict(segments=int(sum(r["category"] == k for r in drivable)), km=float(sum(LineString(r["coords"]).length for r in drivable if r["category"] == k) / 1000))
+    bt = [r for r in drivable if r["bridge"]]
+    st["roads"]["categories"] = cat_km
+    st["roads"]["structure_check"] = dict(
+        tagged_bridge=len(bt), tagged_bridge_with_deck_seen=int(sum(r["deck_share"] >= 0.3 for r in bt)), tag_conflicts_treated_at_grade=int(sum(r["tag_conflict"] for r in drivable)),
+        untagged_segments_with_anything_overhead_incl_tree_canopy=int(sum((not r["bridge"] and not r["tunnel"]) and r["deck_share"] >= 0.3 for r in drivable)),
+        untagged_underpass_candidates_surface_not_seen=int(sum(r["category"] == "at_grade_unobserved" for r in drivable)),
+        median_deck_height_of_bridges_m=float(np.median([r["deck_height_m"] for r in bt if r["deck_share"] >= 0.3])) if any(r["deck_share"] >= 0.3 for r in bt) else None,
+        old_rule_excluded_km_mostly_tree_covered_streets=float(sum(LineString(r["coords"]).length for r in drivable if (not r["bridge"] and not r["tunnel"]) and r["deck_share"] >= 0.5) / 1000),
+        note="old rule: any segment with a return more than 3 m above its centreline (a deck, but also tree canopy or a roof) was treated as elevated and never flooded, which removed tree-lined streets and the road under an overpass from the flood count")
     # ---- hydrology
     H = FL.condition(dtm, HALF, RES, SITE["crs"])
     min_cells = 3000
@@ -154,12 +163,15 @@ def main():
     seg_rows, nodes = [], {}
     nid = lambda p: nodes.setdefault((round(p[0], 0), round(p[1], 0)), len(nodes))
     for r in drivable:
-        pts, zz = FL.sample_line(dtm, r["coords"], HALF, RES, 2.0)
+        pts, zz = FL.sample_line(dtm, r["coords"], HALF, RES, 2.0, across=0.5 * FL.ROAD_HALF_WIDTH[r["cls"]])
+        if r["category"] == "bridge":                      # the road surface is the deck: use the highest returns along the line
+            _, zz = FL.sample_line(top, r["coords"], HALF, RES, 2.0)
+            zz = np.where(np.isfinite(zz), zz, np.nanmedian(zz))
         _, f_conn = FL.sample_line(np.where(np.isnan(first_conn), 99.0, first_conn), r["coords"], HALF, RES, 2.0)
         length = float(LineString(r["coords"]).length)
-        row = dict(id=r["id"], road=r["name"], cls=r["cls"], length_m=length, elevated=r["elevated"], min_elev_m=float(np.nanmin(zz)), p10_elev_m=float(np.nanpercentile(zz, 10)))
+        row = dict(id=r["id"], road=r["name"], cls=r["cls"], length_m=length, elevated=r["elevated"], category=r["category"], observed_share=r["observed_share"], deck_share=r["deck_share"], min_elev_m=float(np.nanmin(zz)), p10_elev_m=float(np.nanpercentile(zz, 10)))
         for lv in STAGES:
-            d_ = np.clip(lv - zz, 0, None) if not r["elevated"] else np.zeros_like(zz)
+            d_ = np.clip(lv - zz, 0, None) if r["category"] != "tunnel" else np.zeros_like(zz)
             row[f"max_depth_{lv:g}"] = float(np.nanmax(d_))
             row[f"len_deeper_{DEPTH_IMPASSABLE}_{lv:g}"] = float((d_ >= DEPTH_IMPASSABLE).mean() * length)
             conn_ok = np.nan_to_num(f_conn, nan=99.0) <= lv
