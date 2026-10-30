@@ -460,3 +460,24 @@ def test_topodiff_icp_dod_lod_and_volumes():
     far = np.zeros((40, 40), bool)
     sd = TD.error_sd(np.random.default_rng(1).normal(0, 0.05, 5000))
     assert 0.045 < sd < 0.06 and not far.any()
+
+
+def test_flood_depressions_bathtub_and_breach():
+    from lidar3d import flood as FL
+    n = 120
+    yy, xx = np.mgrid[0:n, 0:n].astype(float)
+    valley = 0.04 * np.abs(xx - 60) + 0.015 * (n - yy) + 6.0 * np.exp(-yy / 12.0)
+    rd = (yy > 50) & (yy < 60)
+    dem = np.where(rd, valley + 2.0, valley)
+    H = FL.condition(dem, n / 2, 1.0, "EPSG:32618")
+    lab, tab = FL.depressions(dem, H["filled"], 1.0, 0.3, 50.0)
+    assert len(tab["area_m2"]) == 1 and tab["volume_m3"][0] > 500
+    cands, cut = FL.breach_paths(dem, lab, tab, 1.0, rd)
+    assert len(cands) == 1 and cands[0]["barrier_m"] > 1.0
+    H2 = FL.condition(cut, n / 2, 1.0, "EPSG:32618")
+    assert (np.clip(H2["filled"] - cut, 0, None) >= 0.3).sum() == 0
+    z = np.add.outer(np.arange(50) * 0.1, np.zeros(50)); src = np.zeros((50, 50), bool); src[0, :] = True
+    fl = FL.bathtub(z, 2.0, src, True)
+    assert fl[:20].all() and not fl[21:].any()
+    lone = z.copy(); lone[40:45, 20:25] = 0.0
+    assert not FL.bathtub(lone, 2.0, src, True)[40:45, 20:25].any() and FL.bathtub(lone, 2.0, src, False)[40:45, 20:25].all()

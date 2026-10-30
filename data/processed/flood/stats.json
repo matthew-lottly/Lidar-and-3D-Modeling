@@ -1,0 +1,463 @@
+{
+ "site": "Ghent and Hague, Norfolk, Virginia",
+ "lonlat": [
+  -76.301,
+  36.868
+ ],
+ "project": "USGS_LPC_VA_Norfolk_2013_LAS_2015",
+ "collected": "2013-04-01",
+ "points": 12867304,
+ "density_per_m2": 6.564951020408163,
+ "classes": {
+  "1": 9029772,
+  "2": 2945332,
+  "9": 3,
+  "10": 6,
+  "11": 892191
+ },
+ "ground_and_road_density_per_m2": 1.9579198979591836,
+ "res_m": 1.0,
+ "vertical_datum": "NAVD88 (3DEP)",
+ "road_returns_kept_as_embankment_share": 0.5704843469615811,
+ "empty_cells_share": 0.3779005102040816,
+ "water_void_m2": 2891.0,
+ "dtm_holdout": {
+  "n": 345555,
+  "rmse_m": 0.06549083845119717,
+  "mae_m": 0.03409022344023823,
+  "p95_abs_m": 0.0987366579804161,
+  "bias_m": -0.001201029913634244,
+  "road_surface_rmse_m": 0.13254430816730914,
+  "ground_rmse_m": 0.04462548024166914
+ },
+ "roads": {
+  "segments_total": 1199,
+  "drivable_segments": 578,
+  "drivable_km": 50.95604779438364,
+  "by_class_km": {
+   "motorway": 2.315265117687113,
+   "trunk": 0.0,
+   "primary": 3.4578121924424017,
+   "secondary": 3.2695351692056644,
+   "tertiary": 3.0006894218525533,
+   "residential": 22.777417571824994,
+   "unclassified": 1.939723889539322,
+   "service": 14.195604431831597
+  },
+  "bridge_tunnel_or_elevated_segments_excluded_from_flooding": 33,
+  "tunnel_segments": 11,
+  "bridge_segments": 4
+ },
+ "hydrology": {
+  "acc_stream_threshold_cells": 3000,
+  "stream_length_km_raw": 16.954,
+  "max_acc_cells": 113901.0,
+  "depressions": 75,
+  "depression_volume_m3": 66772.70788106085,
+  "depression_area_ha": 11.0715,
+  "max_depression_depth_m": 7.085714394137972,
+  "cells_in_depression_share": 0.06270561224489796,
+  "culvert_candidates": 10,
+  "candidate_storage_m3": 23215.36753668621,
+  "candidate_storage_after_culverts_m3": 22889.806954394542,
+  "candidate_excavation_m3": 11.66731150545526
+ },
+ "stages": {
+  "1.5": {
+   "raw": {
+    "connected_ha": 2.8381,
+    "connected_outside_buildings_ha": 2.4919,
+    "below_stage_ha": 8.0115,
+    "below_stage_outside_buildings_ha": 6.1232,
+    "connected_on_roads_ha": 0.8398,
+    "low_on_roads_ha": 2.3549
+   },
+   "culverts_opened": {
+    "connected_ha": 2.8381,
+    "connected_outside_buildings_ha": 2.4919,
+    "below_stage_ha": 8.0115,
+    "below_stage_outside_buildings_ha": 6.1232,
+    "connected_on_roads_ha": 0.8398,
+    "low_on_roads_ha": 2.3549
+   },
+   "raw_stage_minus_0.1": 2.2508,
+   "raw_stage_plus_0.1": 3.2378,
+   "raw_stage_minus_0.2": 0.7822,
+   "raw_stage_plus_0.2": 3.6372
+  },
+  "2": {
+   "raw": {
+    "connected_ha": 6.6499,
+    "connected_outside_buildings_ha": 5.8112,
+    "below_stage_ha": 22.6898,
+    "below_stage_outside_buildings_ha": 16.4431,
+    "connected_on_roads_ha": 2.2922,
+    "low_on_roads_ha": 8.3366
+   },
+   "culverts_opened": {
+    "connected_ha": 6.6499,
+    "connected_outside_buildings_ha": 5.8112,
+    "below_stage_ha": 22.6913,
+    "below_stage_outside_buildings_ha": 16.4444,
+    "connected_on_roads_ha": 2.2922,
+    "low_on_roads_ha": 8.3378
+   },
+   "raw_stage_minus_0.1": 5.3706,
+   "raw_stage_plus_0.1": 12.449,
+   "raw_stage_minus_0.2": 4.7071,
+   "raw_stage_plus_0.2": 15.6615
+  },
+  "2.5": {
+   "raw": {
+    "connected_ha": 27.4344,
+    "connected_outside_buildings_ha": 20.0152,
+    "below_stage_ha": 57.4589,
+    "below_stage_outside_buildings_ha": 37.0948,
+    "connected_on_roads_ha": 10.0025,
+    "low_on_roads_ha": 19.1879
+   },
+   "culverts_opened": {
+    "connected_ha": 27.4344,
+    "connected_outside_buildings_ha": 20.0152,
+    "below_stage_ha": 57.4589,
+    "below_stage_outside_buildings_ha": 37.0948,
+    "connected_on_roads_ha": 10.0025,
+    "low_on_roads_ha": 19.1879
+   },
+   "raw_stage_minus_0.1": 23.7768,
+   "raw_stage_plus_0.1": 52.9126,
+   "raw_stage_minus_0.2": 20.5478,
+   "raw_stage_plus_0.2": 78.4227
+  },
+  "3": {
+   "raw": {
+    "connected_ha": 121.5672,
+    "connected_outside_buildings_ha": 65.5561,
+    "below_stage_ha": 126.6757,
+    "below_stage_outside_buildings_ha": 69.3599,
+    "connected_on_roads_ha": 28.1621,
+    "low_on_roads_ha": 30.3001
+   },
+   "culverts_opened": {
+    "connected_ha": 121.5672,
+    "connected_outside_buildings_ha": 65.5561,
+    "below_stage_ha": 126.6757,
+    "below_stage_outside_buildings_ha": 69.3599,
+    "connected_on_roads_ha": 28.1621,
+    "low_on_roads_ha": 30.3001
+   },
+   "raw_stage_minus_0.1": 107.5649,
+   "raw_stage_plus_0.1": 134.4833,
+   "raw_stage_minus_0.2": 92.529,
+   "raw_stage_plus_0.2": 150.2608
+  },
+  "3.5": {
+   "raw": {
+    "connected_ha": 180.7883,
+    "connected_outside_buildings_ha": 94.9171,
+    "below_stage_ha": 181.0649,
+    "below_stage_outside_buildings_ha": 95.0801,
+    "connected_on_roads_ha": 36.428,
+    "low_on_roads_ha": 36.4879
+   },
+   "culverts_opened": {
+    "connected_ha": 180.7883,
+    "connected_outside_buildings_ha": 94.9171,
+    "below_stage_ha": 181.0649,
+    "below_stage_outside_buildings_ha": 95.0801,
+    "connected_on_roads_ha": 36.428,
+    "low_on_roads_ha": 36.4879
+   },
+   "raw_stage_minus_0.1": 174.5898,
+   "raw_stage_plus_0.1": 185.6676,
+   "raw_stage_minus_0.2": 165.4315,
+   "raw_stage_plus_0.2": 188.5409
+  },
+  "4": {
+   "raw": {
+    "connected_ha": 191.7703,
+    "connected_outside_buildings_ha": 101.1234,
+    "below_stage_ha": 191.779,
+    "below_stage_outside_buildings_ha": 101.1304,
+    "connected_on_roads_ha": 37.9467,
+    "low_on_roads_ha": 37.9473
+   },
+   "culverts_opened": {
+    "connected_ha": 191.7703,
+    "connected_outside_buildings_ha": 101.1234,
+    "below_stage_ha": 191.779,
+    "below_stage_outside_buildings_ha": 101.1304,
+    "connected_on_roads_ha": 37.9467,
+    "low_on_roads_ha": 37.9473
+   },
+   "raw_stage_minus_0.1": 191.2775,
+   "raw_stage_plus_0.1": 192.118,
+   "raw_stage_minus_0.2": 190.5239,
+   "raw_stage_plus_0.2": 192.4372
+  }
+ },
+ "road_vulnerability": {
+  "1.5": {
+   "any_low_ground": {
+    "segments_impassable": 25,
+    "km_impassable": 2.9014578343650945,
+    "km_difficult_only": 0.47552308128672494,
+    "share_of_network_km_impassable": 0.05694040177670318,
+    "largest_connected_share_of_km": 0.627254204245594,
+    "pieces": 173
+   },
+   "connected_to_tidal_water": {
+    "segments_impassable": 5,
+    "km_impassable": 0.9514021387367724,
+    "km_difficult_only": 0.0,
+    "share_of_network_km_impassable": 0.018671034743036635,
+    "largest_connected_share_of_km": 0.7179079591503735,
+    "pieces": 173
+   }
+  },
+  "2": {
+   "any_low_ground": {
+    "segments_impassable": 94,
+    "km_impassable": 9.41252338466324,
+    "km_difficult_only": 3.732636888549293,
+    "share_of_network_km_impassable": 0.18471847390214366,
+    "largest_connected_share_of_km": 0.49076911914829274,
+    "pieces": 171
+   },
+   "connected_to_tidal_water": {
+    "segments_impassable": 19,
+    "km_impassable": 2.0703034266389713,
+    "km_difficult_only": 0.0,
+    "share_of_network_km_impassable": 0.040629199403238635,
+    "largest_connected_share_of_km": 0.6786063649859808,
+    "pieces": 174
+   }
+  },
+  "2.5": {
+   "any_low_ground": {
+    "segments_impassable": 236,
+    "km_impassable": 21.87009699942854,
+    "km_difficult_only": 4.94065787076503,
+    "share_of_network_km_impassable": 0.4291953152975701,
+    "largest_connected_share_of_km": 0.23389732796322046,
+    "pieces": 148
+   },
+   "connected_to_tidal_water": {
+    "segments_impassable": 126,
+    "km_impassable": 11.258364105646683,
+    "km_difficult_only": 0.0,
+    "share_of_network_km_impassable": 0.2209426474964484,
+    "largest_connected_share_of_km": 0.5062882165151255,
+    "pieces": 158
+   }
+  },
+  "3": {
+   "any_low_ground": {
+    "segments_impassable": 393,
+    "km_impassable": 35.629046431606156,
+    "km_difficult_only": 3.273375898872294,
+    "share_of_network_km_impassable": 0.6992113394542576,
+    "largest_connected_share_of_km": 0.05493562029514714,
+    "pieces": 108
+   },
+   "connected_to_tidal_water": {
+    "segments_impassable": 373,
+    "km_impassable": 33.563574604120724,
+    "km_difficult_only": 0.0,
+    "share_of_network_km_impassable": 0.6586769590050523,
+    "largest_connected_share_of_km": 0.1249179642946373,
+    "pieces": 113
+   }
+  },
+  "3.5": {
+   "any_low_ground": {
+    "segments_impassable": 507,
+    "km_impassable": 44.35492789763769,
+    "km_difficult_only": 0.7700891830217809,
+    "share_of_network_km_impassable": 0.8704546333070688,
+    "largest_connected_share_of_km": 0.020153502493698575,
+    "pieces": 57
+   },
+   "connected_to_tidal_water": {
+    "segments_impassable": 506,
+    "km_impassable": 44.23518558068255,
+    "km_difficult_only": 0.0,
+    "share_of_network_km_impassable": 0.8681047195649686,
+    "largest_connected_share_of_km": 0.020153502493698575,
+    "pieces": 57
+   }
+  },
+  "4": {
+   "any_low_ground": {
+    "segments_impassable": 539,
+    "km_impassable": 45.92635615275764,
+    "km_difficult_only": 0.10135714577247577,
+    "share_of_network_km_impassable": 0.9012935292406964,
+    "largest_connected_share_of_km": 0.020153502493698575,
+    "pieces": 31
+   },
+   "connected_to_tidal_water": {
+    "segments_impassable": 539,
+    "km_impassable": 45.92635615275764,
+    "km_difficult_only": 0.0,
+    "share_of_network_km_impassable": 0.9012935292406964,
+    "largest_connected_share_of_km": 0.020153502493698575,
+    "pieces": 31
+   }
+  }
+ },
+ "road_vulnerability_by_class_any_low_ground": {
+  "2": {
+   "motorway": {
+    "km": 2.315265117687113,
+    "km_impassable": 0.9752292838091002
+   },
+   "primary": {
+    "km": 3.4578121924424012,
+    "km_impassable": 0.37505957723828176
+   },
+   "residential": {
+    "km": 22.777417571824998,
+    "km_impassable": 4.879272319359847
+   },
+   "secondary": {
+    "km": 3.2695351692056653,
+    "km_impassable": 0.9074607136781966
+   },
+   "service": {
+    "km": 14.195604431831597,
+    "km_impassable": 1.6802216016075318
+   },
+   "tertiary": {
+    "km": 3.000689421852553,
+    "km_impassable": 0.5632093522975532
+   },
+   "unclassified": {
+    "km": 1.9397238895393225,
+    "km_impassable": 0.03207053667272783
+   }
+  },
+  "3": {
+   "motorway": {
+    "km": 2.315265117687113,
+    "km_impassable": 1.922984079570656
+   },
+   "primary": {
+    "km": 3.4578121924424012,
+    "km_impassable": 2.7179537745327296
+   },
+   "residential": {
+    "km": 22.777417571824998,
+    "km_impassable": 18.527191977386217
+   },
+   "secondary": {
+    "km": 3.2695351692056653,
+    "km_impassable": 2.2059784377312446
+   },
+   "service": {
+    "km": 14.195604431831597,
+    "km_impassable": 7.115215440372223
+   },
+   "tertiary": {
+    "km": 3.000689421852553,
+    "km_impassable": 1.8532783174332021
+   },
+   "unclassified": {
+    "km": 1.9397238895393225,
+    "km_impassable": 1.2864444045798902
+   }
+  },
+  "4": {
+   "motorway": {
+    "km": 2.315265117687113,
+    "km_impassable": 1.9523247878700367
+   },
+   "primary": {
+    "km": 3.4578121924424012,
+    "km_impassable": 2.9174868875956173
+   },
+   "residential": {
+    "km": 22.777417571824998,
+    "km_impassable": 21.432363172382107
+   },
+   "secondary": {
+    "km": 3.2695351692056653,
+    "km_impassable": 3.2330950158873115
+   },
+   "service": {
+    "km": 14.195604431831597,
+    "km_impassable": 12.319627080913182
+   },
+   "tertiary": {
+    "km": 3.000689421852553,
+    "km_impassable": 2.4664180271455503
+   },
+   "unclassified": {
+    "km": 1.9397238895393225,
+    "km_impassable": 1.6050411809638354
+   }
+  }
+ },
+ "sensitivity_resolution": {
+  "stage_2.5": {
+   "res_1m_ha": 57.4589,
+   "res_2m_ha": 57.4384,
+   "connected_1m_ha": 27.4344,
+   "connected_2m_ha": 27.4172
+  },
+  "stage_3.5": {
+   "res_1m_ha": 181.0649,
+   "res_2m_ha": 180.9168,
+   "connected_1m_ha": 180.7883,
+   "connected_2m_ha": 180.6108
+  }
+ },
+ "synthetic_culvert_test": {
+  "noise_m": 0.06549083845119717,
+  "trials_per_cell": 24,
+  "by_embankment_height": {
+   "0.1": {
+    "embankment_height_m": 0.1,
+    "blocked_detected": 0.0,
+    "open_culvert_flagged": 0.0,
+    "blocked_mean_storage_m3": 0.0,
+    "culvert_mean_storage_m3": 0.0
+   },
+   "0.2": {
+    "embankment_height_m": 0.2,
+    "blocked_detected": 0.0,
+    "open_culvert_flagged": 0.0,
+    "blocked_mean_storage_m3": 0.0,
+    "culvert_mean_storage_m3": 0.0
+   },
+   "0.3": {
+    "embankment_height_m": 0.3,
+    "blocked_detected": 0.125,
+    "open_culvert_flagged": 0.0,
+    "blocked_mean_storage_m3": 1.6341814740304679,
+    "culvert_mean_storage_m3": 0.0
+   },
+   "0.5": {
+    "embankment_height_m": 0.5,
+    "blocked_detected": 0.6666666666666666,
+    "open_culvert_flagged": 0.0,
+    "blocked_mean_storage_m3": 50.34031612719651,
+    "culvert_mean_storage_m3": 0.0
+   },
+   "1": {
+    "embankment_height_m": 1.0,
+    "blocked_detected": 0.75,
+    "open_culvert_flagged": 0.0,
+    "blocked_mean_storage_m3": 496.59303641257287,
+    "culvert_mean_storage_m3": 0.0
+   },
+   "2": {
+    "embankment_height_m": 2.0,
+    "blocked_detected": 0.875,
+    "open_culvert_flagged": 0.0,
+    "blocked_mean_storage_m3": 3924.67063772413,
+    "culvert_mean_storage_m3": 0.0
+   }
+  }
+ }
+}
