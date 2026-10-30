@@ -65,9 +65,32 @@ def read_grid(items, collection, asset, x0, y1, res, shape, crs, resampling=Resa
 
 
 def lidar_product(kind, project, bbox, x0, y1, res, shape, crs):
-    """USGS-processed 3DEP lidar product ('dtm', 'hag' or 'dsm', 2 m) of one named project, on the analysis grid. Returns None if the project has no product over the box."""
+    """USGS-processed 3DEP lidar product ('dtm', 'hag' or 'dsm', 2 m) of one named project, on the analysis grid. Returns None if the project has no product over the box.
+
+    The STAC footprints of these items are unreliable (a bbox search can return the wrong tiles), so the tiles are found from the files themselves: the item ids end in a tile row-column pair, the tiles sit on a regular 8192 m lattice
+    in the project's UTM zone, and the lattice origin is read from the one tile the search does return."""
+    from pyproj import Transformer
     col = f"3dep-lidar-{kind}"
-    items = [i for i in search(col, bbox=bbox, limit=100) if i["id"].startswith(project + "-")]
+    seed = [i for i in search(col, bbox=bbox, limit=100) if i["id"].startswith(project + "-")]
+    if not seed:
+        return None
+    tok = token(col)
+    with _env(), rasterio.open(seed[0]["assets"]["data"]["href"] + "?" + tok) as s0:
+        tcrs, step = s0.crs, 8192.0
+        ti, tj = (int(v) for v in seed[0]["id"].rsplit("-", 2)[-2:])
+        left0, top0 = s0.bounds.left, s0.bounds.top
+    x1, y0 = x0 + shape[1] * res, y1 - shape[0] * res
+    tr = Transformer.from_crs(crs, tcrs, always_xy=True)
+    xs, ys = tr.transform([x0, x1, x0, x1], [y0, y0, y1, y1])
+    ids = []
+    for i in range(ti - 6, ti + 7):
+        for j in range(tj - 6, tj + 7):
+            l, t = left0 + (i - ti) * step, top0 + (j - tj) * step
+            if l <= max(xs) and l + step >= min(xs) and t - step <= max(ys) and t >= min(ys):
+                ids.append(f"{project}-{kind}-2m-{i}-{j}")
+    r = requests.post(STAC, json={"collections": [col], "ids": ids, "limit": 100}, timeout=90)
+    r.raise_for_status()
+    items = r.json()["features"]
     return read_grid(items, col, "data", x0, y1, res, shape, crs, Resampling.bilinear) if items else None
 
 

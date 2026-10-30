@@ -62,8 +62,113 @@
    "note": "a segment counts when more than half its length lies within 8 m of a mapped bridge; Overture bridges are OpenStreetMap-derived, as are the road tags, so this is a consistency check between two map sources, not an independent survey"
   },
   "blocked_or_pending": {
-   "usgs_dtm_2m": {
-    "status": "host not reachable or no data: no data returned"
+   "usgs_dtm": {
+    "n": 610461,
+    "bias_m": -0.02985242009162903,
+    "nmad_m": 0.04081418793797493,
+    "rmse_m": 0.09036933887312787,
+    "mae_m": 0.05179965500925337,
+    "p95_abs_m": 0.140486478805542,
+    "on_roads": {
+     "n": 242844,
+     "bias_m": -0.02481985092163086,
+     "nmad_m": 0.03691040579080582,
+     "rmse_m": 0.07785650887712837,
+     "mae_m": 0.0437461262185206,
+     "p95_abs_m": 0.11455442905426022
+    },
+    "note": "USGS's own DTM of the same 2013 survey (their ground classification and gridding, 2 m): a second processing of the same points, not a second survey; it catches a gridding or ground-class error, not a flaw in the flight"
+   },
+   "usgs_hag_over_road_categories": {
+    "by_category": {
+     "bridge": {
+      "segments": 2,
+      "cells": 1095,
+      "usgs_hag_median_m": 1.173784613609314,
+      "usgs_hag_p90_m": 8.090747833251953,
+      "share_over_2m": 0.434703196347032
+     },
+     "at_grade": {
+      "segments": 562,
+      "cells": 94981,
+      "usgs_hag_median_m": 1.567383885383606,
+      "usgs_hag_p90_m": 13.493616104125977,
+      "share_over_2m": 0.4561649171939651
+     },
+     "at_grade_open_cut": {
+      "segments": 5,
+      "cells": 3337,
+      "usgs_hag_median_m": 0.3675801753997803,
+      "usgs_hag_p90_m": 9.660487174987793,
+      "share_over_2m": 0.3599041054839676
+     },
+     "at_grade_unobserved": {
+      "segments": 3,
+      "cells": 549,
+      "usgs_hag_median_m": 0.6275264620780945,
+      "usgs_hag_p90_m": 5.1525163650512695,
+      "share_over_2m": 0.29508196721311475
+     },
+     "tunnel": {
+      "segments": 6,
+      "cells": 748,
+      "usgs_hag_median_m": 4.806195259094238,
+      "usgs_hag_p90_m": 12.02108383178711,
+      "share_over_2m": 0.6858288770053476
+     }
+    },
+    "note": "USGS height above ground within 1 m of each category's centrelines: INCONCLUSIVE and not used to judge the classification: the product reads higher than our nDSM everywhere (median 7.4 m against our 2.6 m over the whole window, correlation 0.71), so it is evidently a different height definition (likely a maximum over the cell, picking up overhanging trees and vehicles) and the road-category medians cannot be read as deck height"
+   },
+   "chesapeake_land_cover_over_road_categories": {
+    "shares": {
+     "bridge": {
+      "roads": 0.901,
+      "low vegetation": 0.057,
+      "tree canopy over roads": 0.038,
+      "tree canopy": 0.003
+     },
+     "at_grade": {
+      "roads": 0.534,
+      "tree canopy over roads": 0.243,
+      "other impervious": 0.127,
+      "low vegetation": 0.051,
+      "tree canopy": 0.039
+     },
+     "at_grade_open_cut": {
+      "other impervious": 0.352,
+      "roads": 0.305,
+      "low vegetation": 0.241,
+      "tree canopy": 0.049,
+      "tree canopy over roads": 0.031
+     },
+     "at_grade_unobserved": {
+      "other impervious": 0.943,
+      "roads": 0.041,
+      "low vegetation": 0.017
+     },
+     "tunnel": {
+      "roads": 0.571,
+      "low vegetation": 0.162,
+      "other impervious": 0.127,
+      "tree canopy over roads": 0.093,
+      "tree canopy over other impervious": 0.029
+     }
+    },
+    "note": "Chesapeake Conservancy 1 m land cover (2013-14 imagery plus lidar); 'tree canopy over roads' marks streets under trees, which the old elevated-road rule had wrongly excluded"
+   },
+   "chesapeake_water_vs_lidar_water_voids": {
+    "n": 1960000,
+    "accuracy": 0.9983408163265306,
+    "kappa": -0.0003275826750277218,
+    "precision": 0.0,
+    "recall": 0.0,
+    "iou": 0.0,
+    "reference_positive_share": 0.00018418367346938774,
+    "predicted_positive_share": 0.001475
+   },
+   "jrc_water_occurrence_at_lidar_water_voids": {
+    "median_pct_in_voids": 0.0,
+    "median_pct_elsewhere": 0.0
    }
   }
  },

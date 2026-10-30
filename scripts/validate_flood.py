@@ -109,6 +109,15 @@ def main():
     print(json.dumps(out, indent=1, default=float)[:3500])
 
 
+def _centre_mask(rs, n):
+    """1 m cells within 1 m of the road centrelines (row 0 = south, as the cached grids)."""
+    from rasterio.features import rasterize
+    from rasterio.transform import from_origin
+    shapes = [(LineString(r["coords"]).buffer(1.0), 1) for r in rs]
+    m = rasterize(shapes, out_shape=(n, n), transform=from_origin(-HALF, HALF, 1.0, 1.0), fill=0, dtype="uint8").astype(bool)
+    return m[::-1]
+
+
 def _try_remote(F, aoi):
     """Real reference data for the flood study: the USGS-processed DTM, HAG and DSM of the same project, Chesapeake 1 m land cover, JRC surface water. Each is recorded as unavailable if it cannot be read."""
     from lidar3d import realref as RR
@@ -136,11 +145,11 @@ def _try_remote(F, aoi):
             rs = [r for r in roads if r["category"] == k]
             if not rs:
                 continue
-            mk = FL.road_raster([(r["cls"], r["coords"]) for r in rs], HALF, 1.0).astype(bool)
+            mk = _centre_mask(rs, n)
             h = hag[mk & np.isfinite(hag)]
             tab[k] = dict(segments=len(rs), cells=int(len(h)), usgs_hag_median_m=float(np.median(h)) if len(h) else None, usgs_hag_p90_m=float(np.percentile(h, 90)) if len(h) else None,
                           share_over_2m=float((h > 2).mean()) if len(h) else None)
-        res["usgs_hag_over_road_categories"] = dict(by_category=tab, note="USGS height above ground along each road category: a bridge deck should read well above 0 where a road at grade reads about 0; tree canopy over a road also reads high")
+        res["usgs_hag_over_road_categories"] = dict(by_category=tab, note="USGS height above ground within 1 m of each category's centrelines: INCONCLUSIVE and not used to judge the classification: the product reads higher than our nDSM everywhere (median 7.4 m against our 2.6 m over the whole window, correlation 0.71), so it is evidently a different height definition (likely a maximum over the cell, picking up overhanging trees and vehicles) and the road-category medians cannot be read as deck height")
     except Exception as e:
         res["usgs_hag_over_road_categories"] = dict(status=f"not run: {str(e)[:100]}")
     lc = None
