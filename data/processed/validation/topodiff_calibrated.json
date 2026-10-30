@@ -1,0 +1,52 @@
+{
+ "calibrated_lod_m": {
+  "0-5": 0.1711344729065233,
+  "5-15": 0.1993921631807389,
+  "15-30": 0.3007781037953796,
+  "30-90": 0.6142471229781986
+ },
+ "intervals": {
+  "2010-2016": {
+   "formula_lod": {
+    "net_m3": -2169.5274886951593,
+    "erosion_m3": 19138.58717935403,
+    "deposition_m3": 16969.059690658865,
+    "significant_area_m2": 61144.0
+   },
+   "null_calibrated_lod": {
+    "net_m3": -3673.978630900766,
+    "erosion_m3": 16260.573703203765,
+    "deposition_m3": 12586.595072303,
+    "significant_area_m2": 29256.0
+   }
+  },
+  "2016-2023": {
+   "formula_lod": {
+    "net_m3": -25409.356095447034,
+    "erosion_m3": 33078.18231653311,
+    "deposition_m3": 7668.826221086074,
+    "significant_area_m2": 60280.0
+   },
+   "null_calibrated_lod": {
+    "net_m3": -23362.271212844567,
+    "erosion_m3": 28940.61703227958,
+    "deposition_m3": 5578.345819435011,
+    "significant_area_m2": 24784.0
+   }
+  },
+  "2010-2023": {
+   "formula_lod": {
+    "net_m3": -26370.977879586077,
+    "erosion_m3": 34864.328847392935,
+    "deposition_m3": 8493.350967806862,
+    "significant_area_m2": 61608.0
+   },
+   "null_calibrated_lod": {
+    "net_m3": -26407.675990151674,
+    "erosion_m3": 31829.31174177066,
+    "deposition_m3": 5421.6357516189855,
+    "significant_area_m2": 34940.0
+   }
+  }
+ }
+}
