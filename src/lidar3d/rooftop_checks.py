@@ -54,23 +54,28 @@ def planted_roofs(n, density, noise, el, az, dni, dhi, seed=0):
 
 
 def split_half(B, C_pts_by_building, seed=0):
-    """Repeatability on real roofs: split each building's returns at random into two halves, fit the largest plane of each, and compare slope, aspect and open-sky irradiance of the two."""
+    """Repeatability on real roofs: split each building's returns at random into two halves, fit planes to each, and compare the largest plane of half A with the closest-oriented plane of half B (tilt of the normals, and slope difference of the two largest)."""
     rng = np.random.default_rng(seed)
     rows = []
     for bid, P in C_pts_by_building.items():
         if len(P) < 150:
             continue
         m = rng.random(len(P)) < 0.5
-        pl = []
+        pl, allb = [], []
         for sel in (m, ~m):
             ps = RT.merge_coplanar(RT.segment_roof(P[sel], seed=bid))
             if not ps:
                 break
             pl.append(max(ps, key=lambda p: len(p.pts)))
+            allb.append(ps)
         if len(pl) < 2:
             continue
-        n1, n2 = SO.plane_normals([pl[0].a], [pl[0].b]), SO.plane_normals([pl[1].a], [pl[1].b])
-        ang = float(np.degrees(np.arccos(np.clip((n1 * n2).sum(), -1, 1))))
+        pl = [pl[0], pl[1], allb[1]]
+        n1 = SO.plane_normals([pl[0].a], [pl[0].b])
+        ang = 90.0
+        for q in pl[2]:                         # the largest plane of half A against the closest plane of half B (a gable's two slopes are equally large, so "the largest" alone is ambiguous)
+            n2 = SO.plane_normals([q.a], [q.b])
+            ang = min(ang, float(np.degrees(np.arccos(np.clip((n1 * n2).sum(), -1, 1)))))
         rows.append((abs(pl[0].slope_deg - pl[1].slope_deg), ang, len(P)))
     return np.array(rows)
 

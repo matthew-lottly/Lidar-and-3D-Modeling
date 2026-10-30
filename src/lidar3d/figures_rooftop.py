@@ -1,4 +1,4 @@
-"""Plates 39 to 44: rooftop solar study (site map, roof extraction, irradiance maps, accuracy tests, 3D view)."""
+"""Plates 39 to 45: rooftop solar study (site map, roof extraction, irradiance maps, accuracy tests, 3D view)."""
 from __future__ import annotations
 
 import textwrap
@@ -145,7 +145,7 @@ def fig_extraction(key, st, F):
     cb = pl.ax(8.07, 0.95, 0.1, W)
     cb.imshow(np.linspace(360, 0, 200)[:, None], aspect="auto", cmap="twilight_shifted", extent=(0, 1, 0, 360))
     cb.set_xticks([]); cb.yaxis.tick_right(); cb.set_yticks([0, 90, 180, 270, 360]); cb.set_yticklabels(["N", "E", "S", "W", "N"]); cb.tick_params(labelsize=7, length=2)
-    T, ck, bl = F["T"], st["checks"], st["buildings"]
+    ck, bl = st["checks"], st["buildings"]
     fo = ck["footprints_vs_overture"]
     rows = [("Buildings", f"{bl['n']} structures of 30 m2 or more; median footprint {bl['footprint_median_m2']:.0f} m2, median height {bl['height_median_m']:.1f} m (maximum {bl['height_max_m']:.0f} m). {bl['planes_total']} roof planes ({bl['planes_per_building_median']:.0f} per building, median); {bl['flat_roof_area_share'] * 100:.0f}% of roof area is flat (under 10 degrees)."),
             ("Against Overture", f"Median overlap (IoU) with the best Overture footprint {fo['lidar_iou_median']:.2f}; {fo['lidar_with_iou_ge_0p5'] * 100:.0f}% of lidar footprints reach 0.5 and {fo['lidar_with_no_overlap'] * 100:.0f}% overlap nothing. {fo['overture_covered_ge_half'] * 100:.0f}% of Overture buildings are at least half covered. Footprint area: lidar {fo['lidar_area_ha']:.1f} ha, Overture {fo['overture_area_ha']:.1f} ha."),
@@ -263,7 +263,7 @@ def fig_tests(sts):
         rows.append((NAMES[k], f"Planted roofs at this block's density: slope error median {pr['slope_err_median_deg']:.1f} deg, 95th percentile {pr['slope_err_p95_deg']:.1f}; energy error median {pr['irradiance_err_median_kwh_m2']:.0f}, 95th pct {pr['irradiance_err_p95_kwh_m2']:.0f} kWh/m2/yr. "
                               f"Shadow engine against a 20 m block: horizon within {max(abs(r_['horizon_deg'] - r_['expected_deg']) for r_ in sa):.1f} deg of the exact angle. Footprints: {ck['footprints_vs_overture']['lidar_with_iou_ge_0p5'] * 100:.0f}% overlap Overture by IoU 0.5 or more."))
     _text_rows(pl, 9.6, 3.95, rows, 56, 7.9)
-    return pl.save("44_rooftop_accuracy_tests.png")
+    return pl.save("45_rooftop_accuracy_tests.png")
 
 
 def fig_3d(sts, scenes):
@@ -283,4 +283,4 @@ def fig_3d(sts, scenes):
         a.imshow(c); a.axis("off")
         pl.label(0.6 + i * 7.6, 1.5 + 6.0 + 0.4, NAMES[k])
     _vcbar(pl, 15.15, 2.2, 3.0, CMAP, KW[0], KW[1], "kWh per m2 per year")
-    return pl.save("43_rooftop_3d.png")
+    return pl.save("44_rooftop_3d.png")

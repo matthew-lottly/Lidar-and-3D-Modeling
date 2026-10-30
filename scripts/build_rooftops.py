@@ -134,7 +134,7 @@ def main(key):
         sh.append(dict(distance_m=dd, horizon_deg=float(Hh[0, 36]), expected_deg=float(np.degrees(np.arctan((20 - 0.15) / dd)))))
     ck["shadow_vs_analytic"] = sh
     # (3) planted roofs at this site's density and measured noise
-    pts_density = float(((R["planar"] & (R["hag"] >= 1.5)).sum()) / max(sum(b.footprint.area for b in R["B"]), 1.0))
+    pts_density = float(sum(b.n_returns for b in R["B"]) / max(sum(b.footprint.area for b in R["B"]), 1.0))
     ck["planted_roofs"] = {}
     for rho_f, sg in ((1.0, st["buildings"]["plane_rms_median_m"]), (0.4, st["buildings"]["plane_rms_median_m"]), (1.0, 0.10)):
         r = cached(f"{key}_planted_{rho_f}_{sg:.3f}.pkl", lambda rho_f=rho_f, sg=sg: K.planted_roofs(60, pts_density * rho_f, sg, el, az, df.dni.values, df.dhi.values, seed=7))
@@ -152,7 +152,7 @@ def main(key):
     for bid in np.unique(pl[pl > 0]):
         pb[int(bid)] = X3[pl == bid]
     sh_ = cached(f"{key}_splithalf.pkl", lambda: K.split_half(B, pb))
-    ck["split_half_largest_plane"] = dict(buildings=int(len(sh_)), slope_diff_median_deg=float(np.median(sh_[:, 0])), slope_diff_p95_deg=float(np.percentile(sh_[:, 0], 95)), normal_angle_median_deg=float(np.median(sh_[:, 1])), normal_angle_p95_deg=float(np.percentile(sh_[:, 1], 95)))
+    ck["split_half_largest_plane"] = dict(buildings=int(len(sh_)), slope_diff_median_deg=float(np.median(sh_[:, 0])), slope_diff_p95_deg=float(np.percentile(sh_[:, 0], 95)), normal_angle_median_deg=float(np.median(sh_[:, 1])), normal_angle_p95_deg=float(np.percentile(sh_[:, 1], 95)), definition="largest plane of one half vs closest-oriented plane of the other half")
     # (5) footprints against Overture
     aoi = RT.make_aoi(site)
     ov = city.overture_buildings(aoi)

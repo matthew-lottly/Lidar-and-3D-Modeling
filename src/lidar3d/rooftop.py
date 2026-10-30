@@ -185,7 +185,7 @@ def _ransac_plane(P, rng, tol, iters=400):
     return a[j], b[j], c[j]
 
 
-def segment_roof(P, tol=0.12, min_points=30, max_planes=8, link=2.5, seed=0, min_area_m2=6.0):
+def segment_roof(P, tol=0.12, min_points=40, max_planes=8, link=2.5, seed=0, min_area_m2=10.0):
     """Sequential RANSAC on one building's roof returns P (n,3): find the best plane (inliers within `tol` m of it), keep its largest spatially connected part (returns within `link` m of each other),
     refit by least squares, remove it, repeat. Returns a list of Plane (with the inlier points)."""
     rng = np.random.default_rng(seed)
@@ -278,7 +278,7 @@ class Building:
     n_returns: int = 0
 
 
-def build_buildings(C: Cloud, hag, dtm, lab, polys, use=None, res_cell=1.0, assign_radius=2.0, tol=0.12, min_points=30, log=None):
+def build_buildings(C: Cloud, hag, dtm, lab, polys, use=None, res_cell=1.0, assign_radius=2.0, tol=0.12, min_points=40, log=None):
     """For every footprint: the class-6 returns inside it (plus one cell of margin), RANSAC planes, merged, and each 1 m cell inside the footprint assigned to the nearest plane's returns within
     `assign_radius` m. Height = highest plane point above the footprint's ground."""
     m6 = (use if use is not None else (C.cls == 6)) & (hag >= 1.5)
