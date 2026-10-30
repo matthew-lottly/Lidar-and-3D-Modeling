@@ -1,0 +1,248 @@
+{
+ "site": "Forest north of Truckee, Tahoe region, California",
+ "key": "tahoe",
+ "project": "CA_SierraNevada_5_2022",
+ "collected": "2022-08-19",
+ "area_ha": 100.0,
+ "lonlat": [
+  -120.32,
+  39.4
+ ],
+ "crs": "EPSG:32610",
+ "points": 32451790,
+ "density_per_m2": 32.45179,
+ "classes": {
+  "1": 28165530,
+  "2": 4286260
+ },
+ "vegetation_classes_present": false,
+ "ground_returns": 4286260,
+ "ground_density_per_m2": 4.28626,
+ "multi_return_share": 0.6308469270878432,
+ "res_m": 1.0,
+ "structure": {
+  "canopy_cover_ge2m": 0.602652,
+  "cover_ge5m": 0.526521,
+  "mean_chm_m": 10.089603043200736,
+  "mean_canopy_height_m": 16.428089102133573,
+  "p95_m": 32.58740975712209,
+  "max_m": 69.88528311595792,
+  "rumple_note": "surface roughness not computed",
+  "terrain_relief_m": 321.68336995442723
+ },
+ "trees": {
+  "n": 9156,
+  "per_ha": 91.56,
+  "mean_height_m": 21.65312355857189,
+  "p95_height_m": 37.64856539439165,
+  "median_crown_diameter_m": 7.136496464611085,
+  "crown_cover_of_canopy": 0.7790449546338517,
+  "height_classes": {
+   "3-10": 1200,
+   "10-20": 2859,
+   "20-30": 3282,
+   "30+": 1815
+  }
+ },
+ "fragmentation": {
+  "area_ha": 100.0,
+  "canopy_cover": 0.602652,
+  "patches": 2145,
+  "mean_patch_m2": 280.9566433566434,
+  "median_patch_m2": 8.0,
+  "largest_patch_m2": 509027.0,
+  "largest_patch_index": 0.509027,
+  "edge_density_m_per_ha": 2257.46,
+  "effective_mesh_ha": 25.920013367400003
+ },
+ "gaps": {
+  "n": 1307,
+  "open_area_share": 0.397348,
+  "by_size": {
+   "10-100 m2": {
+    "n": 1081,
+    "area_share_of_openings": 0.08430743847961772
+   },
+   "100-1000 m2": {
+    "n": 193,
+    "area_share_of_openings": 0.12498897484188626
+   },
+   "1000-10000 m2": {
+    "n": 23,
+    "area_share_of_openings": 0.14304429259991389
+   },
+   "10000-1e+09 m2": {
+    "n": 10,
+    "area_share_of_openings": 0.6476592940785821
+   }
+  },
+  "touching_edge": 65,
+  "max_distance_to_canopy_m": 27.313000567495326
+ },
+ "terrain_holdout": {
+  "all": {
+   "n": 428359,
+   "rmse_m": 0.06123052764602692,
+   "bias_m": 0.0015315173232011148,
+   "p95_abs_m": 0.12109362897544997
+  },
+  "open_ground": {
+   "n": 232421,
+   "rmse_m": 0.06323683309930969,
+   "bias_m": 0.001879465199635888,
+   "p95_abs_m": 0.12379066338144185
+  },
+  "under_canopy_ge5m": {
+   "n": 195938,
+   "rmse_m": 0.05876190115656922,
+   "bias_m": 0.0011104854414725196,
+   "p95_abs_m": 0.11777854917961576
+  }
+ },
+ "thinning": {
+  "0.5": {
+   "trees": 9266,
+   "tree_count_change": 0.012013979903888083,
+   "share_of_full_trees_found": 0.9743337702053299,
+   "height_bias_m": -0.10828420769469724,
+   "height_rmse_m": 0.6301009490948841,
+   "cover_change": -0.01003900000000002
+  },
+  "0.25": {
+   "trees": 9303,
+   "tree_count_change": 0.016055045871559592,
+   "share_of_full_trees_found": 0.9523809523809523,
+   "height_bias_m": -0.2608143743293183,
+   "height_rmse_m": 0.8756210527693848,
+   "cover_change": -0.01176199999999994
+  }
+ },
+ "resolution_sensitivity": {
+  "0.5": {
+   "n": 9512,
+   "cover": 0.543007,
+   "mean_h": 21.71986525875387
+  },
+  "2.0": {
+   "n": 7673,
+   "cover": 0.708768,
+   "mean_h": 21.668925740023266
+  },
+  "1.0": {
+   "n": 9156,
+   "cover": 0.602652,
+   "mean_h": 21.65312355857189
+  }
+ },
+ "synthetic_stands": {
+  "regular_100": {
+   "true": 400,
+   "detected": 290,
+   "recall": 0.725,
+   "precision": 1.0,
+   "recall_by_height_tercile": [
+    0.5454545454545454,
+    0.7575757575757576,
+    0.8676470588235294
+   ],
+   "height_rmse_m": 0.009946501118414323,
+   "actual_trees_per_ha": 100.0,
+   "pulse_density": 30.0
+  },
+  "regular_200": {
+   "true": 800,
+   "detected": 330,
+   "recall": 0.4125,
+   "precision": 1.0,
+   "recall_by_height_tercile": [
+    0.16666666666666666,
+    0.3560606060606061,
+    0.7058823529411765
+   ],
+   "height_rmse_m": 0.020913945268802667,
+   "actual_trees_per_ha": 200.0,
+   "pulse_density": 30.0
+  },
+  "regular_400": {
+   "true": 904,
+   "detected": 315,
+   "recall": 0.34845132743362833,
+   "precision": 1.0,
+   "recall_by_height_tercile": [
+    0.1040268456375839,
+    0.25838926174496646,
+    0.672077922077922
+   ],
+   "height_rmse_m": 0.023094876331482366,
+   "actual_trees_per_ha": 226.0,
+   "pulse_density": 30.0
+  },
+  "clumped_100": {
+   "true": 400,
+   "detected": 239,
+   "recall": 0.5975,
+   "precision": 1.0,
+   "recall_by_height_tercile": [
+    0.3712121212121212,
+    0.6136363636363636,
+    0.8014705882352942
+   ],
+   "height_rmse_m": 0.010457392871704621,
+   "actual_trees_per_ha": 100.0,
+   "pulse_density": 30.0
+  },
+  "clumped_200": {
+   "true": 800,
+   "detected": 291,
+   "recall": 0.36375,
+   "precision": 1.0,
+   "recall_by_height_tercile": [
+    0.11742424242424243,
+    0.29924242424242425,
+    0.6654411764705882
+   ],
+   "height_rmse_m": 0.01964823026062887,
+   "actual_trees_per_ha": 200.0,
+   "pulse_density": 30.0
+  },
+  "clumped_400": {
+   "true": 1600,
+   "detected": 284,
+   "recall": 0.1775,
+   "precision": 1.0,
+   "recall_by_height_tercile": [
+    0.00946969696969697,
+    0.06818181818181818,
+    0.44669117647058826
+   ],
+   "height_rmse_m": 0.037318572562820236,
+   "actual_trees_per_ha": 400.0,
+   "pulse_density": 30.0
+  }
+ },
+ "naip_agreement": {
+  "naip_date": "2022-07-22",
+  "ndvi_threshold_otsu": 0.3131881356239319,
+  "best_shift_px": [
+   1,
+   -3
+  ],
+  "lidar_canopy_share": 0.602652,
+  "naip_vegetation_share": 0.515952,
+  "lidar_canopy_that_naip_calls_vegetation": 0.6673536302874628,
+  "lidar_open_that_naip_calls_vegetation": 0.28632332363570473,
+  "note": "NAIP vegetation includes lawn, grass and shrubs, so only the first ratio is a check on the lidar canopy; the second is mostly lawn and low vegetation"
+ },
+ "density_grid": {
+  "cell_m": 50.0,
+  "mean_trees_per_ha": 91.56,
+  "p90_trees_per_ha": 124.0,
+  "max_trees_per_ha": 156.0
+ },
+ "location": {
+  "county": "Nevada County",
+  "public_land": [
+   "Tahoe National Forest (0.4 km outside the mapped boundary)"
+  ]
+ }
+}

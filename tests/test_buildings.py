@@ -374,3 +374,34 @@ def test_channel_edges_and_slope_ci():
     y = np.tile(2.0 * t, (40, 1)) + np.random.default_rng(0).normal(0, 0.1, (40, 5))
     med, lo, hi, _ = M.slope_ci(t, y, n_boot=50)
     assert lo < 2.0 < hi
+
+
+def test_canopy_pipeline_recovers_planted_trees_and_metrics():
+    from lidar3d import forestry as F
+    P, T = F.synthetic_stand(100, size=120.0, pulse_density=12.0, seed=3, min_spacing=6.0)
+    half = 60.0
+    chm = F.canopy_height_model(P[:, 0], P[:, 1], P[:, 2], half, 1.0)
+    lab, tr = F.segment_crowns(chm, 1.0)
+    xy = np.c_[tr["col"] + 0.5 - half, tr["row"] + 0.5 - half]
+    m = F.match_trees(xy, tr["height"], np.c_[T["x"], T["y"]], T["height"], T["crown_radius"])
+    assert (m >= 0).mean() > 0.7                                               # most planted trees found
+    ok = m >= 0
+    assert np.sqrt(np.mean((tr["height"][m[ok]] - T["height"][ok]) ** 2)) < 0.5   # and their heights are right
+    fm = F.fragmentation_metrics(chm, 1.0)
+    assert 0 < fm["canopy_cover"] < 1 and fm["patches"] > 5 and fm["effective_mesh_ha"] > 0
+    gl, g = F.canopy_gaps(chm, 1.0)
+    assert g["area_m2"].min() >= 10 and (gl > 0).any()
+
+
+def test_terrain_and_height_above_ground_on_a_slope():
+    from lidar3d import forestry as F
+    rng = np.random.default_rng(1)
+    x, y = rng.uniform(-50, 50, 30000), rng.uniform(-50, 50, 30000)
+    z = 100 + 0.1 * x
+    dtm, cnt = F.terrain(x, y, z, 50.0, 1.0)
+    v = F.sample(dtm, 50.0, 1.0, np.array([20.0]), np.array([-10.0]))
+    assert abs(v[0] - 102.0) < 0.1
+    Pt = F.Points(np.array([20.0], "float32"), np.array([-10.0], "float32"), np.array([112.0], "float32"), np.array([1]), np.array([1]), np.array([1]), "2020-01-01", 0.0, 0.0)
+    assert abs(F.height_above_ground(Pt, dtm, 50.0, 1.0)[0] - 10.0) < 0.15
+    gr, veg, bld, has = F.classify(Pt, np.array([10.0]))
+    assert veg[0] and not gr[0] and not has

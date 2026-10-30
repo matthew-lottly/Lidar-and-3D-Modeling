@@ -98,6 +98,11 @@ Plates 25 to 27, method and limits in [docs/span-model.md](docs/span-model.md). 
 No repeat lidar is needed to map the ridges a migrating bend leaves behind: one 2011 flight gives 144 crest and 128 swale lines (median crest relief 33 cm; neighbouring crests 58 m apart on the point bar, 72 m on the older arcs north of the river). Tests: DEM hold-out error 5.3 cm (3 cm on flat ground), flight-line agreement 2 to 6 cm, planted-ridge detection (5 cm ridges found 99% with white noise, 73% with correlated error; 8 cm 96%), and repeatability between independent halves of the returns (about 90%).
 NAIP imagery from 2011 to 2023 could not give a reliable migration rate (the rate changes sign when one year is dropped), so no ridge ages are claimed. Plates 28 to 31, method and limits in [docs/meander-scroll-bars.md](docs/meander-scroll-bars.md). Run `python scripts/build_meander.py`.
 
+## Tenth item: canopy structure and fragmentation (NW Houston and a Sierra conifer forest)
+
+An automated pipeline turns 3DEP lidar into terrain, surface and canopy height models, individual trees, tree density, canopy openings and fragmentation metrics, with GeoTIFFs, a tree table and an interactive map per site. NW Houston (Cypress, 225 ha): 44% canopy, 3,206 patches, 56% open, mostly in large openings. Forest north of Truckee (100 ha): 60% canopy, one patch holding 51% of the area, taller (mean tree 22 m) and denser. Each site has a site map locating it in its region, state and imagery.
+Tests: terrain error 3 to 6 cm, planted trees recovered (89% and 72% at 100 per ha, falling in crowded stands: counts are lower bounds), thinning of returns, resolution sensitivity (cover changes by 20 points between 0.5 and 2 m cells) and a NAIP check. Plates 32 to 36, method in [docs/canopy-structure.md](docs/canopy-structure.md). Run `python scripts/build_canopy.py all` then `python scripts/plot_canopy.py`.
+
 ## Data
 
 * **Lidar:** USGS 3D Elevation Program project `WA_CentralWildfire_2_D22`, Entwine Point Tiles on AWS (`s3://usgs-lidar-public`). Collected 2022-09-04 to 2022-09-08 (dates derived from the point GPS times). 30.8 points per m². Published classes present: 1 unclassified, 2 ground, 9 water, 20 and 21 snow; there are no vegetation classes, so canopy comes from a height model.

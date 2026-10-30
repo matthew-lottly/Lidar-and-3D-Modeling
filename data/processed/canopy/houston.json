@@ -1,0 +1,253 @@
+{
+ "site": "Northwest Houston (Cypress), Texas",
+ "key": "houston",
+ "project": "TX_Coastal_B1_2018",
+ "collected": "2018-01-19",
+ "area_ha": 225.0,
+ "lonlat": [
+  -95.69,
+  30.0
+ ],
+ "crs": "EPSG:32615",
+ "points": 17896600,
+ "density_per_m2": 7.9540444444444445,
+ "classes": {
+  "1": 1108014,
+  "2": 8298685,
+  "3": 455821,
+  "4": 600341,
+  "5": 6030919,
+  "6": 1372219,
+  "9": 26173,
+  "10": 3812,
+  "14": 616
+ },
+ "vegetation_classes_present": true,
+ "ground_returns": 8298685,
+ "ground_density_per_m2": 3.6883044444444444,
+ "multi_return_share": 0.5604661220567035,
+ "res_m": 1.0,
+ "structure": {
+  "canopy_cover_ge2m": 0.436696,
+  "cover_ge5m": 0.35259466666666667,
+  "mean_chm_m": 4.577630953674713,
+  "mean_canopy_height_m": 10.257739864285089,
+  "p95_m": 21.05073051031252,
+  "max_m": 41.080344607496464,
+  "rumple_note": "surface roughness not computed",
+  "terrain_relief_m": 8.130002339680992
+ },
+ "trees": {
+  "n": 11240,
+  "per_ha": 49.955555555555556,
+  "mean_height_m": 12.58604650966306,
+  "p95_height_m": 23.698488487475206,
+  "median_crown_diameter_m": 8.51907589177983,
+  "crown_cover_of_canopy": 0.8564676571344826,
+  "height_classes": {
+   "3-10": 4251,
+   "10-20": 5452,
+   "20-30": 1531,
+   "30+": 6
+  }
+ },
+ "fragmentation": {
+  "area_ha": 225.0,
+  "canopy_cover": 0.436696,
+  "patches": 3206,
+  "mean_patch_m2": 306.4772301933874,
+  "median_patch_m2": 15.0,
+  "largest_patch_m2": 350512.0,
+  "largest_patch_index": 0.15578311111111112,
+  "edge_density_m_per_ha": 1382.1644444444444,
+  "effective_mesh_ha": 6.5630634271999995
+ },
+ "gaps": {
+  "n": 475,
+  "open_area_share": 0.563304,
+  "by_size": {
+   "10-100 m2": {
+    "n": 303,
+    "area_share_of_openings": 0.007164458295889817
+   },
+   "100-1000 m2": {
+    "n": 127,
+    "area_share_of_openings": 0.03801313550410126
+   },
+   "1000-10000 m2": {
+    "n": 38,
+    "area_share_of_openings": 0.07607725792368533
+   },
+   "10000-1e+09 m2": {
+    "n": 7,
+    "area_share_of_openings": 0.8787451482763236
+   }
+  },
+  "touching_edge": 44,
+  "max_distance_to_canopy_m": 67.89698078707183
+ },
+ "terrain_holdout": {
+  "all": {
+   "n": 830067,
+   "rmse_m": 0.028585450905126052,
+   "bias_m": -0.0006610298270643966,
+   "p95_abs_m": 0.0559314489390516
+  },
+  "open_ground": {
+   "n": 554534,
+   "rmse_m": 0.02768602475998564,
+   "bias_m": -0.0006666645640294178,
+   "p95_abs_m": 0.05367883652193157
+  },
+  "under_canopy_ge5m": {
+   "n": 275533,
+   "rmse_m": 0.03031483309271606,
+   "bias_m": -0.0006427645107933699,
+   "p95_abs_m": 0.0598517604662163
+  }
+ },
+ "thinning": {
+  "0.5": {
+   "trees": 11443,
+   "tree_count_change": 0.018060498220640486,
+   "share_of_full_trees_found": 0.8838078291814947,
+   "height_bias_m": -0.10105006086596553,
+   "height_rmse_m": 0.2879652413022073,
+   "cover_change": -0.013138666666666632
+  },
+  "0.25": {
+   "trees": 12486,
+   "tree_count_change": 0.11085409252669032,
+   "share_of_full_trees_found": 0.7952846975088967,
+   "height_bias_m": -0.23781273282465715,
+   "height_rmse_m": 0.4822430831174428,
+   "cover_change": -0.03189066666666662
+  }
+ },
+ "resolution_sensitivity": {
+  "0.5": {
+   "n": 10966,
+   "cover": 0.35624066666666665,
+   "mean_h": 13.228447565266302
+  },
+  "2.0": {
+   "n": 5304,
+   "cover": 0.5573155555555556,
+   "mean_h": 15.671090745528698
+  },
+  "1.0": {
+   "n": 11240,
+   "cover": 0.436696,
+   "mean_h": 12.58604650966306
+  }
+ },
+ "synthetic_stands": {
+  "regular_100": {
+   "true": 400,
+   "detected": 354,
+   "recall": 0.885,
+   "precision": 1.0,
+   "recall_by_height_tercile": [
+    0.7424242424242424,
+    0.9393939393939394,
+    0.9705882352941176
+   ],
+   "height_rmse_m": 0.05413710539669877,
+   "actual_trees_per_ha": 100.0,
+   "pulse_density": 7.9540444444444445
+  },
+  "regular_200": {
+   "true": 800,
+   "detected": 625,
+   "recall": 0.78125,
+   "precision": 1.0,
+   "recall_by_height_tercile": [
+    0.571969696969697,
+    0.8295454545454546,
+    0.9375
+   ],
+   "height_rmse_m": 0.08832403375040515,
+   "actual_trees_per_ha": 200.0,
+   "pulse_density": 7.9540444444444445
+  },
+  "regular_400": {
+   "true": 904,
+   "detected": 648,
+   "recall": 0.7168141592920354,
+   "precision": 1.0,
+   "recall_by_height_tercile": [
+    0.4463087248322148,
+    0.785234899328859,
+    0.9123376623376623
+   ],
+   "height_rmse_m": 0.07430856882378657,
+   "actual_trees_per_ha": 226.0,
+   "pulse_density": 7.9540444444444445
+  },
+  "clumped_100": {
+   "true": 400,
+   "detected": 285,
+   "recall": 0.7125,
+   "precision": 1.0,
+   "recall_by_height_tercile": [
+    0.4621212121212121,
+    0.7727272727272727,
+    0.8970588235294118
+   ],
+   "height_rmse_m": 0.17701219383877376,
+   "actual_trees_per_ha": 100.0,
+   "pulse_density": 7.9540444444444445
+  },
+  "clumped_200": {
+   "true": 800,
+   "detected": 419,
+   "recall": 0.52375,
+   "precision": 1.0,
+   "recall_by_height_tercile": [
+    0.23863636363636365,
+    0.5037878787878788,
+    0.8198529411764706
+   ],
+   "height_rmse_m": 0.041437090483972476,
+   "actual_trees_per_ha": 200.0,
+   "pulse_density": 7.9540444444444445
+  },
+  "clumped_400": {
+   "true": 1600,
+   "detected": 535,
+   "recall": 0.33375,
+   "precision": 0.9981308411214953,
+   "recall_by_height_tercile": [
+    0.06628787878787878,
+    0.26325757575757575,
+    0.6617647058823529
+   ],
+   "height_rmse_m": 0.09807438770097125,
+   "actual_trees_per_ha": 400.0,
+   "pulse_density": 7.9540444444444445
+  }
+ },
+ "naip_agreement": {
+  "naip_date": "2018-12-04",
+  "ndvi_threshold_otsu": 0.14878833293914795,
+  "best_shift_px": [
+   -1,
+   0
+  ],
+  "lidar_canopy_share": 0.436696,
+  "naip_vegetation_share": 0.6711315555555556,
+  "lidar_canopy_that_naip_calls_vegetation": 0.8937435246080162,
+  "lidar_open_that_naip_calls_vegetation": 0.4985537708472394,
+  "note": "NAIP vegetation includes lawn, grass and shrubs, so only the first ratio is a check on the lidar canopy; the second is mostly lawn and low vegetation"
+ },
+ "density_grid": {
+  "cell_m": 50.0,
+  "mean_trees_per_ha": 49.955555555555556,
+  "p90_trees_per_ha": 80.0,
+  "max_trees_per_ha": 160.0
+ },
+ "location": {
+  "county": "Harris County",
+  "public_land": []
+ }
+}
