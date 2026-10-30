@@ -1,0 +1,95 @@
+{
+ "analysis": "Pacifica topographic differencing",
+ "pair": {
+  "a": "ARRA-CA_SanFranCoast_2010",
+  "b": "ARRA-CA_GoldenGate_2010",
+  "points": [
+   1262492,
+   2837426
+  ],
+  "ground": [
+   396437,
+   819307
+  ],
+  "cells_with_both": 73203,
+  "coverage_of_study_land": 0.8981081611620945,
+  "stable_cells_with_both": 1079
+ },
+ "raw_difference_all_overlap": {
+  "n": 73203,
+  "bias_m": -32.80889626344045,
+  "nmad_m": 0.11046486476421917,
+  "rmse_m": 32.821555607292154,
+  "mae_m": 32.820327074733875,
+  "p95_abs_m": 33.1426204919815
+ },
+ "vertical_offset_between_surveys_m": -32.80582375619925,
+ "difference_after_removing_offset_stable": {
+  "n": 1079,
+  "bias_m": 0.0,
+  "nmad_m": 0.046420348984212115,
+  "rmse_m": 0.052010155678683286,
+  "mae_m": 0.0389382765769755,
+  "p95_abs_m": 0.10188614543413188
+ },
+ "registration": {
+  "translation_m": [
+   -0.09379807311977807,
+   -0.1298065042771345,
+   -0.17860252230218907
+  ]
+ },
+ "null_test": {
+  "sigma_z_stable_m": 0.05186097897466304,
+  "sigma_z_before_registration_m": 0.051982727262312185,
+  "coastal_band": {
+   "erosion_m3": 11067.422935941508,
+   "deposition_m3": 8381.352323188326,
+   "net_m3": -2686.0706127531794,
+   "below_lod_net_m3": 415.9614454742111,
+   "cells": 31688,
+   "significant_cells": 14856,
+   "area_m2": 126752.0,
+   "significant_area_m2": 59424.0
+  },
+  "whole_overlap": {
+   "erosion_m3": 18192.22495193586,
+   "deposition_m3": 16427.360901078402,
+   "net_m3": -1764.8640508574592,
+   "below_lod_net_m3": 678.9540667916992,
+   "cells": 72968,
+   "significant_cells": 30048,
+   "area_m2": 291872.0,
+   "significant_area_m2": 120192.0
+  },
+  "false_alarm_share_of_coastal_cells": 0.46882100479676847,
+  "compare_real_2016_2023_coastal_net_m3": -25409.356095447034,
+  "compare_real_2010_2016_coastal_net_m3": -2670.1232432655415,
+  "by_slope": {
+   "0-5": {
+    "cells": 11357,
+    "nmad_m": 0.08731350658496087,
+    "share_above_lod": 0.29462005811393854,
+    "median_lod_m": 0.10185068104149265
+   },
+   "5-15": {
+    "cells": 22116,
+    "nmad_m": 0.101730695500377,
+    "share_above_lod": 0.3217127871224453,
+    "median_lod_m": 0.10445673283422534
+   },
+   "15-30": {
+    "cells": 26205,
+    "nmad_m": 0.15345821622213246,
+    "share_above_lod": 0.4545697385995039,
+    "median_lod_m": 0.1158467368648255
+   },
+   "30-90": {
+    "cells": 13290,
+    "nmad_m": 0.31339138927459115,
+    "share_above_lod": 0.5775018811136192,
+    "median_lod_m": 0.1470405544461415
+   }
+  }
+ }
+}
