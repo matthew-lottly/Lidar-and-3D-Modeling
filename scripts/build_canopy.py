@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import numpy as np
 from scipy import ndimage
 
+from lidar3d import connectivity as CN
 from lidar3d import forestry as F
 from lidar3d import naip
 from lidar3d.ept import CACHE
@@ -110,8 +111,10 @@ def main(key):
     st["thinning"] = thin
     # (3) CHM resolution
     rs = {}
+    chm_by_res = {}
     for r_ in (0.5, 2.0):
-        Rr = cached(f"{key}_res{r_}.pkl", lambda r_=r_: (lambda r: dict(n=len(r["trees"]["height"]), cover=float((r["chm"] >= 2).mean()), mean_h=float(r["trees"]["height"].mean())))(run_pipeline(P, half, res=r_, max_h=site["max_height"])))
+        Rr = cached(f"{key}_res{r_}.pkl", lambda r_=r_: (lambda r: dict(n=len(r["trees"]["height"]), cover=float((r["chm"] >= 2).mean()), mean_h=float(r["trees"]["height"].mean()), chm=r["chm"].astype("float32")))(run_pipeline(P, half, res=r_, max_h=site["max_height"])))
+        chm_by_res[r_] = Rr.pop("chm")
         rs[str(r_)] = Rr
     rs["1.0"] = dict(n=int(len(trees["height"])), cover=float(cover.mean()), mean_h=float(trees["height"].mean()))
     st["resolution_sensitivity"] = rs
@@ -151,6 +154,30 @@ def main(key):
     st["naip_agreement"] = dict(naip_date=ndate, ndvi_threshold_otsu=thr, best_shift_px=[best[1], best[2]], lidar_canopy_share=float(c2.mean()), naip_vegetation_share=float(nv.mean()),
                                 lidar_canopy_that_naip_calls_vegetation=float((nv & c2).sum() / max(c2.sum(), 1)), lidar_open_that_naip_calls_vegetation=float((nv & open_).sum() / max(open_.sum(), 1)),
                                 note="NAIP vegetation includes lawn, grass and shrubs, so only the first ratio is a check on the lidar canopy; the second is mostly lawn and low vegetation")
+    # (6) connectivity of the canopy: graph of patches (20 m2 or larger) and gaps between them
+    land_m2 = (2 * half) ** 2
+    g1 = CN.patch_graph(chm, RES, 2.0, 20.0)
+    st["connectivity"] = CN.summary(g1, land_m2)
+    cl10, ca10 = CN.clusters(g1, 10.0)
+    r10 = CN.pc_metrics(g1, 10.0, land_m2)
+    stones = CN.stepping_stones(g1, 10.0)
+    st["connectivity"]["stepping_stones_at_10m"] = int(stones.sum())
+    st["connectivity"]["largest_gap_links_m"] = {"median_link_gap_m": float(np.median(g1["edges"][:, 2])) if len(g1["edges"]) else None, "links_le_10m": int((g1["edges"][:, 2] <= 10).sum())}
+    sens = {}
+
+    def conn_of(ch, rs_, min_h=2.0, min_area=20.0):
+        gg = CN.patch_graph(ch, rs_, min_h, min_area)
+        lab_, ca_ = CN.clusters(gg, 10.0)
+        return dict(nodes=int(gg["n"]), largest_cluster_share_10m=float(ca_.max() / gg["area"].sum()), clusters_10m=int(len(ca_)), pc_alpha10=float(CN.pc_metrics(gg, 10.0, land_m2)["pc"]))
+    sens["baseline_1m_h2_a20"] = conn_of(chm, RES)
+    sens["cell_0.5m"] = conn_of(chm_by_res[0.5], 0.5)
+    sens["cell_2m"] = conn_of(chm_by_res[2.0], 2.0)
+    sens["canopy_5m_or_higher"] = conn_of(chm, RES, min_h=5.0)
+    sens["min_patch_10m2"] = conn_of(chm, RES, min_area=10.0)
+    sens["min_patch_50m2"] = conn_of(chm, RES, min_area=50.0)
+    for f in ("0.5", "0.25"):
+        sens["half_returns" if f == "0.5" else "quarter_returns"] = conn_of(cached(f"{key}_thin{f}.pkl", None)["chm"], RES)
+    st["connectivity"]["sensitivity"] = sens
     # ---- outputs
     F.write_geotiff(OUT / "dtm.tif", dtm, aoi, 1.0, nodata=-9999.0)
     F.write_geotiff(OUT / "chm.tif", chm, aoi, RES, nodata=-9999.0)
@@ -158,6 +185,10 @@ def main(key):
     F.write_geotiff(OUT / "crowns.tif", lab, aoi, RES, dtype="int32", nodata=0)
     dens = F.density_grid(trees["row"], trees["col"], chm.shape, RES, 50.0)
     F.write_geotiff(OUT / "tree_density_per_ha.tif", dens, aoi, 50.0)
+    cl_img = np.where(g1["labels"] > 0, np.concatenate([[0], cl10 + 1])[g1["labels"]], 0)
+    F.write_geotiff(OUT / "canopy_clusters_10m.tif", cl_img, aoi, RES, dtype="int32", nodata=0)
+    F.write_geotiff(OUT / "canopy_reachable_area_ha.tif", np.concatenate([[0.0], r10["reach_m2"] / 1e4])[g1["labels"]], aoi, RES, nodata=0.0)
+    F.write_geotiff(OUT / "canopy_stepping_stones_10m.tif", np.concatenate([[False], stones])[g1["labels"]].astype("uint8"), aoi, RES, dtype="uint8", nodata=0)
     F.write_geotiff(OUT / "canopy_gaps.tif", (gl > 0).astype("uint8"), aoi, RES, dtype="uint8", nodata=0)
     from pyproj import Transformer
     ex, ey = trees["col"] + 0.5 - half + aoi.cx, trees["row"] + 0.5 - half + aoi.cy
@@ -165,9 +196,13 @@ def main(key):
     import pandas as pd
     pd.DataFrame(dict(tree_id=np.arange(1, len(ex) + 1), utm_e=np.round(ex, 2), utm_n=np.round(ey, 2), lon=np.round(lon, 7), lat=np.round(lat, 7), height_m=np.round(trees["height"], 2),
                       crown_area_m2=np.round(trees["crown_area_m2"], 1), crown_diameter_m=np.round(trees["crown_diameter_m"], 2))).to_csv(OUT / "trees.csv", index=False)
+    cen_e, cen_n = g1["centroid"][:, 1] + 0.5 - half + aoi.cx, g1["centroid"][:, 0] + 0.5 - half + aoi.cy
+    pd.DataFrame(dict(patch_id=np.arange(1, g1["n"] + 1), utm_e=np.round(cen_e, 1), utm_n=np.round(cen_n, 1), area_m2=np.round(g1["area"], 1), cluster_10m=cl10 + 1, reachable_area_ha_alpha10=np.round(r10["reach_m2"] / 1e4, 3),
+                      stepping_stone_10m=stones.astype(int), touches_window_edge=g1["touches_edge"].astype(int))).to_csv(OUT / "canopy_patches.csv", index=False)
+    pd.DataFrame(dict(patch_a=g1["edges"][:, 0].astype(int) + 1, patch_b=g1["edges"][:, 1].astype(int) + 1, gap_m=np.round(g1["edges"][:, 2], 2))).query("gap_m <= 50").to_csv(OUT / "canopy_links.csv", index=False)
     st["density_grid"] = dict(cell_m=50.0, mean_trees_per_ha=float(dens.mean()), p90_trees_per_ha=float(np.percentile(dens, 90)), max_trees_per_ha=float(dens.max()))
     (DATA / f"{key}.json").write_text(json.dumps(st, indent=1, default=float))
-    pickle.dump(dict(dtm=dtm.astype("float32"), chm=chm.astype("float32"), lab=lab, trees=trees, gl=gl, dens=dens, nd=nd.astype("float32"), gcnt=R["gcnt"].astype("float32")), open(CACHE / "forestry" / f"{key}_final.pkl", "wb"))
+    pickle.dump(dict(graph=g1, cl10=cl10, ca10=ca10, reach10=r10["reach_m2"], stones=stones, dtm=dtm.astype("float32"), chm=chm.astype("float32"), lab=lab, trees=trees, gl=gl, dens=dens, nd=nd.astype("float32"), gcnt=R["gcnt"].astype("float32")), open(CACHE / "forestry" / f"{key}_final.pkl", "wb"))
     print(json.dumps(st, indent=1, default=float))
 
 

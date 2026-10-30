@@ -405,3 +405,19 @@ def test_terrain_and_height_above_ground_on_a_slope():
     assert abs(F.height_above_ground(Pt, dtm, 50.0, 1.0)[0] - 10.0) < 0.15
     gr, veg, bld, has = F.classify(Pt, np.array([10.0]))
     assert veg[0] and not gr[0] and not has
+
+
+def test_canopy_connectivity_graph_gaps_clusters_and_stepping_stones():
+    from lidar3d import connectivity as C
+    m = np.zeros((100, 200)); m[10:30, 10:30] = 5; m[10:30, 40:60] = 5; m[10:30, 70:90] = 5; m[60:80, 150:170] = 5
+    g = C.patch_graph(m, 1.0, min_h=2.0, min_area=20.0)
+    assert g["n"] == 4
+    gaps = sorted(g["edges"][:, 2])
+    assert abs(gaps[0] - 10.0) < 0.01 and abs(gaps[1] - 10.0) < 0.01 and gaps[2] > 60
+    lab5, _ = C.clusters(g, 5.0)
+    lab12, ca12 = C.clusters(g, 12.0)
+    assert len(set(lab5)) == 4 and len(set(lab12)) == 2 and sorted(ca12) == [400.0, 1200.0]
+    assert list(C.stepping_stones(g, 12.0)) == [False, True, False, False]              # the middle patch links the other two
+    r = C.pc_metrics(g, 10.0, float(m.size))
+    assert 0 < r["pc"] < 1 and r["reach_m2"][3] == 400.0                                   # the far patch can reach only itself
+    assert r["reach_m2"][1] > r["reach_m2"][0]                                            # the middle patch reaches more than an end one
