@@ -1,0 +1,97 @@
+{
+ "analysis": "Norfolk drainage and flood-stage road vulnerability",
+ "references": {
+  "swath_repeatability": {
+   "project": "USGS_LPC_VA_Norfolk_2013_LAS_2015",
+   "swaths": [
+    412,
+    413,
+    447
+   ],
+   "cell_m": 4.0,
+   "pairs": {},
+   "roads": {
+    "n": 2305,
+    "bias_m": -0.01909963225952982,
+    "nmad_m": 0.029684744348550906,
+    "rmse_m": 0.10332274204360438,
+    "mae_m": 0.05195951945523531,
+    "p95_abs_m": 0.13309799045407775,
+    "share_within_10cm": 0.8854663774403471,
+    "share_within_20cm": 0.9804772234273319
+   },
+   "open_ground": {
+    "n": 2691,
+    "bias_m": -0.015601511288406478,
+    "nmad_m": 0.0380234629766047,
+    "rmse_m": 0.09713004087826203,
+    "mae_m": 0.050783512726628656,
+    "p95_abs_m": 0.1258974732819449,
+    "share_within_10cm": 0.8985507246376812,
+    "share_within_20cm": 0.9817911557041992
+   },
+   "note": "differences between the means of two swaths over flat, unbuilt ground in 4 m cells; a swath difference is about sqrt(2) times a single swath's error, and a horizontal or datum offset between swaths shows up here"
+  },
+  "independent_lidar_2011": {
+   "status": "VA_FEMA_SouthernCities_2011 is indexed over the window but holds no points inside it"
+  },
+  "overture_bridges": {
+   "mapped_bridge_features": 20,
+   "by_category": {
+    "bridge": {
+     "segments": 2,
+     "inside_mapped_bridge_footprint": 1
+    },
+    "at_grade": {
+     "segments": 558,
+     "inside_mapped_bridge_footprint": 2
+    },
+    "at_grade_open_cut": {
+     "segments": 5,
+     "inside_mapped_bridge_footprint": 0
+    },
+    "at_grade_unobserved": {
+     "segments": 3,
+     "inside_mapped_bridge_footprint": 0
+    },
+    "tunnel": {
+     "segments": 6,
+     "inside_mapped_bridge_footprint": 0
+    }
+   },
+   "note": "a segment counts when more than half its length lies within 8 m of a mapped bridge; Overture bridges are OpenStreetMap-derived, as are the road tags, so this is a consistency check between two map sources, not an independent survey"
+  },
+  "blocked_or_pending": {
+   "usgs_dtm_2m": {
+    "status": "host not reachable or no data: no data returned"
+   }
+  }
+ },
+ "structure_evidence": {
+  "bridge": {
+   "segments": 2,
+   "median_deck_share": 0.5088300220750552,
+   "median_observed_share": 0.4777041942604856
+  },
+  "at_grade": {
+   "segments": 562,
+   "median_deck_share": 0.1111111111111111,
+   "median_observed_share": 1.0
+  },
+  "at_grade_open_cut": {
+   "segments": 5,
+   "median_deck_share": 0.20699708454810495,
+   "median_observed_share": 0.9329446064139941
+  },
+  "at_grade_unobserved": {
+   "segments": 3,
+   "median_deck_share": 0.7894736842105263,
+   "median_observed_share": 0.39473684210526316
+  },
+  "tunnel": {
+   "segments": 6,
+   "median_deck_share": 0.38,
+   "median_observed_share": 0.8944444444444444
+  }
+ }
+}

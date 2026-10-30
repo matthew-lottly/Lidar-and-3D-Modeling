@@ -44,9 +44,38 @@
    "unclassified": 1.939723889539322,
    "service": 14.195604431831597
   },
-  "bridge_tunnel_or_elevated_segments_excluded_from_flooding": 33,
-  "tunnel_segments": 11,
-  "bridge_segments": 4
+  "categories": {
+   "at_grade": {
+    "segments": 562,
+    "km": 48.10320639589775
+   },
+   "at_grade_open_cut": {
+    "segments": 5,
+    "km": 1.661252050762994
+   },
+   "at_grade_unobserved": {
+    "segments": 3,
+    "km": 0.2674288533952524
+   },
+   "bridge": {
+    "segments": 2,
+    "km": 0.5403253048467844
+   },
+   "tunnel": {
+    "segments": 6,
+    "km": 0.3838351894808619
+   }
+  },
+  "structure_check": {
+   "tagged_bridge": 4,
+   "tagged_bridge_with_deck_seen": 2,
+   "tag_conflicts_treated_at_grade": 1,
+   "untagged_segments_with_anything_overhead_incl_tree_canopy": 169,
+   "untagged_underpass_candidates_surface_not_seen": 3,
+   "median_deck_height_of_bridges_m": 6.830666832127911,
+   "old_rule_excluded_km_mostly_tree_covered_streets": 7.856654295448111,
+   "note": "old rule: any segment with a return more than 3 m above its centreline (a deck, but also tree canopy or a roof) was treated as elevated and never flooded, which removed tree-lined streets and the road under an overpass from the flood count"
+  }
  },
  "hydrology": {
   "acc_stream_threshold_cells": 3000,
@@ -199,110 +228,110 @@
  "road_vulnerability": {
   "1.5": {
    "any_low_ground": {
-    "segments_impassable": 25,
-    "km_impassable": 2.9014578343650945,
-    "km_difficult_only": 0.47552308128672494,
-    "share_of_network_km_impassable": 0.05694040177670318,
-    "largest_connected_share_of_km": 0.627254204245594,
-    "pieces": 173
+    "segments_impassable": 29,
+    "km_impassable": 4.246329954728699,
+    "km_difficult_only": 0.49885943720282944,
+    "share_of_network_km_impassable": 0.08333318886628267,
+    "largest_connected_share_of_km": 0.6210149196497131,
+    "pieces": 172
    },
    "connected_to_tidal_water": {
-    "segments_impassable": 5,
-    "km_impassable": 0.9514021387367724,
+    "segments_impassable": 6,
+    "km_impassable": 1.0914027717593784,
     "km_difficult_only": 0.0,
-    "share_of_network_km_impassable": 0.018671034743036635,
-    "largest_connected_share_of_km": 0.7179079591503735,
+    "share_of_network_km_impassable": 0.021418512993067573,
+    "largest_connected_share_of_km": 0.7151604809003426,
     "pieces": 173
    }
   },
   "2": {
    "any_low_ground": {
-    "segments_impassable": 94,
-    "km_impassable": 9.41252338466324,
-    "km_difficult_only": 3.732636888549293,
-    "share_of_network_km_impassable": 0.18471847390214366,
-    "largest_connected_share_of_km": 0.49076911914829274,
-    "pieces": 171
+    "segments_impassable": 103,
+    "km_impassable": 11.270778456071628,
+    "km_difficult_only": 3.84234462420728,
+    "share_of_network_km_impassable": 0.22118627609329405,
+    "largest_connected_share_of_km": 0.48181850041070423,
+    "pieces": 168
    },
    "connected_to_tidal_water": {
-    "segments_impassable": 19,
-    "km_impassable": 2.0703034266389713,
+    "segments_impassable": 20,
+    "km_impassable": 2.2103040596615773,
     "km_difficult_only": 0.0,
-    "share_of_network_km_impassable": 0.040629199403238635,
+    "share_of_network_km_impassable": 0.04337667765326957,
     "largest_connected_share_of_km": 0.6786063649859808,
-    "pieces": 174
+    "pieces": 173
    }
   },
   "2.5": {
    "any_low_ground": {
-    "segments_impassable": 236,
-    "km_impassable": 21.87009699942854,
-    "km_difficult_only": 4.94065787076503,
-    "share_of_network_km_impassable": 0.4291953152975701,
-    "largest_connected_share_of_km": 0.23389732796322046,
-    "pieces": 148
+    "segments_impassable": 250,
+    "km_impassable": 24.993722437724724,
+    "km_difficult_only": 5.039023122659041,
+    "share_of_network_km_impassable": 0.4904957020720811,
+    "largest_connected_share_of_km": 0.23078109934061886,
+    "pieces": 138
    },
    "connected_to_tidal_water": {
-    "segments_impassable": 126,
-    "km_impassable": 11.258364105646683,
+    "segments_impassable": 132,
+    "km_impassable": 12.73970015848656,
     "km_difficult_only": 0.0,
-    "share_of_network_km_impassable": 0.2209426474964484,
-    "largest_connected_share_of_km": 0.5062882165151255,
-    "pieces": 158
+    "share_of_network_km_impassable": 0.25001350595111743,
+    "largest_connected_share_of_km": 0.5009881565585123,
+    "pieces": 154
    }
   },
   "3": {
    "any_low_ground": {
-    "segments_impassable": 393,
-    "km_impassable": 35.629046431606156,
-    "km_difficult_only": 3.273375898872294,
-    "share_of_network_km_impassable": 0.6992113394542576,
-    "largest_connected_share_of_km": 0.05493562029514714,
-    "pieces": 108
+    "segments_impassable": 411,
+    "km_impassable": 39.44454478397057,
+    "km_difficult_only": 3.426953060231235,
+    "share_of_network_km_impassable": 0.7740895632866985,
+    "largest_connected_share_of_km": 0.05193503501281931,
+    "pieces": 95
    },
    "connected_to_tidal_water": {
-    "segments_impassable": 373,
-    "km_impassable": 33.563574604120724,
+    "segments_impassable": 394,
+    "km_impassable": 37.502148239840274,
     "km_difficult_only": 0.0,
-    "share_of_network_km_impassable": 0.6586769590050523,
-    "largest_connected_share_of_km": 0.1249179642946373,
-    "pieces": 113
+    "share_of_network_km_impassable": 0.7359705052316429,
+    "largest_connected_share_of_km": 0.12191737901230947,
+    "pieces": 97
    }
   },
   "3.5": {
    "any_low_ground": {
-    "segments_impassable": 507,
-    "km_impassable": 44.35492789763769,
-    "km_difficult_only": 0.7700891830217809,
-    "share_of_network_km_impassable": 0.8704546333070688,
-    "largest_connected_share_of_km": 0.020153502493698575,
-    "pieces": 57
+    "segments_impassable": 530,
+    "km_impassable": 48.57037393285676,
+    "km_difficult_only": 0.77379995276486,
+    "share_of_network_km_impassable": 0.9531817327914934,
+    "largest_connected_share_of_km": 0.005396440273530016,
+    "pieces": 37
    },
    "connected_to_tidal_water": {
-    "segments_impassable": 506,
-    "km_impassable": 44.23518558068255,
+    "segments_impassable": 529,
+    "km_impassable": 48.450631615901614,
     "km_difficult_only": 0.0,
-    "share_of_network_km_impassable": 0.8681047195649686,
-    "largest_connected_share_of_km": 0.020153502493698575,
-    "pieces": 57
+    "share_of_network_km_impassable": 0.9508318190493931,
+    "largest_connected_share_of_km": 0.005396440273530016,
+    "pieces": 37
    }
   },
   "4": {
    "any_low_ground": {
-    "segments_impassable": 539,
-    "km_impassable": 45.92635615275764,
+    "segments_impassable": 565,
+    "km_impassable": 50.27043170561654,
     "km_difficult_only": 0.10135714577247577,
-    "share_of_network_km_impassable": 0.9012935292406964,
-    "largest_connected_share_of_km": 0.020153502493698575,
-    "pieces": 31
+    "share_of_network_km_impassable": 0.9865449516113635,
+    "largest_connected_share_of_km": 0.0043751371317899326,
+    "pieces": 9
    },
    "connected_to_tidal_water": {
-    "segments_impassable": 539,
-    "km_impassable": 45.92635615275764,
+    "segments_impassable": 565,
+    "km_impassable": 50.27043170561654,
     "km_difficult_only": 0.0,
-    "share_of_network_km_impassable": 0.9012935292406964,
-    "largest_connected_share_of_km": 0.020153502493698575,
-    "pieces": 31
+    "share_of_network_km_impassable": 0.9865449516113635,
+    "largest_connected_share_of_km": 0.0043751371317899326,
+    "pieces": 9
    }
   }
  },
@@ -310,7 +339,7 @@
   "2": {
    "motorway": {
     "km": 2.315265117687113,
-    "km_impassable": 0.9752292838091002
+    "km_impassable": 1.1152299168317061
    },
    "primary": {
     "km": 3.4578121924424012,
@@ -318,7 +347,7 @@
    },
    "residential": {
     "km": 22.777417571824998,
-    "km_impassable": 4.879272319359847
+    "km_impassable": 5.4961063627334426
    },
    "secondary": {
     "km": 3.2695351692056653,
@@ -326,7 +355,7 @@
    },
    "service": {
     "km": 14.195604431831597,
-    "km_impassable": 1.6802216016075318
+    "km_impassable": 2.7816419966197197
    },
    "tertiary": {
     "km": 3.000689421852553,
@@ -340,61 +369,61 @@
   "3": {
    "motorway": {
     "km": 2.315265117687113,
-    "km_impassable": 1.922984079570656
+    "km_impassable": 2.062984712593262
    },
    "primary": {
     "km": 3.4578121924424012,
-    "km_impassable": 2.7179537745327296
+    "km_impassable": 3.244584298627696
    },
    "residential": {
     "km": 22.777417571824998,
-    "km_impassable": 18.527191977386217
+    "km_impassable": 19.71821302827973
    },
    "secondary": {
     "km": 3.2695351692056653,
-    "km_impassable": 2.2059784377312446
+    "km_impassable": 2.242418591049598
    },
    "service": {
     "km": 14.195604431831597,
-    "km_impassable": 7.115215440372223
+    "km_impassable": 8.155228526517787
    },
    "tertiary": {
     "km": 3.000689421852553,
-    "km_impassable": 1.8532783174332021
+    "km_impassable": 2.3999885137471257
    },
    "unclassified": {
     "km": 1.9397238895393225,
-    "km_impassable": 1.2864444045798902
+    "km_impassable": 1.6211271131553773
    }
   },
   "4": {
    "motorway": {
     "km": 2.315265117687113,
-    "km_impassable": 1.9523247878700367
+    "km_impassable": 2.0923254208926427
    },
    "primary": {
     "km": 3.4578121924424012,
-    "km_impassable": 2.9174868875956173
+    "km_impassable": 3.3682764968727517
    },
    "residential": {
     "km": 22.777417571824998,
-    "km_impassable": 21.432363172382107
+    "km_impassable": 22.777417571824998
    },
    "secondary": {
     "km": 3.2695351692056653,
-    "km_impassable": 3.2330950158873115
+    "km_impassable": 3.2695351692056653
    },
    "service": {
     "km": 14.195604431831597,
-    "km_impassable": 12.319627080913182
+    "km_impassable": 13.895885300929525
    },
    "tertiary": {
     "km": 3.000689421852553,
-    "km_impassable": 2.4664180271455503
+    "km_impassable": 2.9272678563516368
    },
    "unclassified": {
     "km": 1.9397238895393225,
-    "km_impassable": 1.6050411809638354
+    "km_impassable": 1.9397238895393225
    }
   }
  },

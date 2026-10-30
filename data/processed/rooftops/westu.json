@@ -208,9 +208,7 @@
    "lidar_with_no_overlap": 0.028846153846153848,
    "overture_covered_ge_half": 0.7727272727272727,
    "lidar_area_ha": 3.7118,
-   "overture_area_ha": 5.241525725916312,
-   "lidar_area_inside_overture": 0.8200012051056828,
-   "overture_area_inside_lidar": 0.5806859743265276
+   "overture_area_ha": 5.241525725916312
   }
  },
  "sensitivity": {
