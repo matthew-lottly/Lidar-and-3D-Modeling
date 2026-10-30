@@ -1,0 +1,36 @@
+{
+ "analysis": "Wabash scroll bars",
+ "naip_date": "2011-08-25",
+ "lidar_flown": "2011-09-17",
+ "channel_vs_naip_water": {
+  "n": 2202661,
+  "accuracy": 0.9489299533609575,
+  "kappa": 0.8784449803218745,
+  "precision": 0.85636111995271,
+  "recall": 0.9814270173792959,
+  "iou": 0.8427041078152945,
+  "reference_positive_share": 0.27878279953202056,
+  "predicted_positive_share": 0.31949718998974425,
+  "lidar_channel_km2": 0.703744,
+  "naip_water_km2": 0.614064,
+  "note": "different dates (23 days) and different physics (no lidar return versus low near-infrared); stage differences move the banks",
+  "north_bank_offset_m": {
+   "n": 217,
+   "bias_m": -2.0,
+   "nmad_m": 4.4478,
+   "rmse_m": 18.064911121422234,
+   "mae_m": 8.506912442396313,
+   "p95_abs_m": 38.799999999999955
+  }
+ },
+ "ridge_existence": {
+  "correlation_ndvi_vs_lidar_relief": -0.09784720670122327,
+  "shifted_null_mean": -0.013044328308999664,
+  "shifted_null_sd": 0.014081991175738738,
+  "z_score": -6.022080069069129,
+  "n_shifts": 200,
+  "note": "correlation between the band-passed NAIP NDVI and the band-passed lidar relief on the same transects, against the same correlation after shifting the lidar strip along the bank",
+  "crest_picks_with_ndvi_anomaly_0p03_within_4m": 0.8253377716859213,
+  "random_positions_with_ndvi_anomaly": 0.7153024911032029
+ }
+}
