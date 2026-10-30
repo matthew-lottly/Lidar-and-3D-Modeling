@@ -23,7 +23,7 @@ def scene_image(key, az=205, el=38, width=1800, height=1300):
     sc = trimesh.load(ROOT / "outputs" / "rooftops" / key / "block.glb")
     pts, cols = [], []
     for g in sc.geometry.values():
-        n = int(max(g.area * 40, 100))
+        n = int(max(g.area * 120, 100))
         P, fi = trimesh.sample.sample_surface(g, n)
         vc = np.asarray(g.visual.vertex_colors)[g.faces[fi, 0]][:, :3]
         pts.append(P); cols.append(vc)
@@ -38,6 +38,14 @@ def main():
         st = json.loads((ROOT / "data" / "processed" / "rooftops" / f"{key}.json").read_text())
         F = pickle.loads((CACHE / "rooftop" / f"{key}_final.pkl").read_bytes())
         F["polys"] = {int(k): v for k, v in F["polys"].items()}
+        from shapely.geometry import Polygon
+        from shapely.ops import unary_union
+        lu = unary_union([Polygon(v) for v in F["polys"].values()])
+        ou = unary_union([q for q in F["ovp"] if q.area >= 30])
+        fo = st["checks"]["footprints_vs_overture"]
+        fo["lidar_area_inside_overture"] = float(lu.intersection(ou).area / lu.area)
+        fo["overture_area_inside_lidar"] = float(lu.intersection(ou).area / ou.area)
+        (ROOT / "data" / "processed" / "rooftops" / f"{key}.json").write_text(json.dumps(st, indent=1, default=float))
         sts[key], Fs[key] = st, F
         site = RT.SITES[key]
         img, _, nd = naip.fetch(RT.make_aoi(site, site["half"]), NAIP_YEAR, res=1.0, slug=f"rooftop_{key}")

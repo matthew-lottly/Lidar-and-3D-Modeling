@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import textwrap
 
-import matplotlib.cm as cm
 import numpy as np
 from matplotlib.colors import Normalize
 from matplotlib.lines import Line2D
@@ -57,10 +56,14 @@ def fig_sites(sts, imgs):
     pl = Plate("Where the two blocks are", "A residential block (West University Place) and a high-rise block (downtown Houston), 400 m squares, in Harris County, Texas",
                _src(sts["westu"]), "Red: freeways. Orange: trunk roads. Blue: rivers and lakes. Dashed grey: county lines")
     a = pl.ax(0.6, 1.1, 7.3, 7.2)
+    lon0, lat0 = sts["westu"]["lonlat"]
+    sitemap.draw_regional(a, L, bbox, (lon0, lat0), (0.0021, 0.0018), label_places=("Pasadena", "Sugar Land", "Katy", "Cypress", "Humble", "Baytown", "Pearland"))
     for k, st in sts.items():
         lon, lat = st["lonlat"]
-        sitemap.draw_regional(a, L, bbox, (lon, lat), (0.0021, 0.0018), label_places=("Houston", "Pasadena", "Sugar Land", "Katy", "Bellaire", "Cypress", "Humble", "Baytown", "Pearland"))
-        a.annotate(NAMES[k], xy=(lon, lat), xytext=(lon + (0.07 if k == "westu" else 0.1), lat + (-0.1 if k == "westu" else 0.12)), fontsize=9, fontweight="bold", color="#E74C3C", ha="center", arrowprops=dict(arrowstyle="->", color="#E74C3C", lw=1.2), path_effects=_halo())
+        if k != "westu":
+            from matplotlib.patches import Rectangle
+            a.add_patch(Rectangle((lon - 0.0021, lat - 0.0018), 0.0042, 0.0036, fill=False, ec="#E74C3C", lw=2.0, zorder=8))
+        a.annotate(NAMES[k], xy=(lon, lat), xytext=((-95.62, 29.80) if k == "westu" else (-95.22, 29.9)), fontsize=9, fontweight="bold", color="#E74C3C", ha="center", arrowprops=dict(arrowstyle="->", color="#E74C3C", lw=1.2), path_effects=_halo())
     a.set_xlim(bbox[0], bbox[2]); a.set_ylim(bbox[1], bbox[3])
     pl.label(0.6, 8.35, "Region")
     for i, k in enumerate(("westu", "downtown")):
@@ -114,7 +117,7 @@ def fig_extraction(key, st, F):
     a.set_xlim(-a_, a_); a.set_ylim(-a_, a_); a.set_xticks([]); a.set_yticks([])
     _scalebar(a, -a_ + 15, -a_ + 12, 100.0, "white")
     leg = [Line2D([], [], color="#E74C3C", lw=1.5, label="from lidar"), Line2D([], [], color="#2E86C1", lw=1.2, ls="--", label="Overture")]
-    la = pl.ax(0.6, 4.35, W, 0.3); la.axis("off"); la.legend(handles=leg, loc="center left", ncol=2, fontsize=7.5, frameon=False)
+    lg = a.legend(handles=leg, loc="upper right", fontsize=7.2, frameon=True, framealpha=0.9); lg.get_frame().set_edgecolor("#CCCCCC")
     pl.label(4.7, 4.75 + W + 0.13, "Roof planes (colour = plane)")
     b = pl.ax(4.7, 4.75, W, W)
     b.imshow(hs, origin="lower", extent=ext, cmap="gray", vmin=0.2, vmax=0.95, alpha=0.6)
@@ -148,7 +151,7 @@ def fig_extraction(key, st, F):
     ck, bl = st["checks"], st["buildings"]
     fo = ck["footprints_vs_overture"]
     rows = [("Buildings", f"{bl['n']} structures of 30 m2 or more; median footprint {bl['footprint_median_m2']:.0f} m2, median height {bl['height_median_m']:.1f} m (maximum {bl['height_max_m']:.0f} m). {bl['planes_total']} roof planes ({bl['planes_per_building_median']:.0f} per building, median); {bl['flat_roof_area_share'] * 100:.0f}% of roof area is flat (under 10 degrees)."),
-            ("Against Overture", f"Median overlap (IoU) with the best Overture footprint {fo['lidar_iou_median']:.2f}; {fo['lidar_with_iou_ge_0p5'] * 100:.0f}% of lidar footprints reach 0.5 and {fo['lidar_with_no_overlap'] * 100:.0f}% overlap nothing. {fo['overture_covered_ge_half'] * 100:.0f}% of Overture buildings are at least half covered. Footprint area: lidar {fo['lidar_area_ha']:.1f} ha, Overture {fo['overture_area_ha']:.1f} ha."),
+            ("Against Overture", f"{fo['lidar_area_inside_overture'] * 100:.0f}% of the lidar footprint area lies inside Overture buildings, and {fo['overture_area_inside_lidar'] * 100:.0f}% of Overture's building area (30 m2 or more) is inside lidar footprints (areas: lidar {fo['lidar_area_ha']:.1f} ha, Overture {fo['overture_area_ha']:.1f} ha). Building by building the median overlap (IoU) is {fo['lidar_iou_median']:.2f}, and {fo['lidar_with_no_overlap'] * 100:.0f}% overlap nothing; touching buildings merge into one lidar footprint, which lowers IoU."),
             ("What it misses", "Only returns that look planar are used, so roofs hidden by tree crowns, small outbuildings and dormers are partly or wholly missing; the footprint then covers only the visible part of a roof. Trees over a roof also remain in the shading surface.")]
     _text_rows(pl, 8.6, 8.0, rows, 74)
     return pl.save({"westu": "40_westu_roof_extraction.png", "downtown": "42_downtown_roof_extraction.png"}[key])
@@ -193,18 +196,18 @@ def fig_solar(key, st, F, num):
     so = st["solar"]["by_orientation"]
     names = ["flat", "south", "east", "west", "north"]
     vals = [so[n]["mean_total_kwh_m2"] or 0 for n in names]
-    d.bar(range(5), vals, color=[cm.inferno(norm(v)) for v in vals])
+    d.bar(range(5), vals, color=COL[key])
     for i, v in enumerate(vals):
         d.text(i, v + 15, f"{v:.0f}", ha="center", fontsize=8)
     d.set_xticks(range(5)); d.set_xticklabels(["flat", "faces S", "faces E", "faces W", "faces N"], fontsize=8)
     d.set_ylabel("mean kWh per m2 per year", fontsize=8, color=MUTED); d.set_ylim(0, 1700); d.tick_params(labelsize=8, length=2); d.spines[["top", "right"]].set_visible(False)
-    pl.label(5.2, 3.95, "By roof direction (pitched roofs 10 degrees or more)")
+    pl.label(5.2, 3.95, f"By roof direction (flat = {so['flat']['share_of_roof_area'] * 100:.0f}% of roof area)")
     s = st["solar"]
     rows = [("Totals", f"{st['buildings']['n']} roofs, {st['buildings']['roof_area_ha']:.1f} ha of roof. Energy on the roofs {s['total_energy_on_roofs_gwh']:.1f} GWh per year: {s['roof_area_weighted_beam_kwh_m2']:.0f} kWh/m2 direct and {s['diffuse_kwh_m2']:.0f} diffuse on average (open-sky direct would be {s['beam_open_sky_kwh_m2']:.0f}: shade removes {s['beam_shading_loss'] * 100:.0f}% of the direct sun)."),
             ("Suitable roof", f"{s['suitable_roof_area_share'] * 100:.0f}% of roof area receives at least {s['suitable_threshold_kwh_m2']:.0f} kWh/m2 per year, a screening level. At {s['pv_assumptions']['efficiency'] * 100:.0f}% module efficiency and {s['pv_assumptions']['performance_ratio'] * 100:.0f}% performance ratio (assumed, not measured) that suitable area would yield about {s['pv_estimate_gwh']:.1f} GWh of electricity a year."),
             ("Weather", f"Hourly DNI and DHI of the NSRDB typical year at {st['weather']['site_lat']:.2f} N, {st['weather']['site_lon']:.2f} W ({st['weather']['annual_ghi_kwh_m2']:.0f} kWh/m2 global horizontal a year). A typical year is not a forecast for any one year."),
             ("Not included", "Light reflected from the ground or neighbouring walls, the bright sky near the sun, soiling, snow, roof obstructions the lidar missed, and roofs hidden under trees.")]
-    _text_rows(pl, 9.1, 8.2, rows, 70)
+    _text_rows(pl, 9.75, 8.2, rows, 66)
     return pl.save(f"{num}_{key}_rooftop_solar.png")
 
 
@@ -213,18 +216,17 @@ def fig_tests(sts):
                _src(sts["westu"]), "Planted roofs are clean synthetic gables and flats, so real error is larger")
     cols = COL
     a = pl.ax(0.9, 5.15, 3.4, 2.7)
-    ks = list(sts["westu"]["checks"]["planted_roofs"])
     labs = ["real density\nand noise", "40% of the\ndensity", "10 cm noise"]
     for i, k in enumerate(("westu", "downtown")):
         pr = sts[k]["checks"]["planted_roofs"]
-        v = [pr[kk]["slope_err_p95_deg"] for kk in ks]
+        v = [q["slope_err_p95_deg"] for q in pr.values()]
         a.bar(np.arange(3) + i * 0.38 - 0.19, v, 0.36, color=cols[k], label=NAMES[k])
     a.set_xticks(range(3)); a.set_xticklabels(labs, fontsize=7.5); a.set_ylabel("slope error, 95th percentile, deg", fontsize=8, color=MUTED); a.tick_params(labelsize=8, length=2); a.spines[["top", "right"]].set_visible(False); a.legend(fontsize=7.5, frameon=False)
     pl.label(0.9, 8.35, "Planted roofs: slope error")
     b = pl.ax(5.4, 5.15, 3.4, 2.7)
     for i, k in enumerate(("westu", "downtown")):
         pr = sts[k]["checks"]["planted_roofs"]
-        v = [pr[kk]["irradiance_err_p95_kwh_m2"] for kk in ks]
+        v = [q["irradiance_err_p95_kwh_m2"] for q in pr.values()]
         b.bar(np.arange(3) + i * 0.38 - 0.19, v, 0.36, color=cols[k])
     b.set_xticks(range(3)); b.set_xticklabels(labs, fontsize=7.5); b.set_ylabel("irradiance error, 95th pct, kWh/m2/yr", fontsize=8, color=MUTED); b.tick_params(labelsize=8, length=2); b.spines[["top", "right"]].set_visible(False)
     pl.label(5.4, 8.35, "Planted roofs: energy error")
@@ -258,10 +260,10 @@ def fig_tests(sts):
     rows = []
     for k, st in sts.items():
         ck = st["checks"]
-        pr = ck["planted_roofs"][ks[0]]
+        pr = next(iter(ck["planted_roofs"].values()))
         sa = ck["shadow_vs_analytic"]
-        rows.append((NAMES[k], f"Planted roofs at this block's density: slope error median {pr['slope_err_median_deg']:.1f} deg, 95th percentile {pr['slope_err_p95_deg']:.1f}; energy error median {pr['irradiance_err_median_kwh_m2']:.0f}, 95th pct {pr['irradiance_err_p95_kwh_m2']:.0f} kWh/m2/yr. "
-                              f"Shadow engine against a 20 m block: horizon within {max(abs(r_['horizon_deg'] - r_['expected_deg']) for r_ in sa):.1f} deg of the exact angle. Footprints: {ck['footprints_vs_overture']['lidar_with_iou_ge_0p5'] * 100:.0f}% overlap Overture by IoU 0.5 or more."))
+        rows.append((NAMES[k], f"Planted roofs at this block's density: slope error median {pr['slope_err_median_deg']:.2f} deg, 95th percentile {pr['slope_err_p95_deg']:.2f}; energy error median {pr['irradiance_err_median_kwh_m2']:.1f}, 95th pct {pr['irradiance_err_p95_kwh_m2']:.1f} kWh/m2/yr. Same roof, two random halves of the returns: normal tilt differs by median {ck['split_half_largest_plane']['normal_angle_median_deg']:.1f}, 95th pct {ck['split_half_largest_plane']['normal_angle_p95_deg']:.1f} deg. "
+                              f"Shadow engine against a 20 m block: horizon within {max(abs(r_['horizon_deg'] - r_['expected_deg']) for r_ in sa):.1f} deg of the exact angle. Footprint area inside Overture buildings: {ck['footprints_vs_overture']['lidar_area_inside_overture'] * 100:.0f}%."))
     _text_rows(pl, 9.6, 3.95, rows, 56, 7.9)
     return pl.save("45_rooftop_accuracy_tests.png")
 

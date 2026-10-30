@@ -26,7 +26,7 @@ nb.cells = [
       "site, C = R['site'], R['C']\n"
       "print(f\"Lidar project {site['project']}, flown {C.date}; analysis square {2 * site['half']:.0f} m on a side (plus {site['context']:.0f} m of shading context)\")\n"
       "print(f\"{len(T)} buildings, {T.roof_area_m2.sum() / 1e4:.2f} ha of roof, {T.total_kwh_yr.sum() / 1e6:.2f} GWh/year arriving on the roofs\")\n"
-      "df = R['weather']['df']\nprint(f\"Typical-year sunlight at the NSRDB site {R['weather']['site_lat']:.2f} N, {R['weather']['site_lon']:.2f} E: GHI {df.ghi.sum() / 1000:.0f}, DNI {df.dni.sum() / 1000:.0f}, DHI {df.dhi.sum() / 1000:.0f} kWh/m2/yr\")"),
+      "df = R['weather']['df']\nprint(f\"Typical-year sunlight at the NSRDB site {R['weather']['site_lat']:.2f} N, {abs(R['weather']['site_lon']):.2f} {'W' if R['weather']['site_lon'] < 0 else 'E'}: GHI {df.ghi.sum() / 1000:.0f}, DNI {df.dni.sum() / 1000:.0f}, DHI {df.dhi.sum() / 1000:.0f} kWh/m2/yr\")"),
     M("## 2. Energy on every rooftop"),
     C("cells = R['cells']\nfig, ax = plt.subplots(1, 2, figsize=(15, 6.5), gridspec_kw=dict(width_ratios=[1.1, 1]))\nh = site['half']\n"
       "ax[0].set_facecolor('#eeeeea')\nsc = ax[0].scatter(cells.x, cells.y, c=cells.total, s=6, cmap='inferno', norm=Normalize(600, 1500), marker='s', lw=0)\n"

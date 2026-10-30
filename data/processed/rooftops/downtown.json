@@ -1,0 +1,241 @@
+{
+ "site": "Downtown Houston (high-rise core), Texas",
+ "key": "downtown",
+ "lonlat": [
+  -95.365,
+  29.757
+ ],
+ "crs": "EPSG:32615",
+ "lidar_project": "TX_Coastal_B1_2018",
+ "collected": "2018-03-20",
+ "analysis_area_ha": 16.0,
+ "context_m": 300.0,
+ "points": 50329098,
+ "density_per_m2": 50.329098,
+ "class6_share_of_nonground": 0.4128117869299281,
+ "weather": {
+  "source": "NREL NSRDB GOES TMY v3.0.6 (nsrdb_tmy-2018)",
+  "site_lat": 29.770000457763672,
+  "site_lon": -95.37999725341797,
+  "annual_ghi_kwh_m2": 1752.47,
+  "annual_dni_kwh_m2": 1773.115,
+  "annual_dhi_kwh_m2": 669.135
+ },
+ "buildings": {
+  "n": 30,
+  "footprint_median_m2": 117.0,
+  "height_median_m": 13.282046071554923,
+  "height_max_m": 202.77057361074742,
+  "height_p95_m": 174.02563656026035,
+  "planes_total": 162,
+  "planes_per_building_median": 7.0,
+  "roof_area_ha": 6.764228032813031,
+  "footprint_area_ha": 7.7745,
+  "roof_slope_area_weighted_deg": 1.4709907549268704,
+  "flat_roof_area_share": 0.9770028624304112,
+  "plane_rms_median_m": 0.05221951127278995,
+  "pitched_roof_area_by_aspect": {
+   "N": 0.0640313111812423,
+   "NE": 0.06587875798160323,
+   "E": 0.11720309056795972,
+   "SE": 0.2614286458816945,
+   "S": 0.15939481352313345,
+   "SW": 0.24716319467580888,
+   "W": 0.021554136119415278,
+   "NW": 0.06334605006914262
+  }
+ },
+ "solar": {
+  "roof_area_weighted_beam_kwh_m2": 486.45184681510045,
+  "diffuse_kwh_m2": 264.0420542356321,
+  "beam_open_sky_kwh_m2": 1081.3910219277834,
+  "beam_shading_loss": 0.5501610084131193,
+  "total_energy_on_roofs_gwh": 50.765118839425725,
+  "suitable_threshold_kwh_m2": 1000.0,
+  "suitable_roof_area_share": 0.26501988304079555,
+  "pv_estimate_gwh": 3.6436567186595785,
+  "pv_assumptions": {
+   "efficiency": 0.2,
+   "performance_ratio": 0.8
+  },
+  "building_total_kwh_yr_quartiles": [
+   28133.41055573419,
+   54731.69632940157,
+   3694719.9912321423
+  ],
+  "mean_total_kwh_m2_quartiles": [
+   379.1493271459028,
+   542.4657304128485,
+   760.6057426108254
+  ],
+  "by_orientation": {
+   "south": {
+    "share_of_pitched_area": 0.42120894783539736,
+    "mean_total_kwh_m2": 587.1195368145947
+   },
+   "east": {
+    "share_of_pitched_area": 0.36751400633438885,
+    "mean_total_kwh_m2": 621.5684762815507
+   },
+   "west": {
+    "share_of_pitched_area": 0.0752800228618367,
+    "mean_total_kwh_m2": 374.83575823041406
+   },
+   "north": {
+    "share_of_pitched_area": 0.13599702296837723,
+    "mean_total_kwh_m2": 253.1024741850613
+   },
+   "flat": {
+    "share_of_roof_area": 0.9770028624304115,
+    "mean_total_kwh_m2": 755.4868768816046
+   }
+  }
+ },
+ "checks": {
+  "beam_vs_pvlib": [
+   {
+    "tilt": 0,
+    "aspect": 180,
+    "mine_kwh_m2": 1083.19205577248,
+    "pvlib_kwh_m2": 1083.19205577248
+   },
+   {
+    "tilt": 20,
+    "aspect": 180,
+    "mine_kwh_m2": 1211.7358963631955,
+    "pvlib_kwh_m2": 1211.7358963631957
+   },
+   {
+    "tilt": 30,
+    "aspect": 90,
+    "mine_kwh_m2": 997.8020175101973,
+    "pvlib_kwh_m2": 997.8020175101973
+   },
+   {
+    "tilt": 40,
+    "aspect": 270,
+    "mine_kwh_m2": 893.9569200311408,
+    "pvlib_kwh_m2": 893.9569200311408
+   },
+   {
+    "tilt": 90,
+    "aspect": 180,
+    "mine_kwh_m2": 603.9613511505623,
+    "pvlib_kwh_m2": 603.9613511505623
+   },
+   {
+    "tilt": 25,
+    "aspect": 0,
+    "mine_kwh_m2": 746.6219731228579,
+    "pvlib_kwh_m2": 746.6219731228578
+   }
+  ],
+  "ghi_recomputed_from_dni_dhi_kwh_m2": 1752.32705577248,
+  "ghi_in_file_kwh_m2": 1752.47,
+  "shadow_vs_analytic": [
+   {
+    "distance_m": 10,
+    "horizon_deg": 61.0067024230957,
+    "expected_deg": 63.26202446010914
+   },
+   {
+    "distance_m": 30,
+    "horizon_deg": 32.632354736328125,
+    "expected_deg": 33.49127803234176
+   },
+   {
+    "distance_m": 60,
+    "horizon_deg": 17.753053665161133,
+    "expected_deg": 18.30593677785471
+   },
+   {
+    "distance_m": 120,
+    "horizon_deg": 9.241324424743652,
+    "expected_deg": 9.392624058230089
+   }
+  ],
+  "planted_roofs": {
+   "density_x1.0_noise_0.052": {
+    "density_per_m2": 37.87732973181555,
+    "noise_m": 0.05221951127278995,
+    "roofs": 60,
+    "slope_err_median_deg": 0.08970202565772034,
+    "slope_err_p95_deg": 0.3595650681333484,
+    "aspect_err_median_deg": 0.027351559559704697,
+    "aspect_err_p95_deg": 0.15518878583976203,
+    "irradiance_err_median_kwh_m2": 0.520603071928349,
+    "irradiance_err_p95_kwh_m2": 2.7406227255844646,
+    "exactly_right_plane_count_share": 1.0
+   },
+   "density_x0.4_noise_0.052": {
+    "density_per_m2": 15.15093189272622,
+    "noise_m": 0.05221951127278995,
+    "roofs": 60,
+    "slope_err_median_deg": 0.08689744633222246,
+    "slope_err_p95_deg": 0.304931628468059,
+    "aspect_err_median_deg": 0.033068979249264885,
+    "aspect_err_p95_deg": 0.11744772440856364,
+    "irradiance_err_median_kwh_m2": 0.594806364139572,
+    "irradiance_err_p95_kwh_m2": 3.5319198720236122,
+    "exactly_right_plane_count_share": 1.0
+   },
+   "density_x1.0_noise_0.100": {
+    "density_per_m2": 37.87732973181555,
+    "noise_m": 0.1,
+    "roofs": 60,
+    "slope_err_median_deg": 0.16559719524890681,
+    "slope_err_p95_deg": 1.1818075819263951,
+    "aspect_err_median_deg": 0.03722139580226269,
+    "aspect_err_p95_deg": 0.3123460964424268,
+    "irradiance_err_median_kwh_m2": 0.7289919160256204,
+    "irradiance_err_p95_kwh_m2": 9.047322028669067,
+    "exactly_right_plane_count_share": 0.5
+   }
+  },
+  "split_half_largest_plane": {
+   "buildings": 29,
+   "slope_diff_median_deg": 0.16365996416017203,
+   "slope_diff_p95_deg": 9.209172109645214,
+   "normal_angle_median_deg": 0.169771345337849,
+   "normal_angle_p95_deg": 15.711836686613562,
+   "definition": "largest plane of one half vs closest-oriented plane of the other half"
+  },
+  "footprints_vs_overture": {
+   "lidar_footprints": 30,
+   "overture_buildings_30m2_plus": 45,
+   "lidar_iou_median": 0.0,
+   "lidar_with_iou_ge_0p5": 0.16666666666666666,
+   "lidar_with_no_overlap": 0.5333333333333333,
+   "overture_covered_ge_half": 0.6888888888888889,
+   "lidar_area_ha": 7.7745,
+   "overture_area_ha": 12.76384820529254,
+   "lidar_area_inside_overture": 0.8396959828864725,
+   "overture_area_inside_lidar": 0.5114614584842799
+  }
+ },
+ "sensitivity": {
+  "baseline": {
+   "total_gwh": 50.765118839425725,
+   "mean_total": 750.4939010507326,
+   "beam": 486.45184681510045,
+   "loss": 0.5501610084131193
+  },
+  "no_trees_in_shading_surface": {
+   "total_gwh": 50.77766082992513,
+   "mean_total": 750.6793174861124,
+   "beam": 486.572029954171,
+   "loss": 0.5500498708720879
+  },
+  "coarser_2m_shading_surface": {
+   "total_gwh": 40.48125796293378,
+   "mean_total": 598.4608704283864,
+   "beam": 389.2210968921888,
+   "loss": 0.6400736745545299
+  }
+ },
+ "mesh": {
+  "building_faces": 17119,
+  "building_vertices": 18290,
+  "terrain_faces": 80000
+ }
+}
