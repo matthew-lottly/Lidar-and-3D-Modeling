@@ -366,5 +366,11 @@
   "mean_trees_per_ha": 91.56,
   "p90_trees_per_ha": 124.0,
   "max_trees_per_ha": 156.0
+ },
+ "location": {
+  "county": "Nevada County",
+  "public_land": [
+   "Tahoe National Forest (0.4 km outside the mapped boundary)"
+  ]
  }
 }
