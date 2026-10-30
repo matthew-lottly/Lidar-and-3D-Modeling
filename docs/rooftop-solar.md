@@ -40,6 +40,7 @@ Typical-year horizontal sunlight at the NSRDB site is 1,744 kWh/m2 (direct 1,766
 
 ## Independent-data checks (`scripts/validate_rooftops.py`; `data/processed/validation/rooftops.json`)
 - **Footprints against Overture** (compiled from several sources): West University Place 80% of our footprint area lies inside Overture footprints and 73% of Overture's inside ours (median IoU 0.56; 104 lidar buildings against 201 mapped, only about half of the mapped buildings were found as lidar buildings; why was not examined). Downtown 79% and 80% by area, but a per-building median IoU of 0.00 (the reason for the per-building mismatch was not examined).
+- The plates and `data/processed/rooftops/*.json` (`checks.footprints_vs_overture`) give 82% / 58% for West University Place because they compare against every Overture footprint; the validator above keeps only Overture buildings of 30 m2 or more, the size the lidar pipeline can see, which gives 80% / 73%.
 - **Heights against Overture:** they disagree (West U r = 0.05, our highest roof point +4.0 m above Overture's height over 85 matched buildings; downtown bias is larger). Overture heights are mapper-entered or modelled, not surveyed, and the cause here is not established, so neither is claimed correct.
 - **Weather bound.** The typical-year irradiance is 80% of a clear sky's, as it must be below 100%; 504 hours exceed clear sky by more than 5%, the usual mismatch between a typical-year file and a clear-sky model.
 - **Not done:** measured roof irradiance or PV production; Microsoft building footprints.
