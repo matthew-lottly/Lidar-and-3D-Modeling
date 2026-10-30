@@ -48,3 +48,6 @@ The 2014 project carries a 2015 label but was flown in April 2014 (dates come fr
 * **Vegetated and rough areas are not measured** (41 % of the area), including much of the beach and the vegetated crest. Erosion there is missing from the totals.
 * The 2014 survey is about 4 times sparser; this raises noise but not bias in M3C2.
 * A 3D view of the change was tried and dropped: the steep face is sampled unevenly in the 2021 surface points and the render was speckled.
+
+## Independent-data check (`scripts/validate_dtm.py`)
+The 2014 ground surface (class-2 mean per 2 m cell, 58,591 cells) against the USGS-processed 3DEP DTM of the 2013-14 Sandy collection: bias -4.6 cm, robust spread 5.2 cm. This is USGS's own processing of what is probably the same collection (the project names differ, so the match is not confirmed), not a second survey. No DTM product exists for the 2021 survey, and no GNSS or beach-profile data were compared.

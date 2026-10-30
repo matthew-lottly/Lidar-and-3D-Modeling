@@ -26,3 +26,8 @@ The lidar water edge and the 2011 imagery edge (23 days earlier) differ by a fix
 
 ## Next steps that would give a rate
 Repeat lidar over the same reach (3DEP has later flights in other areas; this reach was not found with two usable epochs), stage-matched imagery using a gauge record, or historical maps and photographs. With a rate, ridge spacing gives the time per ridge.
+
+## Independent-data checks (`scripts/validate_meander.py`, `scripts/validate_dtm.py`)
+- **Channel against NAIP.** The lidar channel mask (no ground returns) against the 2011-08-25 NAIP near-infrared water mask (the lidar was flown 23 days later): cell accuracy 95%, kappa 0.88, IoU 0.84. The lidar channel is larger (0.70 against 0.61 km2; recall 98%, precision 86%): stage and the different physics (no return versus low near-infrared) move the banks. North-bank positions differ by a median of 4.4 m robust spread, with a 95th percentile of 39 m.
+- **Ridges against vegetation.** The band-passed NAIP NDVI and the lidar relief on the same transects correlate at -0.10, against -0.01 +/- 0.01 when the lidar strip is shifted along the bank (z = -6.0); 83% of picked crests have an NDVI anomaly within 4 m, against 72% of random positions. The ridges are real but the link is weak; a migration rate still needs a second epoch.
+- **Ground against USGS's DTM of the same survey:** bias -1.6 cm, robust spread 2.9 cm over 2,254,829 cells.
