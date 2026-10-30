@@ -1,0 +1,88 @@
+{
+ "analysis": "Canopy structure (Tahoe forest)",
+ "pair": {
+  "analysed": "CA_SierraNevada_5_2022",
+  "reference": "USGS_LPC_CA_NoCAL_Wildfires_B1_2018",
+  "dates": [
+   "2022-08-19",
+   "2018-07-31"
+  ],
+  "density_per_m2": [
+   32.45179,
+   11.448997
+  ],
+  "ground_density_per_m2": [
+   4.28626,
+   2.813255
+  ],
+  "vegetation_classes_present_2018": false
+ },
+ "canopy_cover": {
+  "cover_2022": 0.602652,
+  "cover_2018": 0.626212,
+  "agreement": {
+   "n": 1000000,
+   "accuracy": 0.903016,
+   "kappa": 0.7954304582573575,
+   "precision": 0.9390825882930779,
+   "recall": 0.9037514451974731,
+   "iou": 0.8537026868841677,
+   "reference_positive_share": 0.626212,
+   "predicted_positive_share": 0.602652
+  }
+ },
+ "chm_where_both_canopy": {
+  "n": 565940,
+  "bias_m": 0.7589343078382171,
+  "nmad_m": 1.342715340293112,
+  "rmse_m": 2.9575128304450518,
+  "mae_m": 1.7850655548875625,
+  "p95_abs_m": 5.790187151491589,
+  "pearson_r": 0.9514479422976344,
+  "note": "2018 minus 2022 would include 4 years of growth, fire or harvest; the median shows whether the two surveys agree in level"
+ },
+ "terrain": {
+  "n": 257792,
+  "bias_m": -0.011678059895984916,
+  "nmad_m": 0.07498664550809342,
+  "rmse_m": 0.14297510496847227,
+  "mae_m": 0.08886796641137878,
+  "p95_abs_m": 0.31109668709891536
+ },
+ "terrain_all": {
+  "n": 1000000,
+  "bias_m": -0.009928385416515084,
+  "nmad_m": 0.09109399414040026,
+  "rmse_m": 0.23711782108640914,
+  "mae_m": 0.12369412644095276,
+  "p95_abs_m": 0.4383138170799043
+ },
+ "trees": {
+  "n_2022": 9156,
+  "n_2018": 9020,
+  "matched_within_2m": 8201,
+  "share_of_2022_matched": 0.8956968108344255,
+  "share_of_2018_matched": 0.9092017738359202,
+  "height_2022_minus_2018": {
+   "n": 8201,
+   "bias_m": 1.2972345753337322,
+   "nmad_m": 0.8248037275806366,
+   "rmse_m": 1.8758397773327606,
+   "mae_m": 1.398906265873349,
+   "p95_abs_m": 2.7859539311339176
+  },
+  "median_match_distance_m": 0.0,
+  "tall_trees_30m_plus": {
+   "n_2022": 1815,
+   "matched_share": 0.9619834710743802
+  },
+  "short_trees_under_10m": {
+   "n_2022": 1200,
+   "matched_share": 0.6625
+  }
+ },
+ "compare_with_planted_tree_test": {
+  "planted_recall_regular_100_per_ha": 0.725,
+  "planted_recall_regular_200_per_ha": 0.4125
+ }
+}
