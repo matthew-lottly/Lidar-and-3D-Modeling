@@ -110,22 +110,64 @@ def main():
 
 
 def _try_remote(F, aoi):
-    """USGS DTM product, Chesapeake 1 m land cover, JRC water and Deltares flood maps, each only if its host answers."""
+    """Real reference data for the flood study: the USGS-processed DTM, HAG and DSM of the same project, Chesapeake 1 m land cover, JRC surface water. Each is recorded as unavailable if it cannot be read."""
     from lidar3d import realref as RR
     res = {}
     W, S, E, N = aoi.bbox_ll
-    h = int(HALF)
+    n = int(2 * HALF)
     x0, y1 = aoi.cx - HALF, aoi.cy + HALF
+    args = (x0, y1, 1.0, (n, n), aoi.crs)
+    prj = FL.SITE["project"]
+    dtm, roads = F["dtm"], F["roads"]
+    built = ndimage.binary_dilation(F["ndsm"] >= 2.5, iterations=2)
+    flip = lambda a: a[::-1] if a is not None else None
+    cats = ("bridge", "at_grade", "at_grade_open_cut", "at_grade_unobserved", "tunnel")
     try:
-        ref = RR.lidar_product("dtm", "USGS_LPC_VA_Norfolk_2013_LAS_2015", (W, S, E, N), x0, y1, 2.0, (h, h), aoi.crs)
-        if ref is None or not np.isfinite(ref).any():
-            raise RuntimeError("no data returned")
-        mine = F["dtm"][::-1][::2, ::2][:h, :h]
-        built = ndimage.binary_dilation(F["ndsm"][::-1][::2, ::2][:h, :h] >= 2.5, iterations=2)
-        d = (mine - ref)[~built]
-        res["usgs_dtm_2m"] = V.error_summary(d)
+        ref = flip(RR.lidar_product("dtm", prj, (W, S, E, N), *args))
+        ok = np.isfinite(ref) & np.isfinite(dtm)
+        res["usgs_dtm"] = dict(V.error_summary((dtm - ref)[ok & ~built]), on_roads=V.error_summary((dtm - ref)[ok & F["road_mask"].astype(bool) & ~built]),
+                               note="USGS's own DTM of the same 2013 survey (their ground classification and gridding, 2 m): a second processing of the same points, not a second survey; it catches a gridding or ground-class error, not a flaw in the flight")
     except Exception as e:
-        res["usgs_dtm_2m"] = dict(status=f"host not reachable or no data: {str(e)[:90]}")
+        res["usgs_dtm"] = dict(status=f"not run: {str(e)[:100]}")
+    try:
+        hag = flip(RR.lidar_product("hag", prj, (W, S, E, N), *args))
+        tab = {}
+        for k in cats:
+            rs = [r for r in roads if r["category"] == k]
+            if not rs:
+                continue
+            mk = FL.road_raster([(r["cls"], r["coords"]) for r in rs], HALF, 1.0).astype(bool)
+            h = hag[mk & np.isfinite(hag)]
+            tab[k] = dict(segments=len(rs), cells=int(len(h)), usgs_hag_median_m=float(np.median(h)) if len(h) else None, usgs_hag_p90_m=float(np.percentile(h, 90)) if len(h) else None,
+                          share_over_2m=float((h > 2).mean()) if len(h) else None)
+        res["usgs_hag_over_road_categories"] = dict(by_category=tab, note="USGS height above ground along each road category: a bridge deck should read well above 0 where a road at grade reads about 0; tree canopy over a road also reads high")
+    except Exception as e:
+        res["usgs_hag_over_road_categories"] = dict(status=f"not run: {str(e)[:100]}")
+    lc = None
+    try:
+        lc = flip(RR.chesapeake((W, S, E, N), *args))
+        tab = {}
+        for k in cats:
+            rs = [r for r in roads if r["category"] == k]
+            if not rs:
+                continue
+            mk = FL.road_raster([(r["cls"], r["coords"]) for r in rs], HALF, 1.0).astype(bool)
+            v = lc[mk & np.isfinite(lc)].astype(int)
+            u, c = np.unique(v, return_counts=True)
+            tab[k] = {RR.CHESAPEAKE13.get(int(a), str(a)): round(float(b) / len(v), 3) for a, b in sorted(zip(u, c), key=lambda t: -t[1])[:5]}
+        res["chesapeake_land_cover_over_road_categories"] = dict(shares=tab, note="Chesapeake Conservancy 1 m land cover (2013-14 imagery plus lidar); 'tree canopy over roads' marks streets under trees, which the old elevated-road rule had wrongly excluded")
+    except Exception as e:
+        res["chesapeake_land_cover_over_road_categories"] = dict(status=f"not run: {str(e)[:100]}")
+    wv = F.get("water")
+    if wv is not None and lc is not None:
+        res["chesapeake_water_vs_lidar_water_voids"] = V.binary_agreement(wv.astype(bool), np.isfinite(lc) & (lc == 1))
+    try:
+        occ = flip(RR.jrc_water((W, S, E, N), *args))
+        if occ is not None and wv is not None:
+            ok = np.isfinite(occ)
+            res["jrc_water_occurrence_at_lidar_water_voids"] = dict(median_pct_in_voids=float(np.median(occ[ok & wv.astype(bool)])), median_pct_elsewhere=float(np.median(occ[ok & ~wv.astype(bool)])))
+    except Exception as e:
+        res["jrc_water_occurrence_at_lidar_water_voids"] = dict(status=f"not run: {str(e)[:100]}")
     return res
 
 
