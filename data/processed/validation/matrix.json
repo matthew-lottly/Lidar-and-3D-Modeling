@@ -1,0 +1,62 @@
+[
+ {
+  "analysis": "Norfolk flood and drainage",
+  "reference": "Flight-line repeatability; USGS DTM; Chesapeake 1 m land cover; JRC water; Overture bridges",
+  "result": "Swaths agree to 3.0 cm (roads) and 3.8 cm (open ground); ground is 4.1 cm from USGS's DTM (bias -3.0 cm); bridge cells are 90% road in Chesapeake; the source-water voids do not match any mapped water",
+  "status": "Partly validated. Heights and road classes are checked; flood extent, depth and the tide link are not (no gauge, benchmark or observed flood data)."
+ },
+ {
+  "analysis": "Pacifica differencing",
+  "reference": "Null test with two independent 2010 surveys; level of detection recalibrated on it",
+  "result": "The surveys differ by a 32.8 m datum offset; after removing it 47% of coastal cells still read as change with the formula threshold; with the null-calibrated threshold the 2016-2023 net change is -23362 m3 against a null of -2686 m3, and the 2010-2016 net (-3674 m3) is inside the null",
+  "status": "Validated by null test. The 2010-2016 change is not claimed; the 2016-2023 loss is. No ground survey (GNSS, profiles) was compared."
+ },
+ {
+  "analysis": "Canopy, Tahoe",
+  "reference": "Repeat lidar survey (2018 against 2022); WorldCover and Esri land cover",
+  "result": "Cover 60% against 63%, agreement 90% (kappa 0.80); 90% of trees found in both surveys; 2022 minus 2018 canopy height +0.8 m per cell and +1.3 m for matched trees (four years of growth plus noise); WorldCover and Esri call 98% of the window tree against our 60% canopy (their classes include open-grown and sparse stands; precision 100%)",
+  "status": "Validated against a second survey. No field plots (FIA) were compared."
+ },
+ {
+  "analysis": "Canopy, Houston",
+  "reference": "USGS DTM; WorldCover; Esri land cover",
+  "result": "Ground 2.6 cm from USGS's DTM; against WorldCover accuracy 71%, kappa 0.44; Esri labels almost the whole suburb built area and none of it trees, so it is not usable as a reference here",
+  "status": "Validated for terrain; canopy checked against one usable satellite map only. No second survey; no field plots."
+ },
+ {
+  "analysis": "Rooftop solar",
+  "reference": "Overture footprints and heights; clear-sky upper bound",
+  "result": "Footprint area overlap 80% / 73% (West U) and 79% / 80% (downtown); heights disagree (West U r = 0.05, bias +4.0 m), cause not resolved; typical-year irradiance is 80% of clear sky",
+  "status": "Partly validated. No measured roof irradiance or PV output; the height disagreement with Overture is unexplained and is not claimed either way."
+ },
+ {
+  "analysis": "Wabash scroll bars",
+  "reference": "NAIP 2011 water mask; NAIP NDVI against a shifted null; USGS DTM",
+  "result": "Channel mask IoU 0.84 (kappa 0.88); lidar relief and NDVI correlate at -0.10, z = -6.0 against shifts; ground 2.9 cm from USGS's DTM",
+  "status": "Ridge existence supported, modestly. Migration rates need a second epoch (none exists for this reach in 3DEP); not claimed."
+ },
+ {
+  "analysis": "Cape Cod erosion",
+  "reference": "USGS DTM (2013-14 collection); earlier stable-ground and DEM cross-checks",
+  "result": "2014 ground 5.2 cm from the USGS DTM (bias -4.6 cm); M3C2 and DEM-of-difference volumes within 5% (docs/coastal-erosion.md)",
+  "status": "Partly validated. No GNSS or beach-profile data; no USGS DTM exists for the 2021 survey."
+ },
+ {
+  "analysis": "Seattle buildings",
+  "reference": "Overture heights (docs/seattle-buildings.md)",
+  "result": "Main-roof height correlates at r = 0.94 with Overture; Space Needle top 184.5 m against Overture 184 m; large disagreements are listed",
+  "status": "Two datasets agreeing, not surveyed truth. No USGS DTM exists for this project."
+ },
+ {
+  "analysis": "Utilities, fusion, spans (White River)",
+  "reference": "Overture power layer (OpenStreetMap-derived); shifted-data tests (docs/utility-extraction.md, fusion-model.md, span-model.md)",
+  "result": "Poles: recall 12%, precision 47%; fusion and span models are scored against the map with bootstrap intervals; wire interpolation error 4 cm rms on hidden stretches",
+  "status": "The map is itself incomplete, so scores are bounds. No field survey of poles or lines."
+ },
+ {
+  "analysis": "Tatoosh terrain and hydrology",
+  "reference": "Published ground class and a morphological filter; Sentinel-2/WorldCover cover maps (docs/hydrology.md, site-selection.md)",
+  "result": "Ground filter compared with the published class; no stream map exists for the area to check channels against",
+  "status": "Not validated against independent data. No USGS DTM product for this project."
+ }
+]

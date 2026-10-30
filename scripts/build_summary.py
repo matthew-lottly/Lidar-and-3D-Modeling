@@ -16,6 +16,8 @@ def cards():
     cn_h, cn_t = J("canopy/houston.json"), J("canopy/tahoe.json")
     rs_w, rs_d = J("rooftops/westu.json"), J("rooftops/downtown.json")
     td = J("topodiff/stats.json")
+    tcal = J("validation/topodiff_calibrated.json")
+    tnul = J("validation/topodiff.json")["null_test"]
     fl = J("flood/stats.json")
     md = J("meander/stats.json")
     sp = J("spans/stats.json")
@@ -54,11 +56,21 @@ def cards():
                   stats=[(f"{rs_w['buildings']['n']} / {rs_d['buildings']['n']}", "buildings, West U / downtown"), (f"{rs_w['solar']['beam_shading_loss'] * 100:.0f}% / {rs_d['solar']['beam_shading_loss'] * 100:.0f}%", "direct sun lost to shade"), (f"{rs_w['solar']['roof_area_weighted_beam_kwh_m2'] + rs_w['solar']['diffuse_kwh_m2']:,.0f} kWh/m2", "mean on West U roofs per year")], limit="Roofs under trees are missing; totals move about 10% with the shading surface."))
     c.append(dict(n=11, group="Change detection", title="Topographic differencing, Pacifica bluffs, 2010 to 2023", img="outputs/47_pacifica_dod_maps.png", doc="docs/topographic-differencing.md",
                   what="Three surveys registered on stable ground (ICP), DEMs of difference with a slope-dependent level of detection, M3C2 on the face, cut-and-fill volumes and contour retreat.",
-                  stats=[(f"{td['dod']['2016-2023']['coastal_band_60m']['lod95']['net_m3']:,.0f} m3", "net, 2016 to 2023, coastal band"), (f"{td['dod']['2010-2016']['coastal_band_60m']['lod95']['net_m3']:,.0f} m3", "net, 2010 to 2016"), (f"{td['contour_retreat']['12.0']['2016-2023']['median_m']:.1f} m", "median retreat of the 12 m contour, 2016 to 2023")], limit="No field validation; the 2010 survey is sparse and undated."))
+                  stats=[(f"{tcal['intervals']['2016-2023']['null_calibrated_lod']['net_m3']:,.0f} m3", "net, 2016 to 2023, coastal band"), (f"{tnul['coastal_band']['net_m3']:,.0f} m3", "net between two surveys with no change (null test)"), (f"{td['contour_retreat']['12.0']['2016-2023']['median_m']:.1f} m", "median retreat of the 12 m contour, 2016 to 2023")], limit="No field survey. The 2010 to 2016 change is inside the null-test noise and is not claimed."))
     c.append(dict(n=12, group="Floods", title="Drainage and flood-stage road vulnerability, Norfolk, Virginia", img="outputs/53_norfolk_flood_stages.png", doc="docs/flood-drainage.md",
                   what="A 1 m bare-earth terrain conditioned with pysheds, culvert-obstruction candidates at road embankments, and bathtub flooding at stages from 1.5 to 4 m against the drivable road network.",
                   stats=[(f"{fl['dtm_holdout']['rmse_m'] * 100:.1f} cm", "terrain hold-out error"), (f"{fl['road_vulnerability']['3']['any_low_ground']['km_impassable']:.0f} of {fl['roads']['drivable_km']:.0f} km", "roads under 30 cm of water at a 3 m stage"), (f"{fl['stages']['2.5']['raw_stage_minus_0.1']:.0f} to {fl['stages']['2.5']['raw_stage_plus_0.1']:.0f} ha", "flooded at 2.5 m if the stage is off by 10 cm")], limit="Static bathtub: no rain, drains, pumps, tide or storm."))
     return c
+
+
+CHECK_KEY = {2: "Seattle buildings", 3: "Cape Cod erosion", 4: "Tatoosh terrain and hydrology", 5: "Utilities, fusion, spans (White River)", 6: "Utilities, fusion, spans (White River)", 7: "Utilities, fusion, spans (White River)", 8: "Wabash scroll bars",
+             9: "Canopy, Tahoe", 10: "Rooftop solar", 11: "Pacifica differencing", 12: "Norfolk flood and drainage"}
+MATRIX = {r["analysis"]: r for r in json.loads((ROOT / "data" / "processed" / "validation" / "matrix.json").read_text())}
+
+
+def chk(c):
+    r = MATRIX.get(CHECK_KEY.get(c["n"]))
+    return f'<p class="lim"><b>Checked against:</b> {html.escape(r["reference"])}. <i>{html.escape(r["status"])}</i> <a href="docs/accuracy-assessment.md">Details</a></p>' if r else ""
 
 
 def main():
@@ -74,7 +86,7 @@ def main():
         for c in [x for x in cs if x["group"] == g]:
             st = "".join(f'<li><b>{html.escape(a)}</b><span>{html.escape(b)}</span></li>' for a, b in c["stats"])
             parts.append(f'<article><a class="im" href="{c["doc"]}"><img loading="lazy" src="{c["img"]}" alt="{html.escape(c["title"])}"></a><div class="tx"><h3>{html.escape(c["title"])}</h3><p>{html.escape(c["what"])}</p>'
-                         f'<ul class="stats">{st}</ul><p class="lim"><b>Limit:</b> {html.escape(c["limit"])}</p><p class="lk"><a href="{c["doc"]}">Method, numbers and limits</a></p></div></article>')
+                         f'<ul class="stats">{st}</ul>{chk(c)}<p class="lim"><b>Limit:</b> {html.escape(c["limit"])}</p><p class="lk"><a href="{c["doc"]}">Method, numbers and limits</a></p></div></article>')
         parts.append("</div>")
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lidar and 3D Modeling: summary</title>
 <style>
@@ -92,7 +104,7 @@ article{{background:var(--card);border:1px solid var(--rule);border-radius:10px;
 <p class="lede">{len(cs)} analyses built from public USGS 3DEP lidar, with Sentinel radar, NAIP imagery and Overture maps where they help. Every number on a plate is computed by code in this repository; every analysis has error tests, and the limits are stated next to the results.</p>
 <div class="strip"><div><b>{len(cs)}</b><span>analyses</span></div><div><b>{plates}</b><span>plates</span></div><div><b>6</b><span>US states (WA, CA, TX, IL, VA, MA)</span></div></div>
 {''.join(parts)}
-<div class="note"><b>How to read this.</b> The plates are the results; each card links to the write-up with the method, the error tests and what was not done. Where something could not be verified (no field data, no survey checkpoints, no repeat lidar) the write-up says so. Interactive files: <a href="outputs/point_cloud_viewer.html">Tatoosh point cloud</a>, <a href="outputs/seattle_point_cloud_viewer.html">Seattle point cloud</a>, <a href="outputs/utility3d/white_river_utility_viewer.html">White River utility scene</a>, <a href="outputs/canopy/houston/canopy_map.html">Houston canopy map</a>, <a href="outputs/canopy/tahoe/canopy_map.html">Tahoe canopy map</a>, and the <a href="notebooks/rooftop_solar.ipynb">rooftop solar notebook</a>. Full detail: <a href="README.md">README</a>.</div>
+<div class="note"><b>Accuracy.</b> Each analysis is checked against independent real data where it exists (a second survey, overlapping flight lines, satellite maps, a null test); the full table and what is still unchecked is in <a href="docs/accuracy-assessment.md">docs/accuracy-assessment.md</a>.<br><br><b>How to read this.</b> The plates are the results; each card links to the write-up with the method, the error tests and what was not done. Where something could not be verified (no field data, no survey checkpoints, no repeat lidar) the write-up says so. Interactive files: <a href="outputs/point_cloud_viewer.html">Tatoosh point cloud</a>, <a href="outputs/seattle_point_cloud_viewer.html">Seattle point cloud</a>, <a href="outputs/utility3d/white_river_utility_viewer.html">White River utility scene</a>, <a href="outputs/canopy/houston/canopy_map.html">Houston canopy map</a>, <a href="outputs/canopy/tahoe/canopy_map.html">Tahoe canopy map</a>, and the <a href="notebooks/rooftop_solar.ipynb">rooftop solar notebook</a>. Full detail: <a href="README.md">README</a>.</div>
 </main></body></html>"""
     (ROOT / "index.html").write_text(page)
     print("wrote index.html", len(cs), "cards,", plates, "plates")

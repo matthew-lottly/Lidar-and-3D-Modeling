@@ -139,6 +139,10 @@ Checks made after the map was finished, not used to tune it, except where stated
 * Agreement with ESA WorldCover at 10 m is 68 %. Most of the disagreement is WorldCover calling sparsely vegetated alpine ground "grassland" where the lidar and NDVI say bare. This is a disagreement between maps, not a measured accuracy; there is no field data here.
 * History, stated plainly: the first version of the classifier labelled 52 % of the area as bare ground. The NDVI check showed that was wrong (mean NDVI 0.60 there), so the bare/short-vegetation split was changed to use intensity. The NDVI check therefore shaped the final design.
 
+## Accuracy against independent data
+
+Every analysis is checked against something it did not produce (a second survey, overlapping flight lines, USGS's own DTM, satellite and third-party maps, null tests); the table, what each check changed and what is still unchecked are in [docs/accuracy-assessment.md](docs/accuracy-assessment.md). Run the `scripts/validate_*.py` scripts, then `python scripts/build_accuracy_report.py`.
+
 ## Honest limits
 
 * **Not inside the park.** No dense 3DEP point cloud covering the Mount Rainier National Park interior turned up in the projects checked. The site is the best low-canopy area found in the nearest dense coverage, 18 km from the summit. See [docs/site-selection.md](docs/site-selection.md).
