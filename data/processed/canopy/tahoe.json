@@ -1,5 +1,5 @@
 {
- "site": "Forest north of Truckee, Tahoe region, California",
+ "site": "Mixed-conifer forest north of Truckee, California (beside Tahoe National Forest)",
  "key": "tahoe",
  "project": "CA_SierraNevada_5_2022",
  "collected": "2022-08-19",
@@ -232,6 +232,134 @@
   "lidar_canopy_that_naip_calls_vegetation": 0.6673536302874628,
   "lidar_open_that_naip_calls_vegetation": 0.28632332363570473,
   "note": "NAIP vegetation includes lawn, grass and shrubs, so only the first ratio is a check on the lidar canopy; the second is mostly lawn and low vegetation"
+ },
+ "connectivity": {
+  "nodes": 624,
+  "links": 1509,
+  "canopy_in_nodes_m2": 593690.0,
+  "edge_touching_nodes": 38,
+  "by_gap": {
+   "1": {
+    "clusters": 405,
+    "largest_cluster_share": 0.881854166315754,
+    "largest_cluster_ha": 52.3548,
+    "isolated_nodes": 356
+   },
+   "2": {
+    "clusters": 251,
+    "largest_cluster_share": 0.9243948862200811,
+    "largest_cluster_ha": 54.8804,
+    "isolated_nodes": 210
+   },
+   "3": {
+    "clusters": 144,
+    "largest_cluster_share": 0.9607572975795449,
+    "largest_cluster_ha": 57.0392,
+    "isolated_nodes": 117
+   },
+   "5": {
+    "clusters": 65,
+    "largest_cluster_share": 0.9900840505987973,
+    "largest_cluster_ha": 58.7803,
+    "isolated_nodes": 49
+   },
+   "10": {
+    "clusters": 16,
+    "largest_cluster_share": 0.9963044686620964,
+    "largest_cluster_ha": 59.1496,
+    "isolated_nodes": 9
+   },
+   "25": {
+    "clusters": 1,
+    "largest_cluster_share": 1.0,
+    "largest_cluster_ha": 59.369,
+    "isolated_nodes": 0
+   },
+   "50": {
+    "clusters": 1,
+    "largest_cluster_share": 1.0,
+    "largest_cluster_ha": 59.369,
+    "isolated_nodes": 0
+   }
+  },
+  "pc": {
+   "5.0": {
+    "pc": 0.2981229049101522,
+    "eca_ha": 54.60063231411814,
+    "canopy_ha": 59.369,
+    "eca_share_of_canopy": 0.9196825332095562
+   },
+   "10.0": {
+    "pc": 0.3157237678662141,
+    "eca_ha": 56.18930217276365,
+    "canopy_ha": 59.369,
+    "eca_share_of_canopy": 0.9464417822898086
+   },
+   "30.0": {
+    "pc": 0.3364077486080028,
+    "eca_ha": 58.00066797960199,
+    "canopy_ha": 59.369,
+    "eca_share_of_canopy": 0.9769520790244403
+   }
+  },
+  "map_gap_m": 3.0,
+  "map_alpha_m": 5.0,
+  "stepping_stones": 111,
+  "link_gaps": {
+   "median_m": 5.0,
+   "links_le_3m": 583,
+   "links_le_10m": 1064
+  },
+  "sensitivity": {
+   "baseline_1m_h2_a20": {
+    "nodes": 624,
+    "largest_cluster_share": 0.9607572975795449,
+    "clusters": 144,
+    "eca_share_of_canopy": 0.9196825332095562
+   },
+   "cell_0.5m": {
+    "nodes": 905,
+    "largest_cluster_share": 0.94315849867429,
+    "clusters": 206,
+    "eca_share_of_canopy": 0.8821221487530163
+   },
+   "cell_2m": {
+    "nodes": 271,
+    "largest_cluster_share": 0.9745368666073886,
+    "clusters": 128,
+    "eca_share_of_canopy": 0.9725745656190281
+   },
+   "canopy_5m_or_higher": {
+    "nodes": 858,
+    "largest_cluster_share": 0.9065491120649871,
+    "clusters": 234,
+    "eca_share_of_canopy": 0.8080593626058391
+   },
+   "min_patch_10m2": {
+    "nodes": 979,
+    "largest_cluster_share": 0.9591104027479146,
+    "clusters": 225,
+    "eca_share_of_canopy": 0.915694217750173
+   },
+   "min_patch_50m2": {
+    "nodes": 331,
+    "largest_cluster_share": 0.959639076750938,
+    "clusters": 83,
+    "eca_share_of_canopy": 0.9263062354104599
+   },
+   "half_returns": {
+    "nodes": 648,
+    "largest_cluster_share": 0.9642137338643889,
+    "clusters": 147,
+    "eca_share_of_canopy": 0.9174963180539928
+   },
+   "quarter_returns": {
+    "nodes": 592,
+    "largest_cluster_share": 0.9753343223901021,
+    "clusters": 134,
+    "eca_share_of_canopy": 0.9219467750694434
+   }
+  }
  },
  "density_grid": {
   "cell_m": 50.0,

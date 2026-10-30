@@ -32,8 +32,9 @@ def _scalebar(ax, extent, length, y_frac=0.05, color="k"):
     import matplotlib.patheffects as pe
     x0 = extent[0] + 0.05 * (extent[1] - extent[0])
     y0 = extent[2] + y_frac * (extent[3] - extent[2])
-    ax.plot([x0, x0 + length], [y0, y0], color=color, lw=2.5, solid_capstyle="butt", path_effects=[pe.withStroke(linewidth=4.5, foreground="white")], zorder=20)
-    ax.text(x0 + length / 2, y0 + 0.02 * (extent[3] - extent[2]), f"{length:g} m", ha="center", va="bottom", fontsize=7.5, color=color, path_effects=_halo(), zorder=21)
+    halo = "black" if color == "white" else "white"
+    ax.plot([x0, x0 + length], [y0, y0], color=color, lw=2.5, solid_capstyle="butt", path_effects=[pe.withStroke(linewidth=4.5, foreground=halo)], zorder=20)
+    ax.text(x0 + length / 2, y0 + 0.02 * (extent[3] - extent[2]), f"{length:g} m", ha="center", va="bottom", fontsize=7.5, color=color, path_effects=_halo(halo), zorder=21)
 
 
 def fig_site(key, st, rgb):
@@ -61,7 +62,8 @@ def fig_site(key, st, rgb):
         if gg.is_empty or nm in place_names:
             continue
         c = gg.representative_point()
-        if inner.contains(c):
+        near_place = any(abs(pg.x - c.x) < 0.12 * (E_ - W_) and abs(pg.y - c.y) < 0.05 * (N_ - S_) for pn, _, pg in L["places"] if pn in v["places"])
+        if inner.contains(c) and not near_place:
             a.text(c.x, c.y, nm, fontsize=7.5, color="#7A7A7A", ha="center", style="italic", zorder=2, path_effects=_halo())
     a.annotate("study area", xy=(lon, lat), xytext=(lon - 0.2 * (E_ - W_), lat + 0.13 * (N_ - S_)), fontsize=9, fontweight="bold", color="#E74C3C", zorder=9, ha="center",
                arrowprops=dict(arrowstyle="->", color="#E74C3C", lw=1.3), path_effects=_halo())
@@ -259,10 +261,19 @@ def _cluster_image(g, cl, ca, min_h_mask):
     return img
 
 
+def _plain_log(ax, axis="both"):
+    from matplotlib.ticker import FuncFormatter
+    f = FuncFormatter(lambda v, _: f"{v:,.0f}" if v >= 1 else f"{v:g}")
+    if axis in ("x", "both"):
+        ax.xaxis.set_major_formatter(f)
+    if axis in ("y", "both"):
+        ax.yaxis.set_major_formatter(f)
+
+
 def fig_conn_maps(sts, Fz):
-    pl = Plate("Canopy connectivity maps", "Which canopy is linked to which: clusters of patches joined across gaps of 10 m or less, and how much canopy each patch can reach",
-               "Lidar: USGS 3DEP (Houston TX_Coastal_B1_2018, Tahoe CA_SierraNevada_5_2022). Patches of canopy (2 m or higher) of at least 20 m2 are the nodes; gaps are the closest distance between patch edges.",
-               "Gap-crossing distances are scenarios, not a species' ability")
+    pl = Plate("Canopy connectivity maps", "Which canopy is linked to which: clusters of patches whose crowns lie within 3 m of each other, and how much canopy each patch can reach through stepping stones",
+               "Lidar: USGS 3DEP (Houston TX_Coastal_B1_2018, Tahoe CA_SierraNevada_5_2022). Nodes: canopy patches (2 m or higher) of at least 20 m2; gaps: closest distance between patch edges.",
+               "A 3 m gap and a 5 m reach scale are scenarios, not a species' ability")
     W = 3.35
     import matplotlib.cm as cm
     from matplotlib.colors import LogNorm
@@ -272,15 +283,15 @@ def fig_conn_maps(sts, Fz):
         n = chm.shape[0]
         ext = (-n / 2, n / 2, -n / 2, n / 2)
         y = 4.75 if r == 0 else 0.95
-        cl, ca = F["cl10"], F["ca10"]
-        pl.label(0.6, y + W + 0.13, f"{NAMES[key]}: clusters joined across 10 m gaps")
+        cl, ca = F["cl_map"], F["ca_map"]
+        pl.label(0.6, y + W + 0.13, f"{NAMES[key]}: clusters across 3 m gaps")
         a = pl.ax(0.6, y, W, W)
         a.imshow(_cluster_image(g, cl, ca, (chm >= 2) & (g["labels"] == 0)), origin="lower", extent=ext)
         a.set_xticks([]); a.set_yticks([])
         _scalebar(a, ext, 200.0 if n > 1000 else 100.0)
-        pl.label(4.95, y + W + 0.13, f"{NAMES[key]}: canopy reachable from each patch")
+        pl.label(4.95, y + W + 0.13, f"{NAMES[key]}: canopy each patch reaches")
         b = pl.ax(4.95, y, W, W)
-        reach = F["reach10"] / 1e4
+        reach = F["reach_map"] / 1e4
         vmin, vmax = max(reach.min(), 1e-3), reach.max()
         norm = LogNorm(vmin, vmax)
         img = np.ones((n, n, 3)) * np.array([0.97, 0.96, 0.93])
@@ -297,14 +308,16 @@ def fig_conn_maps(sts, Fz):
         cb = pl.ax(8.37, y, 0.1, W)
         cb.imshow(np.linspace(1, 0, 200)[:, None], aspect="auto", cmap="viridis", extent=(0, 1, np.log10(vmin), np.log10(vmax)))
         cb.set_xticks([]); cb.yaxis.tick_right(); cb.yaxis.set_label_position("right"); cb.tick_params(labelsize=7, length=2)
-        cb.set_yticks(np.arange(np.ceil(np.log10(vmin)), np.floor(np.log10(vmax)) + 1)); cb.set_yticklabels([f"{10 ** t:g}" for t in cb.get_yticks()])
-        cb.set_ylabel("reachable canopy, ha (log)", fontsize=7.5, color=MUTED, labelpad=4)
+        ticks = np.arange(np.ceil(np.log10(vmin)), np.floor(np.log10(vmax)) + 1)
+        cb.set_yticks(ticks); cb.set_yticklabels([f"{10 ** t:g}" for t in ticks])
+        cb.set_ylabel("reachable canopy, ha (log scale)", fontsize=7.5, color=MUTED, labelpad=4)
         cn = st["connectivity"]
-        g10 = cn["by_gap"]["10"]
-        rows = [("Cluster map", f"{cn['nodes']:,} canopy patches of 20 m2 or more; at 10 m they form {g10['clusters']:,} clusters. The largest (dark green) holds {g10['largest_cluster_share'] * 100:.0f}% of the patch canopy ({g10['largest_cluster_ha']:.1f} ha); {g10['isolated_nodes']:,} patches (orange) have no neighbour within 10 m. Grey: canopy in patches under 20 m2."),
-                ("Reachable canopy", f"For each patch, the canopy area it can reach, weighting each other patch by exp(-gap / 10 m) along the best path of stepping stones (probability of connectivity {cn['pc']['10.0']['pc'] * 100:.1f}%; equivalent connected area {cn['pc']['10.0']['eca_ha']:.1f} ha of {cn['pc']['10.0']['canopy_ha']:.1f} ha)."),
-                ("Stepping stones", f"{cn['stepping_stones_at_10m']:,} patches (red dots) are cut points: removing one splits its cluster at 10 m. Patches cut by the window edge are partly outside it, so reach near the edge is understated.")]
-        y0 = y + W - 0.0
+        g3 = cn["by_gap"]["3"]
+        pc5 = cn["pc"]["5.0"]
+        rows = [("Clusters", f"{cn['nodes']:,} patches; at a 3 m gap they form {g3['clusters']:,} clusters. The largest (dark green) holds {g3['largest_cluster_share'] * 100:.0f}% of the patch canopy ({g3['largest_cluster_ha']:.1f} ha); {g3['isolated_nodes']:,} patches (orange) have no neighbour within 3 m. Grey: canopy in patches under 20 m2."),
+                ("Reach", f"Each patch's reach is the canopy it can get to, counting a patch at weight exp(-gap / 5 m) along the best chain of stepping stones. Reachable canopy ('equivalent connected area') is {pc5['eca_ha']:.1f} ha of {pc5['canopy_ha']:.1f} ha of patch canopy ({pc5['eca_share_of_canopy'] * 100:.0f}%)."),
+                ("Stepping stones", f"{cn['stepping_stones']:,} patches (red dots) are cut points: removing one splits its cluster at 3 m. Patches cut by the window edge continue outside it, so clusters and reach near the edge are understated.")]
+        y0 = y + W
         for k_, v_ in rows:
             pl.text(9.0, y0, k_, fontsize=9, fontweight="bold", va="top")
             w = "\n".join(textwrap.wrap(v_, 80))
@@ -313,7 +326,7 @@ def fig_conn_maps(sts, Fz):
     return pl.save("37_canopy_connectivity_maps.png")
 
 
-def _curves(g, total_m2, gaps):
+def _curves(g, gaps):
     from . import connectivity as CN
     lcc, ncl = [], []
     for T in gaps:
@@ -323,67 +336,88 @@ def _curves(g, total_m2, gaps):
     return np.array(lcc), np.array(ncl)
 
 
+def _abstract_graph(ax, g, cl, ca, gap=5.0, min_area=200.0, seed=3):
+    """Network drawing: nodes = patches of at least `min_area` m2, links = gaps up to `gap` m, positions from a spring layout (not geography), size by area, colour by cluster."""
+    import networkx as nx
+    keep = np.flatnonzero(g["area"] >= min_area)
+    idx = {int(v): i for i, v in enumerate(keep)}
+    G = nx.Graph()
+    G.add_nodes_from(range(len(keep)))
+    for a, b, d in g["edges"]:
+        if d <= gap and int(a) in idx and int(b) in idx:
+            G.add_edge(idx[int(a)], idx[int(b)], weight=1.0 / (1.0 + d))
+    pos = nx.spring_layout(G, seed=seed, weight="weight", k=0.35, iterations=120)
+    lcc = int(np.argmax(ca))
+    col = ["#1B5E20" if cl[v] == lcc else "#E59866" for v in keep]
+    nx.draw_networkx_edges(G, pos, ax=ax, width=0.4, edge_color="#9AA79A", alpha=0.7)
+    nx.draw_networkx_nodes(G, pos, ax=ax, node_size=np.sqrt(g["area"][keep]) * 0.7, node_color=col, linewidths=0)
+    ax.set_xticks([]); ax.set_yticks([])
+    for sp in ax.spines.values():
+        sp.set_color("#999999")
+    return len(keep), G.number_of_edges()
+
+
 def fig_conn_graph(sts, Fz):
     from matplotlib.collections import LineCollection
     cols = {"houston": "#B9770E", "tahoe": "#1F6B3A"}
-    pl = Plate("Canopy connectivity graph", "Patches as nodes, gaps up to 25 m as links; how connectivity falls as the gap that can be crossed shrinks, and how stable the numbers are",
-               "Lidar: USGS 3DEP (Houston TX_Coastal_B1_2018, Tahoe CA_SierraNevada_5_2022). Node = canopy patch of 20 m2 or more (CHM 2 m or higher).", "PC = probability of connectivity, p = exp(-gap / alpha) along the best path")
-    W = 3.5
+    pl = Plate("Canopy connectivity graph", "The patches and the gaps between them as a network, how connectivity falls as the gap that can be crossed shrinks, and how stable the numbers are",
+               "Lidar: USGS 3DEP (Houston TX_Coastal_B1_2018, Tahoe CA_SierraNevada_5_2022). Node = canopy patch of 20 m2 or more (CHM 2 m or higher); link = gap between patch edges.", "Network layouts are not geography")
+    W = 3.1
     for r, key in enumerate(("houston", "tahoe")):
-        g, chm = Fz[key]["graph"], Fz[key]["chm"]
+        F = Fz[key]
+        g, chm = F["graph"], F["chm"]
         n = chm.shape[0]
         y = 4.75 if r == 0 else 0.95
-        pl.label(0.6, y + W + 0.13, f"{NAMES[key]}: the graph")
+        pl.label(0.6, y + W + 0.13, f"{NAMES[key]}: links across gaps")
         a = pl.ax(0.6, y, W, W)
-        e = g["edges"]
-        e = e[e[:, 2] <= 25]
-        cen = g["centroid"]
-        xy = np.c_[cen[:, 1] + 0.5 - n / 2, cen[:, 0] + 0.5 - n / 2]
-        for lo, hi, col, lw in ((0, 5, "#1B5E20", 0.7), (5, 10, "#66A05A", 0.55), (10, 25, "#C8C8C8", 0.4)):
-            sel = (e[:, 2] > lo) & (e[:, 2] <= hi) if lo else (e[:, 2] <= hi)
-            seg = np.stack([xy[e[sel, 0].astype(int)], xy[e[sel, 1].astype(int)]], 1)
-            a.add_collection(LineCollection(seg, colors=col, linewidths=lw, zorder=2))
-        cl, ca = Fz[key]["cl10"], Fz[key]["ca10"]
-        lcc_id = int(np.argmax(ca))
-        inl = cl == lcc_id
-        a.scatter(xy[~inl, 0], xy[~inl, 1], s=np.sqrt(g["area"][~inl]) * 0.9, c="#E59866", lw=0, zorder=3)
-        a.scatter(xy[inl, 0], xy[inl, 1], s=np.sqrt(g["area"][inl]) * 0.9, c="#1B5E20", lw=0, zorder=4)
-        a.set_xlim(-n / 2, n / 2); a.set_ylim(-n / 2, n / 2); a.set_aspect("equal"); a.set_xticks([]); a.set_yticks([])
-        if r == 0:
-            leg = [Line2D([], [], color="#1B5E20", lw=1.2, label="gap 5 m or less"), Line2D([], [], color="#66A05A", lw=1.2, label="5 to 10 m"), Line2D([], [], color="#B0B0B0", lw=1.2, label="10 to 25 m"),
-                   Line2D([], [], marker="o", ls="none", color="#1B5E20", label="patch in largest cluster (10 m)"), Line2D([], [], marker="o", ls="none", color="#E59866", label="patch in another cluster")]
-            lx = pl.ax(4.25, 4.75, 2.5, 0.9); lx.axis("off"); lx.legend(handles=leg, loc="upper left", fontsize=7.2, frameon=False, labelspacing=0.5)
-    gaps = np.arange(0, 61, 1.0)
-    a = pl.ax(7.3, 5.15, 3.7, 2.9)
-    b = pl.ax(7.3, 1.35, 3.7, 2.9)
+        a.imshow(np.where(g["labels"] > 0, 0.88, 1.0), origin="lower", extent=(-n / 2, n / 2, -n / 2, n / 2), cmap="gray", vmin=0.5, vmax=1.0)
+        e, exy = g["edges"], g["edge_xy"]
+        for lo, hi, col, lw in ((10, 25, "#BDBDBD", 0.5), (5, 10, "#E6A23C", 0.7), (3, 5, "#D35400", 0.8), (-1, 3, "#7B241C", 0.9)):
+            sel = (e[:, 2] > lo) & (e[:, 2] <= hi)
+            seg = np.stack([np.c_[exy[sel, 1], exy[sel, 0]], np.c_[exy[sel, 3], exy[sel, 2]]], 1) + 0.5 - n / 2
+            a.add_collection(LineCollection(seg, colors=col, linewidths=lw, zorder=3))
+        a.set_xlim(-n / 2, n / 2); a.set_ylim(-n / 2, n / 2); a.set_xticks([]); a.set_yticks([])
+        b = pl.ax(4.0, y, W, W)
+        nn, ne = _abstract_graph(b, g, F["cl_map"], F["ca_map"])
+        pl.label(4.0, y + W + 0.13, f"{NAMES[key]}: network, {nn} patches, {ne} links")
+    lg = [Line2D([], [], color="#7B241C", lw=2, label="gap under 3 m"), Line2D([], [], color="#D35400", lw=2, label="3 to 5 m"), Line2D([], [], color="#E6A23C", lw=2, label="5 to 10 m"), Line2D([], [], color="#BDBDBD", lw=2, label="10 to 25 m"),
+          Line2D([], [], marker="o", ls="none", color="#1B5E20", label="in the largest cluster (3 m)"), Line2D([], [], marker="o", ls="none", color="#E59866", label="in another cluster")]
+    lax = pl.ax(0.6, 4.36, 6.5, 0.28)
+    lax.axis("off")
+    lax.legend(handles=lg, loc="center left", ncol=3, fontsize=7.4, frameon=False, columnspacing=1.2, handletextpad=0.5)
+    gaps = np.arange(0, 41, 1.0)
+    a = pl.ax(8.0, 5.1, 3.3, 2.9)
+    b = pl.ax(8.0, 1.3, 3.3, 2.9)
     for key in ("houston", "tahoe"):
-        lcc, ncl = _curves(Fz[key]["graph"], 0, gaps)
+        lcc, ncl = _curves(Fz[key]["graph"], gaps)
         a.plot(gaps, lcc * 100, color=cols[key], label=NAMES[key], lw=1.8)
         b.plot(gaps, ncl, color=cols[key], label=NAMES[key], lw=1.8)
-    a.axvline(10, color="#999999", lw=0.8, ls=":"); a.set_ylim(0, 100)
-    a.set_xlabel("gap that can be crossed, m", fontsize=8, color=MUTED); a.set_ylabel("canopy in the largest cluster, %", fontsize=8, color=MUTED)
-    b.set_yscale("log"); b.axvline(10, color="#999999", lw=0.8, ls=":")
-    b.set_xlabel("gap that can be crossed, m", fontsize=8, color=MUTED); b.set_ylabel("number of clusters (log)", fontsize=8, color=MUTED)
     for ax_ in (a, b):
-        ax_.tick_params(labelsize=8, length=2); ax_.spines[["top", "right"]].set_visible(False); ax_.legend(fontsize=8, frameon=False)
-    pl.label(7.3, 8.35, "Connectivity against the gap")
-    pl.label(7.3, 4.55, "Clusters against the gap")
-    c = pl.ax(11.5, 5.15, 3.8, 2.9)
+        ax_.axvline(3, color="#999999", lw=0.8, ls=":")
+        ax_.set_xlabel("gap that can be crossed, m", fontsize=8, color=MUTED)
+        ax_.tick_params(labelsize=8, length=2); ax_.spines[["top", "right"]].set_visible(False)
+        ax_.legend(fontsize=7.8, frameon=False, loc="lower right" if ax_ is a else "upper right")
+    a.set_ylim(0, 100); a.set_ylabel("canopy in the largest cluster, %", fontsize=8, color=MUTED)
+    b.set_yscale("log"); _plain_log(b, "y"); b.set_ylabel("number of clusters (log scale)", fontsize=8, color=MUTED)
+    pl.label(8.0, 8.35, "Largest cluster by gap")
+    pl.label(8.0, 4.55, "Number of clusters by gap")
+    c = pl.ax(11.9, 5.1, 3.4, 2.9)
     for key in ("houston", "tahoe"):
         g = Fz[key]["graph"]
-        c.scatter(g["area"], Fz[key]["reach10"], s=3, color=cols[key], alpha=0.5, lw=0, label=NAMES[key])
-    c.set_xscale("log"); c.set_yscale("log")
-    c.set_xlabel("patch area, m2", fontsize=8, color=MUTED); c.set_ylabel("reachable canopy, m2 (alpha 10 m)", fontsize=8, color=MUTED)
-    c.tick_params(labelsize=8, length=2); c.spines[["top", "right"]].set_visible(False); c.legend(fontsize=8, frameon=False, markerscale=3)
-    pl.label(11.5, 8.35, "Small patches reach little")
-    d = pl.ax(12.0, 1.35, 3.3, 2.9)
+        c.scatter(g["area"], Fz[key]["reach_map"], s=3, color=cols[key], alpha=0.5, lw=0, label=NAMES[key])
+    c.set_xscale("log"); c.set_yscale("log"); _plain_log(c)
+    c.set_xlabel("patch area, m2", fontsize=8, color=MUTED); c.set_ylabel("canopy it reaches, m2 (5 m scale)", fontsize=8, color=MUTED)
+    c.tick_params(labelsize=8, length=2); c.spines[["top", "right"]].set_visible(False); c.legend(fontsize=7.8, frameon=False, markerscale=3, loc="lower right")
+    pl.label(11.9, 8.35, "Small patches reach little")
+    d = pl.ax(12.4, 1.3, 2.9, 2.9)
     keys = ["baseline_1m_h2_a20", "cell_0.5m", "cell_2m", "canopy_5m_or_higher", "min_patch_10m2", "min_patch_50m2", "half_returns", "quarter_returns"]
-    lab_ = ["baseline", "0.5 m cells", "2 m cells", "canopy 5 m+", "patch 10 m2+", "patch 50 m2+", "half the returns", "quarter of returns"]
+    lab_ = ["baseline", "0.5 m cells", "2 m cells", "canopy 5 m+", "patches 10 m2+", "patches 50 m2+", "half the returns", "quarter returns"]
     yy = np.arange(len(keys))
     for i, key in enumerate(("houston", "tahoe")):
-        sv = [sts[key]["connectivity"]["sensitivity"][k]["largest_cluster_share_10m"] * 100 for k in keys]
+        sv = [sts[key]["connectivity"]["sensitivity"][k]["eca_share_of_canopy"] * 100 for k in keys]
         d.barh(yy + (i - 0.5) * 0.38, sv, 0.36, color=cols[key], label=NAMES[key])
     d.set_yticks(yy); d.set_yticklabels(lab_, fontsize=7.5); d.invert_yaxis(); d.set_xlim(0, 100)
-    d.set_xlabel("largest cluster at 10 m, % of patch canopy", fontsize=8, color=MUTED); d.tick_params(labelsize=8, length=2); d.spines[["top", "right"]].set_visible(False); d.legend(fontsize=7.5, frameon=False, loc="lower right")
-    pl.label(11.5, 4.55, "How much the answer moves")
+    d.set_xlabel("reachable share of patch canopy, %", fontsize=8, color=MUTED); d.tick_params(labelsize=8, length=2); d.spines[["top", "right"]].set_visible(False)
+    d.legend(fontsize=7.5, frameon=False, loc="lower center", bbox_to_anchor=(0.4, 1.01), ncol=2)
+    pl.label(11.9, 4.55, "How much the answer moves")
     return pl.save("38_canopy_connectivity_graph.png")

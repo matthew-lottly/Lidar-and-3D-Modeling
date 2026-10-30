@@ -240,6 +240,134 @@
   "lidar_open_that_naip_calls_vegetation": 0.4985537708472394,
   "note": "NAIP vegetation includes lawn, grass and shrubs, so only the first ratio is a check on the lidar canopy; the second is mostly lawn and low vegetation"
  },
+ "connectivity": {
+  "nodes": 1351,
+  "links": 3527,
+  "canopy_in_nodes_m2": 964383.0,
+  "edge_touching_nodes": 76,
+  "by_gap": {
+   "1": {
+    "clusters": 1092,
+    "largest_cluster_share": 0.7480254214352596,
+    "largest_cluster_ha": 72.1383,
+    "isolated_nodes": 988
+   },
+   "2": {
+    "clusters": 851,
+    "largest_cluster_share": 0.8193705198038539,
+    "largest_cluster_ha": 79.0187,
+    "isolated_nodes": 717
+   },
+   "3": {
+    "clusters": 661,
+    "largest_cluster_share": 0.8629828605439955,
+    "largest_cluster_ha": 83.2246,
+    "isolated_nodes": 529
+   },
+   "5": {
+    "clusters": 424,
+    "largest_cluster_share": 0.9273255542663029,
+    "largest_cluster_ha": 89.4297,
+    "isolated_nodes": 314
+   },
+   "10": {
+    "clusters": 118,
+    "largest_cluster_share": 0.9763755686278169,
+    "largest_cluster_ha": 94.16,
+    "isolated_nodes": 67
+   },
+   "25": {
+    "clusters": 3,
+    "largest_cluster_share": 0.9973682655127682,
+    "largest_cluster_ha": 96.1845,
+    "isolated_nodes": 1
+   },
+   "50": {
+    "clusters": 1,
+    "largest_cluster_share": 1.0,
+    "largest_cluster_ha": 96.4383,
+    "isolated_nodes": 0
+   }
+  },
+  "pc": {
+   "5.0": {
+    "pc": 0.10461039258603282,
+    "eca_ha": 72.77294225650019,
+    "canopy_ha": 96.4383,
+    "eca_share_of_canopy": 0.7546062327571119
+   },
+   "10.0": {
+    "pc": 0.12830803194414353,
+    "eca_ha": 80.59524872579193,
+    "canopy_ha": 96.4383,
+    "eca_share_of_canopy": 0.8357182646914342
+   },
+   "30.0": {
+    "pc": 0.1561640493583532,
+    "eca_ha": 88.91459384581718,
+    "canopy_ha": 96.4383,
+    "eca_share_of_canopy": 0.9219842515454667
+   }
+  },
+  "map_gap_m": 3.0,
+  "map_alpha_m": 5.0,
+  "stepping_stones": 216,
+  "link_gaps": {
+   "median_m": 10.0,
+   "links_le_3m": 739,
+   "links_le_10m": 1810
+  },
+  "sensitivity": {
+   "baseline_1m_h2_a20": {
+    "nodes": 1351,
+    "largest_cluster_share": 0.8629828605439955,
+    "clusters": 661,
+    "eca_share_of_canopy": 0.7546062327571119
+   },
+   "cell_0.5m": {
+    "nodes": 1673,
+    "largest_cluster_share": 0.4704561510468769,
+    "clusters": 801,
+    "eca_share_of_canopy": 0.41895764853423245
+   },
+   "cell_2m": {
+    "nodes": 863,
+    "largest_cluster_share": 0.934185613619456,
+    "clusters": 530,
+    "eca_share_of_canopy": 0.9261757886478845
+   },
+   "canopy_5m_or_higher": {
+    "nodes": 1082,
+    "largest_cluster_share": 0.6818939595393458,
+    "clusters": 594,
+    "eca_share_of_canopy": 0.4794959595240524
+   },
+   "min_patch_10m2": {
+    "nodes": 2150,
+    "largest_cluster_share": 0.8578976233066636,
+    "clusters": 987,
+    "eca_share_of_canopy": 0.7498822520271989
+   },
+   "min_patch_50m2": {
+    "nodes": 764,
+    "largest_cluster_share": 0.8695747789734557,
+    "clusters": 376,
+    "eca_share_of_canopy": 0.7643569711750223
+   },
+   "half_returns": {
+    "nodes": 1476,
+    "largest_cluster_share": 0.8434919155358964,
+    "clusters": 710,
+    "eca_share_of_canopy": 0.5829337816679959
+   },
+   "quarter_returns": {
+    "nodes": 1659,
+    "largest_cluster_share": 0.3684568130633152,
+    "clusters": 790,
+    "eca_share_of_canopy": 0.30384085610953054
+   }
+  }
+ },
  "density_grid": {
   "cell_m": 50.0,
   "mean_trees_per_ha": 49.955555555555556,

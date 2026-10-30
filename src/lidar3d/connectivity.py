@@ -32,27 +32,37 @@ def patch_graph(chm, res, min_h=2.0, min_area=20.0):
     cen = np.array(ndimage.center_of_mass(m, lab, idx)) if k else np.zeros((0, 2))
     edge_ids = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]])).tolist()) - {0}
     touches = np.array([i in edge_ids for i in idx])
-    # nearest patch and distance for every cell
+    # nearest patch (and the nearest patch pixel) for every cell
     dist, (ir, ic) = ndimage.distance_transform_edt(~m, return_indices=True)
     nl = lab[ir, ic]
-    pairs = {}
-    for a, b, da, db in ((nl[:, :-1], nl[:, 1:], dist[:, :-1], dist[:, 1:]), (nl[:-1], nl[1:], dist[:-1], dist[1:])):
-        sel = (a != b)
-        ia, ib, d = a[sel], b[sel], (da[sel] + db[sel] + 1.0)
-        lo, hi = np.minimum(ia, ib), np.maximum(ia, ib)
+    best = {}
+    for sl_a, sl_b in ((np.s_[:, :-1], np.s_[:, 1:]), (np.s_[:-1], np.s_[1:])):
+        a, b = nl[sl_a], nl[sl_b]
+        sel = a != b
+        if not sel.any():
+            continue
+        ia, ib = a[sel], b[sel]
+        d = dist[sl_a][sel] + dist[sl_b][sel] + 1.0
+        pa = np.c_[ir[sl_a][sel], ic[sl_a][sel]]
+        pb = np.c_[ir[sl_b][sel], ic[sl_b][sel]]
+        swap = ia > ib
+        lo, hi = np.where(swap, ib, ia), np.where(swap, ia, ib)
+        p_lo, p_hi = np.where(swap[:, None], pb, pa), np.where(swap[:, None], pa, pb)
         key = lo.astype(np.int64) * (k + 1) + hi
-        o = np.argsort(key, kind="stable")
-        ks, ds = key[o], d[o]
+        o = np.lexsort((d, key))
+        ks = key[o]
         first = np.r_[True, ks[1:] != ks[:-1]]
-        starts = np.flatnonzero(first)
-        mins = np.minimum.reduceat(ds, starts)
-        for kk, dd in zip(ks[starts], mins):
-            if kk in pairs:
-                pairs[kk] = min(pairs[kk], dd)
-            else:
-                pairs[kk] = dd
-    ei = np.array([(int(kk // (k + 1)) - 1, int(kk % (k + 1)) - 1, (dd - 1.0) * res) for kk, dd in pairs.items()]) if pairs else np.zeros((0, 3))
-    return dict(labels=lab, area=area, centroid=cen, touches_edge=touches, edges=ei, res=res, n=k)
+        for j in o[first]:
+            kk = int(key[j])
+            if kk not in best or d[j] < best[kk][0]:
+                best[kk] = (d[j], p_lo[j], p_hi[j])
+    if best:
+        ks_ = sorted(best)
+        ei = np.array([(kk // (k + 1) - 1, kk % (k + 1) - 1, (best[kk][0] - 1.0) * res) for kk in ks_])
+        exy = np.array([np.r_[best[kk][1], best[kk][2]] for kk in ks_], float)
+    else:
+        ei, exy = np.zeros((0, 3)), np.zeros((0, 4))
+    return dict(labels=lab, area=area, centroid=cen, touches_edge=touches, edges=ei, edge_xy=exy, res=res, n=k)
 
 
 def clusters(g, gap):
@@ -102,7 +112,7 @@ def stepping_stones(g, gap):
     return out
 
 
-def summary(g, landscape_m2, gaps=(2, 5, 10, 25, 50), alphas=(10.0, 30.0)):
+def summary(g, landscape_m2, gaps=(1, 2, 3, 5, 10, 25, 50), alphas=(5.0, 10.0, 30.0)):
     tot = float(g["area"].sum())
     st = dict(nodes=int(g["n"]), links=int(len(g["edges"])), canopy_in_nodes_m2=tot, edge_touching_nodes=int(g["touches_edge"].sum()), by_gap={}, pc={})
     for T in gaps:
@@ -110,5 +120,5 @@ def summary(g, landscape_m2, gaps=(2, 5, 10, 25, 50), alphas=(10.0, 30.0)):
         st["by_gap"][str(T)] = dict(clusters=int(len(ca)), largest_cluster_share=float(ca.max() / tot) if tot else 0.0, largest_cluster_ha=float(ca.max() / 1e4), isolated_nodes=int((np.bincount(lab) == 1).sum()))
     for al in alphas:
         r = pc_metrics(g, al, landscape_m2)
-        st["pc"][str(al)] = dict(pc=r["pc"], eca_ha=r["eca_m2"] / 1e4, canopy_ha=tot / 1e4)
+        st["pc"][str(al)] = dict(pc=r["pc"], eca_ha=r["eca_m2"] / 1e4, canopy_ha=tot / 1e4, eca_share_of_canopy=float(r["eca_m2"] / tot) if tot else 0.0)
     return st

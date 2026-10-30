@@ -35,10 +35,10 @@ def interactive(key, st, Fz):
     for lo, hi, col in ((10, 100, (252, 217, 89)), (100, 1000, (242, 140, 38)), (1000, 1e4, (204, 64, 38)), (1e4, 1e12, (115, 26, 64))):
         img[(Fz["gl"] > 0) & (sizes >= lo) & (sizes < hi), :3] = col
     g = Fz["graph"]
-    cimg = FC._cluster_image(g, Fz["cl10"], Fz["ca10"], (chm >= 2) & (g["labels"] == 0))
+    cimg = FC._cluster_image(g, Fz["cl_map"], Fz["ca_map"], (chm >= 2) & (g["labels"] == 0))
     crgba = np.concatenate([(cimg * 255).astype(np.uint8), np.full((n, n, 1), 255, np.uint8)], 2)
     from matplotlib.colors import LogNorm
-    reach = Fz["reach10"] / 1e4
+    reach = Fz["reach_map"] / 1e4
     nrm = LogNorm(max(reach.min(), 1e-3), reach.max())
     rr = (cm.viridis(nrm(np.clip(reach, nrm.vmin, nrm.vmax))) * 255).astype(np.uint8)
     rimg = np.zeros((n, n, 4), np.uint8); rimg[..., :3] = (247, 245, 238); rimg[..., 3] = 255
@@ -48,7 +48,7 @@ def interactive(key, st, Fz):
     t = Fz["trees"]
     pts = list(zip(t["col"] + 0.5, t["row"] + 0.5, t["height"], t["crown_diameter_m"]))
     out = ROOT / "outputs" / "canopy" / key / "canopy_map.html"
-    canopy_map.write_map(out, st["site"], float(n), [("Canopy height", F.rgba_png_b64(rgba)), ("Tree density (per ha)", F.rgba_png_b64(drgba)), ("Canopy openings by size", F.rgba_png_b64(img)), ("Connectivity: clusters across 10 m gaps", F.rgba_png_b64(crgba)), ("Connectivity: reachable canopy per patch", F.rgba_png_b64(rimg))], pts, vmax,
+    canopy_map.write_map(out, st["site"], float(n), [("Canopy height", F.rgba_png_b64(rgba)), ("Tree density (per ha)", F.rgba_png_b64(drgba)), ("Canopy openings by size", F.rgba_png_b64(img)), ("Connectivity: clusters across 3 m gaps", F.rgba_png_b64(crgba)), ("Connectivity: canopy each patch reaches", F.rgba_png_b64(rimg))], pts, vmax,
                          note=f"Lidar {st['collected']}, {st['area_ha']:.0f} ha, 1 m cells. Trees: local maxima of a smoothed canopy height model; crowded trees are undercounted.")
     return out
 

@@ -36,3 +36,18 @@ Outputs per site in `outputs/canopy/<site>/`: `dtm.tif`, `dsm.tif`, `chm.tif`, `
 
 ## Not done
 No field tree inventory was available, so detection accuracy rests on the planted-tree test, not on real stems. Biomass and fuel loads were not estimated. The pipeline handles one area per run; it is not tiled for county-scale use.
+
+## Connectivity (plates 37 and 38; `data/processed/canopy/<site>.json`, key `connectivity`)
+Canopy (CHM 2 m or higher) is split into 8-connected patches; patches of at least 20 m2 are nodes, and two nodes are linked when their nearest-patch regions touch, with the gap = closest distance between their edges. Metrics: clusters at a gap-crossing distance, share of canopy in the largest cluster, probability of connectivity and equivalent connected area (Saura and Pascual-Vazquez 2007, p = exp(-gap / alpha) along the best path of gaps), reachable canopy per patch, and stepping stones (cut points). Gap and alpha are scenarios, not a species' ability. Maps use a 3 m gap and a 5 m alpha, because at 10 m and wider almost everything joins at both sites.
+
+| | NW Houston | Tahoe forest |
+|---|---|---|
+| Patches (20 m2+) / clusters at 3 m | 1,351 / 661 | 624 / 144 |
+| Largest cluster at 3 m | 86% of patch canopy (83 ha) | 96% (57 ha) |
+| Patches with no neighbour within 3 m | 529 | 117 |
+| Reachable canopy (alpha 5 m), share of patch canopy | 75% (72.8 of 96.4 ha) | 92% (54.6 of 59.4 ha) |
+| Stepping stones at 3 m | 216 | 111 |
+
+Houston's canopy is held together by a few large stands joined by many small patches; the south-west (a subdivision) is a scatter of isolated patches that reach little. Tahoe is one near-continuous canopy with isolated patches in its openings.
+**Sensitivity (plate 38, right):** the reachable share moves a lot with how the canopy is mapped. Houston: 75% baseline, 42% with 0.5 m cells, 93% with 2 m cells, 48% for canopy of 5 m or higher, 30% with a quarter of the returns. Tahoe: 92%, 88%, 97%, 81%, 92%. So Houston's connectivity number is only meaningful with its mapping choices stated; the ranking (Tahoe more connected than Houston) holds in every variant. Patches cut by the window edge continue outside it, so connectivity is understated at the edges.
+Extra outputs: `canopy_clusters_3m_gap.tif`, `canopy_reachable_area_ha.tif`, `canopy_stepping_stones.tif`, `canopy_patches.csv`, `canopy_links.csv` (links up to 50 m), plus two connectivity layers in each interactive map.
