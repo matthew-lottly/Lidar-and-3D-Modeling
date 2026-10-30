@@ -421,3 +421,23 @@ def test_canopy_connectivity_graph_gaps_clusters_and_stepping_stones():
     r = C.pc_metrics(g, 10.0, float(m.size))
     assert 0 < r["pc"] < 1 and r["reach_m2"][3] == 400.0                                   # the far patch can reach only itself
     assert r["reach_m2"][1] > r["reach_m2"][0]                                            # the middle patch reaches more than an end one
+
+
+def test_roof_plane_ransac_and_solar_geometry():
+    from lidar3d import rooftop as RT
+    from lidar3d import solar as SO
+    rng = np.random.default_rng(0)
+    x, y = rng.uniform(-6, 6, 900), rng.uniform(0, 8, 900)
+    z = np.where(x < 0, 5 + 0.5 * (x + 6), 5 + 0.5 * (6 - x)) + rng.normal(0, 0.03, 900)       # a gable with 26.6 degree slopes, ridge along y
+    planes = RT.merge_coplanar(RT.segment_roof(np.c_[x, y, z]))
+    assert len(planes) == 2 and all(abs(p.slope_deg - 26.57) < 1.0 for p in planes)
+    assert sorted(round(p.aspect_deg / 90) % 4 for p in planes) == [1, 3]                       # faces east and west
+    n = SO.plane_normals([0.0], [0.0])
+    H = np.zeros((1, 72), np.float32)
+    assert abs(SO.diffuse_factor(H, n)[0] - 1.0) < 0.02                                         # open horizontal plane sees the whole sky
+    ntilt = SO.plane_normals([0.0], [-1.0])                                                     # 45 degrees, facing north
+    assert abs(SO.diffuse_factor(H, ntilt)[0] - 0.5 * (1 + np.cos(np.radians(45)))) < 0.03
+    dsm = np.zeros((200, 200)); c = np.arange(200) - 100 + 0.5
+    X, Y = np.meshgrid(c, c); dsm[(np.abs(X) <= 10) & (np.abs(Y) <= 10)] = 20.0
+    h = SO.horizon_angles(np.array([[0.0, 40.0]]), np.array([0.0]), dsm, 100.0)
+    assert abs(h[0, 36] - np.degrees(np.arctan(19.85 / 30.0))) < 2.5 and h[0, 0] == 0.0

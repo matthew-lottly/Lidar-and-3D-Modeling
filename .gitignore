@@ -5,3 +5,4 @@ __pycache__/
 py4dgeo.log
 data/processed/hydro/arrays.npz
 data/processed/utility/detections.npz
+notebook_output/
