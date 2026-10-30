@@ -1,0 +1,95 @@
+{
+ "analysis": "Rooftop solar potential",
+ "westu": {
+  "site": "West University Place (houses), Houston, Texas",
+  "overture_buildings_in_window": 201,
+  "lidar_buildings": 104,
+  "footprints": {
+   "lidar_area_inside_overture": 0.8000281779284308,
+   "overture_area_inside_lidar": 0.726647499639982,
+   "median_iou": 0.5624764521935455,
+   "share_iou_ge_0p5": 0.6057692307692307,
+   "share_no_overlap": 0.028846153846153848,
+   "area_30_150_m2": {
+    "n": 33,
+    "median_iou": 0.5444480050649619
+   },
+   "area_150_400_m2": {
+    "n": 38,
+    "median_iou": 0.7161064349952286
+   },
+   "area_400_plus_m2": {
+    "n": 32,
+    "median_iou": 0.46195086147117254
+   },
+   "overture_buildings_30m2_plus": 193,
+   "share_covered_half_or_more": 0.7927461139896373
+  },
+  "heights": {
+   "overture_with_height": 196,
+   "matched_pairs": 85,
+   "n": 85,
+   "bias_m": 3.9880365757715133,
+   "nmad_m": 1.3159121317769258,
+   "rmse_m": 4.111375474298753,
+   "mae_m": 3.5608911143135034,
+   "p95_abs_m": 5.683468125446138,
+   "pearson_r": 0.05362939441153702,
+   "note": "Overture heights are mapper-entered or model-derived, not surveyed; lidar height is the highest roof point above the ground"
+  },
+  "weather": {
+   "hours": 8760,
+   "hours_ghi_above_clearsky_plus_5pct": 504,
+   "annual_ghi_kwh_m2": 1744.56,
+   "annual_clearsky_ghi_kwh_m2": 2186.7242436313463,
+   "ratio": 0.7977960664591738,
+   "note": "the typical year must not exceed what a clear sky allows; a ratio of 0.7 to 0.85 is typical of humid climates"
+  }
+ },
+ "downtown": {
+  "site": "Downtown Houston (high-rise core), Texas",
+  "overture_buildings_in_window": 45,
+  "lidar_buildings": 30,
+  "footprints": {
+   "lidar_area_inside_overture": 0.7933512780058836,
+   "overture_area_inside_lidar": 0.802351155871858,
+   "median_iou": 0.0,
+   "share_iou_ge_0p5": 0.13333333333333333,
+   "share_no_overlap": 0.5333333333333333,
+   "area_30_150_m2": {
+    "n": 16,
+    "median_iou": 0.0
+   },
+   "area_150_400_m2": {
+    "n": 1,
+    "median_iou": 0.0
+   },
+   "area_400_plus_m2": {
+    "n": 13,
+    "median_iou": 0.45898339812027905
+   },
+   "overture_buildings_30m2_plus": 44,
+   "share_covered_half_or_more": 0.7045454545454546
+  },
+  "heights": {
+   "overture_with_height": 44,
+   "matched_pairs": 12,
+   "n": 12,
+   "bias_m": 24.465214557296633,
+   "nmad_m": 34.30364871334345,
+   "rmse_m": 47.25273809392847,
+   "mae_m": 32.92929049477383,
+   "p95_abs_m": 92.14942047266814,
+   "pearson_r": 0.868174157920581,
+   "note": "Overture heights are mapper-entered or model-derived, not surveyed; lidar height is the highest roof point above the ground"
+  },
+  "weather": {
+   "hours": 8760,
+   "hours_ghi_above_clearsky_plus_5pct": 572,
+   "annual_ghi_kwh_m2": 1752.47,
+   "annual_clearsky_ghi_kwh_m2": 2183.540376282905,
+   "ratio": 0.8025819073624244,
+   "note": "the typical year must not exceed what a clear sky allows; a ratio of 0.7 to 0.85 is typical of humid climates"
+  }
+ }
+}
