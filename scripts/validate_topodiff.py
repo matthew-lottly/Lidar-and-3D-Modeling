@@ -42,7 +42,14 @@ def main():
         return
     dz_raw = Db - Da
     raw = dz_raw[both]
-    out["raw_difference_all_overlap"] = V.error_summary(raw[np.abs(raw) < 5])
+    out["raw_difference_all_overlap"] = V.error_summary(raw)
+    # the two surveys can sit on different vertical datums (ellipsoid against NAVD88 differs by tens of metres on this coast); measure the offset on stable ground and remove it, as the real analysis does with ICP
+    off = float(np.median(dz_raw[F["stable"] & both])) if (F["stable"] & both).any() else float(np.median(raw))
+    out["vertical_offset_between_surveys_m"] = off
+    b = TD.Epoch(b.tag, b.project, b.date, b.x, b.y, (b.z - off).astype("float32"), b.cls, b.nret)
+    Db = Db - off
+    dz_raw = Db - Da
+    out["difference_after_removing_offset_stable"] = V.error_summary(dz_raw[F["stable"] & both])
     # null test with the same procedure as the real intervals: sigma_z from stable ground, slope-dependent level of detection, volumes in the coastal band
     slope = F["slope"]
     dist = F["dist_sea"]
