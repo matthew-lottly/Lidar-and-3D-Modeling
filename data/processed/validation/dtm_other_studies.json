@@ -1,0 +1,137 @@
+{
+ "seattle_center": {
+  "project": "WA_KingCo_1_2021",
+  "status": "no USGS DTM product found over the window"
+ },
+ "capecod_2014": {
+  "project": "MA_NE_CMGP_Sandy_Z19_A1_2015",
+  "status": "no USGS DTM product found over the window"
+ },
+ "capecod_2021": {
+  "project": "MA_CentralEastern_2_2021",
+  "status": "no USGS DTM product found over the window"
+ },
+ "wabash_mtcarmel": {
+  "project": "IL_WabashRiver_2010",
+  "cells": 2254829,
+  "ground_points": 6829926,
+  "all": {
+   "n": 2254829,
+   "bias_m": -0.01587677001953125,
+   "nmad_m": 0.028589412689208983,
+   "rmse_m": 0.05881243300378991,
+   "mae_m": 0.03456340225133595,
+   "p95_abs_m": 0.1062164306640625
+  },
+  "correlation": 0.9998629782600524,
+  "slope_0_5": {
+   "n": 2090097,
+   "bias_m": -0.01540374755859375,
+   "nmad_m": 0.026721156311042178,
+   "rmse_m": 0.04274453771594855,
+   "mae_m": 0.029463342695584004,
+   "p95_abs_m": 0.08905029296875
+  },
+  "slope_5_15": {
+   "n": 134037,
+   "bias_m": -0.0323638916015625,
+   "nmad_m": 0.07798603591918944,
+   "rmse_m": 0.10656637001245903,
+   "mae_m": 0.07652684923472189,
+   "p95_abs_m": 0.21351470947265622
+  },
+  "slope_15_90": {
+   "n": 30695,
+   "bias_m": -0.0678253173828125,
+   "nmad_m": 0.20124005584716795,
+   "rmse_m": 0.2829952721664934,
+   "mae_m": 0.19859548024405016,
+   "p95_abs_m": 0.5655414157443573
+  },
+  "note": "difference = ours minus USGS, class-2 mean per 2 m cell against USGS's 2 m DTM; a second processing of the same survey"
+ },
+ "whiteriver_utility": {
+  "project": "WA_PierceCounty_1_2020",
+  "status": "no USGS DTM product found over the window"
+ },
+ "capecod_2014_ref_Sandy_Z19_2013": {
+  "project": "MA_NE_CMGP_Sandy_Z19_A1_2015",
+  "reference_project": "USGS_LPC_MA_NE_CMGP_Sandy_Z19_2013",
+  "cells": 58591,
+  "ground_points": 290003,
+  "all": {
+   "n": 58591,
+   "bias_m": -0.04558372497558594,
+   "nmad_m": 0.05231565599441528,
+   "rmse_m": 0.101068498054341,
+   "mae_m": 0.06990848180337926,
+   "p95_abs_m": 0.18955087661743164
+  },
+  "correlation": 0.9999471606514952,
+  "slope_0_5": {
+   "n": 32858,
+   "bias_m": -0.04378183682759662,
+   "nmad_m": 0.04377095168113726,
+   "rmse_m": 0.07108324877147343,
+   "mae_m": 0.05605941830059541,
+   "p95_abs_m": 0.13936412334442116
+  },
+  "slope_5_15": {
+   "n": 20494,
+   "bias_m": -0.04413052201271128,
+   "nmad_m": 0.05688437705039945,
+   "rmse_m": 0.08915775711017658,
+   "mae_m": 0.06739732383483682,
+   "p95_abs_m": 0.1813779354095459
+  },
+  "slope_15_90": {
+   "n": 5239,
+   "bias_m": -0.09765243530273438,
+   "nmad_m": 0.1514475357055664,
+   "rmse_m": 0.22683283080102007,
+   "mae_m": 0.16659032948075675,
+   "p95_abs_m": 0.45600136915842643
+  },
+  "note": "difference = ours minus USGS, class-2 mean per 2 m cell against USGS's 2 m DTM; a second processing of the same survey"
+ },
+ "capecod_2014_ref_Sndy_CMPG_2013": {
+  "project": "MA_NE_CMGP_Sandy_Z19_A1_2015",
+  "reference_project": "USGS_LPC_MA_Sndy_CMPG_2013_LAS_2015",
+  "cells": 58591,
+  "ground_points": 290003,
+  "all": {
+   "n": 58591,
+   "bias_m": -0.04558372497558594,
+   "nmad_m": 0.05231565599441528,
+   "rmse_m": 0.101068498054341,
+   "mae_m": 0.06990848180337926,
+   "p95_abs_m": 0.18955087661743164
+  },
+  "correlation": 0.9999471606514952,
+  "slope_0_5": {
+   "n": 32858,
+   "bias_m": -0.04378183682759662,
+   "nmad_m": 0.04377095168113726,
+   "rmse_m": 0.07108324877147343,
+   "mae_m": 0.05605941830059541,
+   "p95_abs_m": 0.13936412334442116
+  },
+  "slope_5_15": {
+   "n": 20494,
+   "bias_m": -0.04413052201271128,
+   "nmad_m": 0.05688437705039945,
+   "rmse_m": 0.08915775711017658,
+   "mae_m": 0.06739732383483682,
+   "p95_abs_m": 0.1813779354095459
+  },
+  "slope_15_90": {
+   "n": 5239,
+   "bias_m": -0.09765243530273438,
+   "nmad_m": 0.1514475357055664,
+   "rmse_m": 0.22683283080102007,
+   "mae_m": 0.16659032948075675,
+   "p95_abs_m": 0.45600136915842643
+  },
+  "note": "difference = ours minus USGS, class-2 mean per 2 m cell against USGS's 2 m DTM; a second processing of the same survey"
+ }
+}
