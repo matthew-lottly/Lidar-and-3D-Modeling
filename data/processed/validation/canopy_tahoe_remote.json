@@ -1,0 +1,41 @@
+{
+ "analysis": "Canopy structure (tahoe)",
+ "project": "CA_SierraNevada_5_2022",
+ "usgs_dtm": {
+  "status": "no USGS DTM product found for this project over the window"
+ },
+ "worldcover_2021": {
+  "reference": "ESA WorldCover 2021 (class tree cover)",
+  "cells_10m": 10000,
+  "canopy_cover_lidar": 0.6026520729064941,
+  "tree_share_reference": 0.982,
+  "agreement": {
+   "n": 10000,
+   "accuracy": 0.6694,
+   "kappa": 0.06317371581689218,
+   "precision": 0.9990806006742262,
+   "recall": 0.6639511201629328,
+   "iou": 0.6635456950946469,
+   "reference_positive_share": 0.982,
+   "predicted_positive_share": 0.6526
+  },
+  "note": "our canopy = cells whose 1 m CHM is at least 2 m, aggregated to 10 m and called tree when at least half the cell is canopy; satellite land cover has its own error of roughly 10 percent"
+ },
+ "esri_landcover_2022": {
+  "reference": "Esri 10 m land cover 2022 (class trees)",
+  "cells_10m": 10000,
+  "canopy_cover_lidar": 0.6026520729064941,
+  "tree_share_reference": 0.9695,
+  "agreement": {
+   "n": 10000,
+   "accuracy": 0.6703,
+   "kappa": 0.07571614477475465,
+   "precision": 0.9901930738584125,
+   "recall": 0.6665291387313048,
+   "iou": 0.6621580079926221,
+   "reference_positive_share": 0.9695,
+   "predicted_positive_share": 0.6526
+  },
+  "note": "our canopy = cells whose 1 m CHM is at least 2 m, aggregated to 10 m and called tree when at least half the cell is canopy; satellite land cover has its own error of roughly 10 percent"
+ }
+}

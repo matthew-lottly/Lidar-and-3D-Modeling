@@ -1,0 +1,58 @@
+{
+ "analysis": "Canopy structure (houston)",
+ "project": "TX_Coastal_B1_2018",
+ "usgs_dtm": {
+  "n": 1144911,
+  "bias_m": -0.005178200121939369,
+  "nmad_m": 0.026197634071096296,
+  "rmse_m": 0.4687498969565474,
+  "mae_m": 0.06794952247389102,
+  "p95_abs_m": 0.16385839977670003,
+  "grid_flipped": true,
+  "correlation": 0.9574028038708517,
+  "n_cells_open_ground": 1144911,
+  "under_canopy": {
+   "n": 982566,
+   "bias_m": -0.009549638581674458,
+   "nmad_m": 0.027465049188965408,
+   "rmse_m": 0.05715573639043332,
+   "mae_m": 0.0314385906724785,
+   "p95_abs_m": 0.10057582855224645
+  },
+  "note": "USGS's own DTM of the same survey, 2 m resampled to 1 m: a second processing of the same points, so it checks the ground model and not the flight"
+ },
+ "worldcover_2021": {
+  "reference": "ESA WorldCover 2021 (class tree cover)",
+  "cells_10m": 22500,
+  "canopy_cover_lidar": 0.43669599294662476,
+  "tree_share_reference": 0.6183111111111111,
+  "agreement": {
+   "n": 22500,
+   "accuracy": 0.7099111111111112,
+   "kappa": 0.44033974204398124,
+   "precision": 0.8883980225097297,
+   "recall": 0.6071017826336975,
+   "iou": 0.564082014292393,
+   "reference_positive_share": 0.6183111111111111,
+   "predicted_positive_share": 0.4225333333333333
+  },
+  "note": "our canopy = cells whose 1 m CHM is at least 2 m, aggregated to 10 m and called tree when at least half the cell is canopy; satellite land cover has its own error of roughly 10 percent"
+ },
+ "esri_landcover_2022": {
+  "reference": "Esri 10 m land cover 2022 (class trees)",
+  "cells_10m": 22500,
+  "canopy_cover_lidar": 0.43669599294662476,
+  "tree_share_reference": 0.0,
+  "agreement": {
+   "n": 22500,
+   "accuracy": 0.5774666666666667,
+   "kappa": 0.0,
+   "precision": 0.0,
+   "recall": NaN,
+   "iou": 0.0,
+   "reference_positive_share": 0.0,
+   "predicted_positive_share": 0.4225333333333333
+  },
+  "note": "our canopy = cells whose 1 m CHM is at least 2 m, aggregated to 10 m and called tree when at least half the cell is canopy; satellite land cover has its own error of roughly 10 percent"
+ }
+}

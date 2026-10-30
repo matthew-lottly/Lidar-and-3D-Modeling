@@ -165,7 +165,7 @@ def fig_stages(st, F):
         net = st["road_vulnerability"][f"{lv:g}"]["connected_to_tidal_water"]
         pl.text(x0, y0 - 0.06, f"{net['km_impassable']:.1f} km impassable;  {st['stages'][f'{lv:g}']['raw']['connected_ha']:.0f} ha flooded", fontsize=7.8, color=MUTED, va="top")
     leg = [Line2D([], [], color=RED, lw=2, label="impassable (30 cm or more), connected"), Line2D([], [], color=ORANGE, lw=2, label="would pond (30 cm or more), not connected"), Line2D([], [], color=GREEN, lw=2, label="clear"),
-           Line2D([], [], color=GREY, lw=2, label="bridge, tunnel or overpass")]
+           Line2D([], [], color=GREY, lw=2, label="bridge deck above the water, or tunnel (not assessed)")]
     lax = pl.ax(10.9, 6.5, 4.4, 1.4); lax.axis("off"); lax.legend(handles=leg, loc="upper left", fontsize=8, frameon=False, labelspacing=0.7)
     _vcbar(pl, 10.9, 4.1, 2.1, "Blues", 0, 2.5, "water depth, m")
     rows = [("Reading the maps", "A stage is the height of the water surface above the vertical datum. Terrain below it that is connected to the open water seen in the lidar (areas with no returns, in the south-west of the window) floods; other low ground (orange roads) only holds rain. Water arriving from outside the window by other routes is not modelled, and the open water here is a set of ponds and basins, not a mapped tidal creek.")]
@@ -175,14 +175,20 @@ def fig_stages(st, F):
 
 def fig_vulnerability(st, F):
     pl = Plate("How much of the road network is lost as the water rises", "Kilometres of drivable road with 30 cm or more of water, and how much of the network stays connected",
-               _src(st), "Drivable roads; bridges and tunnels excluded; 30 cm = impassable (scenario)")
+               _src(st), "30 cm = impassable (scenario); bars: depths shifted by the 13 cm road error")
     rv = st["road_vulnerability"]
     tot = st["roads"]["drivable_km"]
     x = np.arange(len(STAGES))
     a = pl.ax(0.9, 4.6, 4.4, 3.2)
     low = [rv[f"{lv:g}"]["any_low_ground"]["km_impassable"] for lv in STAGES]
     con = [rv[f"{lv:g}"]["connected_to_tidal_water"]["km_impassable"] for lv in STAGES]
-    a.bar(x - 0.19, low, 0.36, color=ORANGE, label="any low ground (ponding)")
+    S_ = F["S"]
+    DZ = 0.13  # lidar road-surface rms error (held-out road returns), applied as a shift of every depth
+    def km_at(lv, dz):
+        d = S_[f"max_depth_{lv:g}"].to_numpy()
+        return float(S_.length_m[(d + dz) >= 0.3].sum() / 1000)
+    err = np.array([[km_at(lv, 0) - km_at(lv, -DZ) for lv in STAGES], [km_at(lv, DZ) - km_at(lv, 0) for lv in STAGES]])
+    a.bar(x - 0.19, low, 0.36, color=ORANGE, label="any low ground (ponding)", yerr=err, error_kw=dict(ecolor="#333", elinewidth=0.9, capsize=2))
     a.bar(x + 0.19, con, 0.36, color=RED, label="connected to open water")
     a.set_xticks(x); a.set_xticklabels([f"{lv:g}" for lv in STAGES]); a.set_xlabel("water-surface height, m above datum", fontsize=8, color=MUTED); a.set_ylabel(f"km impassable (of {tot:.0f} km drivable)", fontsize=8, color=MUTED)
     a.tick_params(labelsize=8, length=2); a.spines[["top", "right"]].set_visible(False); a.legend(fontsize=7.8, frameon=False, loc="upper left")
