@@ -1,0 +1,95 @@
+{
+ "yard": {
+  "towers_and_gantries": 46,
+  "posts": 30,
+  "equipment_blocks": 116,
+  "bus_wire_polylines": 175,
+  "bridges": 4,
+  "max_structure_height_m": 26.844420055252012
+ },
+ "transformer": {
+  "mapped_xy": [
+   -11.558223604923114,
+   20.188620755448937
+  ],
+  "box_size_m": [
+   11.2,
+   6.5,
+   4.1
+  ],
+  "top_above_ground_m": 5.2,
+  "points": 1243,
+  "offset_from_mapped_point_m": 0.3,
+  "candidates": 3
+ },
+ "corridor": {
+  "window_centre": [
+   -120.0,
+   10.0
+  ],
+  "supports_in_view": 11,
+  "wood_poles": 3,
+  "towers": 8,
+  "towers_fitted": 20,
+  "span_wires": 135,
+  "chain_wire_pieces": 27,
+  "bridges": 15,
+  "bridged_length_m": 700.4661590567882,
+  "extra_posts": 9
+ },
+ "pole": {
+  "x": -61.7161606893203,
+  "y": -23.542918055547517,
+  "height_m": 12.056767499666591,
+  "wires": 11
+ },
+ "metrics": {
+  "wire_before": {
+   "model_wire_samples": 24429,
+   "share_wire_points_within_1m": 0.6977055449330783,
+   "share_within_0.5m": 0.6856596558317399,
+   "share_within_2m": 0.7066921606118547,
+   "wire_ends": 270,
+   "ends_with_support_within_3m": 0.6074074074074074,
+   "ends_free_in_air": 106
+  },
+  "wire_after": {
+   "model_wire_samples": 25291,
+   "share_wire_points_within_1m": 0.8986615678776291,
+   "share_within_0.5m": 0.8648183556405353,
+   "share_within_2m": 0.9225621414913958
+  },
+  "fragments": {
+   "points_in_fragments_ge_1p5m": 4010,
+   "share_of_all_detected": 0.7667304015296367,
+   "share_of_those_within_1m": 0.9591022443890275
+  },
+  "supports": {
+   "wire_ends_ge10m": 280,
+   "free_before": 0.4107142857142857,
+   "free_after_posts": 0.37857142857142856,
+   "free_after_posts_and_bridges": 0.22857142857142856,
+   "added_posts": 9,
+   "bridges": 15,
+   "bridged_length_m": 700.4661590567882,
+   "sag_k": 0.000314737187418144
+  },
+  "ground_holdout": {
+   "blocks": 60,
+   "block_size_m": 6.0,
+   "cells": 1993,
+   "nearest_fill": {
+    "rmse_m": 0.2182841864607528,
+    "mae_m": 0.11501847806433847,
+    "p95_abs_m": 0.4494018554687499
+   },
+   "interpolated": {
+    "rmse_m": 0.1036997605159917,
+    "mae_m": 0.0627297411842248,
+    "p95_abs_m": 0.2318747038010542
+   }
+  },
+  "ground_cells_filled_share": 0.4698839522546419,
+  "ground_cells_beyond_3m_of_a_return": 0.006556697612732095
+ }
+}
