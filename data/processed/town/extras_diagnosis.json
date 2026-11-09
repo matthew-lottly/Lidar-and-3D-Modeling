@@ -1,0 +1,36 @@
+{
+ "sample_spacing_m": 2.0,
+ "km": {
+  "minor_line": {
+   "elevated returns on the line, no wire fitted": 0.8,
+   "fitted wire 6 to 15 m away (map offset or parallel line)": 0.01,
+   "fitted wire within 6 m": 0.11,
+   "no elevated returns, open ground": 0.75,
+   "no elevated returns, under vegetation": 0.17
+  },
+  "power_line": {
+   "elevated returns on the line, no wire fitted": 15.51,
+   "fitted wire 6 to 15 m away (map offset or parallel line)": 3.37,
+   "fitted wire within 6 m": 11.05,
+   "no elevated returns, open ground": 5.3,
+   "no elevated returns, under vegetation": 2.62
+  }
+ },
+ "total_km": 39.706,
+ "share": {
+  "elevated returns on the line, no wire fitted": 0.41076915327658287,
+  "fitted wire 6 to 15 m away (map offset or parallel line)": 0.08517604392283282,
+  "fitted wire within 6 m": 0.28121694454238655,
+  "no elevated returns, open ground": 0.1525210295673198,
+  "no elevated returns, under vegetation": 0.07031682869087795
+ },
+ "median_ndvi_by_category": {
+  "elevated returns on the line, no wire fitted": 0.29593764808890555,
+  "fitted wire 6 to 15 m away (map offset or parallel line)": 0.3176617421906492,
+  "fitted wire within 6 m": 0.33220180662859794,
+  "no elevated returns, open ground": 0.06178587888310909,
+  "no elevated returns, under vegetation": 0.3773660101013855
+ },
+ "median_distance_to_nearest_detected_support_m": 62.04939511056162,
+ "note": "ndvi_4m is the mean NAIP (2019) NDVI within 4 m of the mapped line; 0.3 and above is taken as vegetation. The map itself is not checked: a mapped line may be absent, relocated or mis-placed."
+}
