@@ -1,0 +1,82 @@
+{
+ "anchors": 664,
+ "anchors_added_from_learned_supports": 125,
+ "candidate_pairs": 2334,
+ "pair_table": 1214,
+ "labelled_on_map": 1003,
+ "auc_per_fold": [
+  0.7653061224489797,
+  0.93250531132538,
+  0.8739092495637,
+  0.8724586608837084,
+  0.6117879746835444
+ ],
+ "auc_mean": 0.8111934637810625,
+ "features": [
+  "L",
+  "coverage",
+  "n",
+  "sag_ratio",
+  "dz_ratio",
+  "z_a",
+  "z_b",
+  "near_learned_a",
+  "near_learned_b",
+  "deg_a",
+  "deg_b",
+  "cdeg_a",
+  "cdeg_b",
+  "cont_a",
+  "cont_b"
+ ],
+ "geometric_rule": {
+  "spans": 774,
+  "length_m": 46679.256876968655,
+  "precision_by_length": 0.9001564684895503
+ },
+ "threshold": 0.5999999999999998,
+ "scored_spans": {
+  "spans": 1010,
+  "length_m": 58573.46656071262,
+  "precision_by_length": 0.8812007823528915
+ },
+ "added_by_model": {
+  "spans": 246,
+  "length_m": 12421.093279260633,
+  "precision_by_length": 0.8054225274342834
+ },
+ "bridged": {
+  "spans": 7,
+  "length_m": 737.9455632280191,
+  "fraction_of_length_within_6m_of_mapped_line": 0.8126439183822285,
+  "max_angle_deg": 15,
+  "gap_range_m": [
+   25,
+   160
+  ],
+  "sag_coefficient": 0.00018688024007568622
+ },
+ "mapped_line_covered_within_6m": {
+  "confirmed": 0.32554273913262477,
+  "plus_scored_spans": 0.38115146325492366,
+  "plus_bridged": 0.3879514431068352
+ },
+ "connectivity": {
+  "confirmed": {
+   "components": 44,
+   "largest_component_share_of_nodes": 0.20204081632653062,
+   "nodes": 490
+  },
+  "plus_scored_spans": {
+   "components": 16,
+   "largest_component_share_of_nodes": 0.3621621621621622,
+   "nodes": 555
+  },
+  "plus_bridged": {
+   "components": 12,
+   "largest_component_share_of_nodes": 0.5711711711711712,
+   "nodes": 555
+  }
+ },
+ "note": "labels are 'within 6 m of a mapped line for 70% of the span', so precision against the map is a lower bound; bridged spans have no returns at all and are inferred from the line continuing straight"
+}

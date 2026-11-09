@@ -122,6 +122,175 @@ def learn_support(d, W_, Hg, P, hagP, gi, ndvi, tiles_meta):
     print(json.dumps({k: v for k, v in out.items() if k not in ("features",)}, indent=1)[:3500])
 
 
+def learned_supports(thr=0.12):
+    m = pickle.load(open(CACHE / "town" / "support_model.pkl", "rb"))
+    sel = m["oof"] >= thr
+    k = TL.nms(m["C"][sel], m["oof"][sel], 6.0)
+    return m["C"][sel][k], m["oof"][sel][k]
+
+
+def span_stage(d, P, hagP, feats):
+    """Candidate spans between anchors (the geometric ones plus the learned supports), scored by a model trained on spatially held-out tiles; dangling line ends are then bridged where two ends face each other."""
+    LS, LSs = learned_supports()
+    A0 = d["A"]
+    extra = [p for p in LS if np.hypot(*(A0 - p).T).min() > 8.0]
+    A = np.vstack([A0, np.array(extra).reshape(-1, 2)]) if extra else A0
+    prs = spans.pairs(A, max_neighbours=7)
+    tree = cKDTree(P[:, :2])
+    allres = []
+    for i, j in prs:
+        a, b = A[i], A[j]
+        idx = tree.query_ball_point((a + b) / 2, np.hypot(*(b - a)) / 2 + 12.0)
+        if len(idx) < 12:
+            continue
+        for w in spans.fit_pair(P[idx], a, b, None, corridor=8.0, max_wires=14, rng=np.random.default_rng(1), min_cov=0.2, min_n=12):
+            allres.append((i, j, w))
+    print(len(A), "anchors", len(prs), "pairs", len(allres), "weak-or-better wires", flush=True)
+    # pair level table
+    LP = sample_lines(feats)
+    tl = cKDTree(LP[["x", "y"]].to_numpy())
+    best = {}
+    for i, j, w in allres:
+        sc = w["coverage"] * w["n"]
+        if (i, j) not in best or sc > best[(i, j)][1]["coverage"] * best[(i, j)][1]["n"]:
+            best[(i, j)] = (w, w)
+    rows = []
+    sup_t = cKDTree(LS)
+    for (i, j), (w, _) in best.items():
+        xyz, flag = spans.wire_xyz(w, 2.0)
+        dm = tl.query(xyz[:, :2])[0]
+        mid = (A[i] + A[j]) / 2
+        e_i, e_j = sup_t.query(A[i])[0], sup_t.query(A[j])[0]
+        rows.append(dict(i=i, j=j, L=w["L"], coverage=w["coverage"], n=w["n"], sag_ratio=w["sag"] / w["L"] ** 2 * 1000, dz_ratio=abs(w["z_ends"][0] - w["z_ends"][1]) / w["L"], z_a=w["z_ends"][0], z_b=w["z_ends"][1],
+                         near_learned_a=float(e_i <= 8), near_learned_b=float(e_j <= 8), label=float((dm <= 6).mean() >= 0.7), frac_near_mapped=float((dm <= 6).mean()),
+                         tile=int(np.floor((mid[0] + HALF) / BT.TILE) * 10 + np.floor((mid[1] + HALF) / BT.TILE))))
+    T = pd.DataFrame(rows)
+    # network context features: degree at each end and the best collinear confirmed neighbour
+    conf = T[(T.coverage >= BM.MIN_COV) & (T.n >= BM.MIN_N)]
+    def direction(r):
+        v = A[int(r.j)] - A[int(r.i)]
+        return v / np.hypot(*v)
+    deg = {}
+    for r in T.itertuples():
+        for k in (r.i, r.j):
+            deg[k] = deg.get(k, 0) + 1
+    cdeg = {}
+    cdirs = {}
+    for r in conf.itertuples():
+        u = direction(r)
+        cdirs.setdefault(r.i, []).append(u); cdirs.setdefault(r.j, []).append(-u)
+        for k in (r.i, r.j):
+            cdeg[k] = cdeg.get(k, 0) + 1
+    def cont_angle(r, end):
+        u = direction(r) if end == "j" else -direction(r)
+        k = r.j if end == "j" else r.i
+        nb = [-v for v in cdirs.get(k, []) if abs(v @ u) < 0.999999 or True]
+        a = []
+        for v in cdirs.get(k, []):
+            # confirmed span leaves anchor k along v; our span leaves k along -u; a straight continuation means v ~ u (v points away from k, -u points away too)
+            a.append(np.degrees(np.arccos(np.clip(v @ (u * -1) * -1, -1, 1))))
+        a = [x for x in a if x > 1.0]      # skip the span itself
+        return min(a) if a else 90.0
+    T["deg_a"] = [deg[i] for i in T.i]; T["deg_b"] = [deg[j] for j in T.j]
+    T["cdeg_a"] = [cdeg.get(i, 0) for i in T.i]; T["cdeg_b"] = [cdeg.get(j, 0) for j in T.j]
+    T["cont_a"] = [cont_angle(r, "i") for r in T.itertuples()]; T["cont_b"] = [cont_angle(r, "j") for r in T.itertuples()]
+    names = ["L", "coverage", "n", "sag_ratio", "dz_ratio", "z_a", "z_b", "near_learned_a", "near_learned_b", "deg_a", "deg_b", "cdeg_a", "cdeg_b", "cont_a", "cont_b"]
+    X, y, g = T[names].to_numpy(float), T.label.to_numpy(int), T.tile.to_numpy()
+    oof = np.zeros(len(T)); aucs = []
+    for tr, te in GroupKFold(5).split(X, y, g):
+        m = HistGradientBoostingClassifier(max_iter=150, learning_rate=0.06, max_leaf_nodes=8, l2_regularization=1.0, random_state=0).fit(X[tr], y[tr])
+        oof[te] = m.predict_proba(X[te])[:, 1]
+        if y[te].min() != y[te].max():
+            aucs.append(roc_auc_score(y[te], oof[te]))
+    # baseline: the coverage rule of the geometric model
+    base = ((T.coverage >= BM.MIN_COV) & (T.n >= BM.MIN_N)).to_numpy()
+    T["p"] = oof
+    # operating point chosen on the held-out scores: the lowest threshold whose accepted spans keep precision against the map at least as high as the geometric rule's
+    def stats(sel):
+        return dict(spans=int(sel.sum()), length_m=float(T.L[sel].sum()), precision_by_length=float((T.frac_near_mapped[sel] * T.L[sel]).sum() / max(T.L[sel].sum(), 1)))
+    gb = stats(base)
+    pick = None
+    for t_ in np.arange(0.9, 0.05, -0.025):
+        s_ = stats(oof >= t_)
+        if s_["precision_by_length"] >= gb["precision_by_length"] - 0.02 and s_["spans"] > 0:
+            pick = float(t_)
+        elif pick is not None:
+            break
+    pick = pick if pick is not None else 0.5
+    acc = oof >= pick
+    T["accepted"] = acc; T["baseline"] = base
+    # bridging: dangling confirmed-or-accepted ends facing another dangling end
+    use = T[acc | base]
+    dd = {}
+    for r in use.itertuples():
+        for k in (r.i, r.j):
+            dd[k] = dd.get(k, 0) + 1
+    dirs = {}
+    for r in use.itertuples():
+        u = direction(r); dirs.setdefault(r.i, []).append(u); dirs.setdefault(r.j, []).append(-u)
+    dang = [k for k, v in dd.items() if v == 1]
+    have = {(min(r.i, r.j), max(r.i, r.j)) for r in use.itertuples()}
+    bridges = []
+    for a in dang:
+        ua = -dirs[a][0]   # the span arrives at a travelling along -dirs? dirs[a][0] points away from a into the span; the continuation points the opposite way
+        for b in dang:
+            if b <= a or (a, b) in have:
+                continue
+            v = A[b] - A[a]; L = np.hypot(*v)
+            if not (25 <= L <= 160):
+                continue
+            v /= L
+            ub = -dirs[b][0]
+            ang_a = np.degrees(np.arccos(np.clip(v @ ua, -1, 1))); ang_b = np.degrees(np.arccos(np.clip(-v @ ub, -1, 1)))
+            if ang_a <= 15 and ang_b <= 15:
+                bridges.append((a, b, L, max(ang_a, ang_b)))
+    # sag model for bridged spans from the confirmed ones: parabola sag = k L^2
+    k = float(np.median(T.sag_ratio[base]) / 1000) if base.any() else 0.0
+    zend = {}
+    for r in use.itertuples():
+        zend.setdefault(r.i, []).append(r.z_a); zend.setdefault(r.j, []).append(r.z_b)
+    brs = []
+    for a, b, L, ang in bridges:
+        za, zb = float(np.median(zend[a])), float(np.median(zend[b]))
+        s_ = np.arange(0, L + 1e-6, 2.0)
+        u = (A[b] - A[a]) / L
+        xy = A[a] + s_[:, None] * u
+        z = za + (zb - za) * s_ / L - k * s_ * (L - s_)
+        brs.append(dict(a=int(a), b=int(b), L=float(L), angle_deg=float(ang), xyz=np.c_[xy, z]))
+    # coverage of the mapped lines
+    def cover(parts):
+        Wp = np.vstack(parts)
+        dl = cKDTree(Wp[:, :2]).query(LP[["x", "y"]].to_numpy())[0]
+        return float((dl <= 6).mean())
+    wires_of = lambda sel: [spans.wire_xyz(best[(int(r.i), int(r.j))][0], 2.0)[0] for r in T[sel].itertuples()]
+    c_base = cover(wires_of(base))
+    c_acc = cover(wires_of(base | acc))
+    c_br = cover(wires_of(base | acc) + [b["xyz"] for b in brs]) if brs else c_acc
+    brl = np.array([cKDTree(LP[["x", "y"]].to_numpy()).query(b["xyz"][:, :2])[0] for b in brs], dtype=object)
+    br_prec = float(np.mean([np.mean(x <= 6) for x in brl])) if len(brl) else None
+    # network connectivity: nodes = anchors, edges = spans
+    import scipy.sparse as sp_
+    from scipy.sparse.csgraph import connected_components as cc
+    def comps(edges):
+        e = np.array(edges).reshape(-1, 2)
+        nodes = np.unique(e)
+        mp = {v: n for n, v in enumerate(nodes)}
+        g = sp_.coo_matrix((np.ones(len(e)), ([mp[a] for a in e[:, 0]], [mp[b] for b in e[:, 1]])), shape=(len(nodes),) * 2)
+        n, lab = cc(g, directed=False)
+        return int(n), float(np.bincount(lab).max() / len(nodes)), int(len(nodes))
+    e0 = [(r.i, r.j) for r in T[base].itertuples()]
+    e1 = e0 + [(r.i, r.j) for r in T[acc & ~base].itertuples()]
+    e2 = e1 + [(b["a"], b["b"]) for b in brs]
+    conn = {nm: dict(zip(("components", "largest_component_share_of_nodes", "nodes"), comps(e))) for nm, e in (("confirmed", e0), ("plus_scored_spans", e1), ("plus_bridged", e2))}
+    out = dict(anchors=int(len(A)), anchors_added_from_learned_supports=int(len(extra)), candidate_pairs=int(len(prs)), pair_table=int(len(T)), labelled_on_map=int(y.sum()), auc_per_fold=[float(a) for a in aucs], auc_mean=float(np.mean(aucs)),
+               features=names, geometric_rule=gb, threshold=pick, scored_spans=stats(acc), added_by_model=stats(acc & ~base), bridged=dict(spans=len(brs), length_m=float(sum(b["L"] for b in brs)), fraction_of_length_within_6m_of_mapped_line=br_prec, max_angle_deg=15, gap_range_m=[25, 160],
+                                                                                                                    sag_coefficient=k), mapped_line_covered_within_6m=dict(confirmed=c_base, plus_scored_spans=c_acc, plus_bridged=c_br), connectivity=conn,
+               note="labels are 'within 6 m of a mapped line for 70% of the span', so precision against the map is a lower bound; bridged spans have no returns at all and are inferred from the line continuing straight")
+    (OUT / "extras_spans.json").write_text(json.dumps(out, indent=1, default=float))
+    pickle.dump(dict(A=A, T=T, best=best, brs=brs, LS=LS, LSs=LSs, pick=pick), open(CACHE / "town" / "spans_extras.pkl", "wb"))
+    print(json.dumps(out, indent=1, default=float))
+
+
 def main():
     what = sys.argv[1] if len(sys.argv) > 1 else "all"
     OUT.mkdir(parents=True, exist_ok=True)
@@ -130,6 +299,8 @@ def main():
         diagnose(d, P, hagP, ndvi, feats)
     if what in ("support", "all"):
         learn_support(d, W_, Hg, P, hagP, gi, ndvi, meta)
+    if what in ("spans", "all"):
+        span_stage(d, P, hagP, feats)
 
 
 if __name__ == "__main__":
