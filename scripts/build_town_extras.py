@@ -291,6 +291,81 @@ def span_stage(d, P, hagP, feats):
     print(json.dumps(out, indent=1, default=float))
 
 
+def equipment_stage(d, P, hagP, feats):
+    """Two things. (1) Substation yards: structures from the dense returns inside each yard, scored against the mapped switches, transformers and portals (all 97 mapped items of this kind lie inside the two yards). (2) Pole-top equipment candidates
+    at supports: a compact thickening of the pole column just below its top. The map has no pole-mounted equipment, so (2) has no ground truth here and is reported as unverified candidates, with a control."""
+    from shapely import contains_xy
+    from shapely.geometry import Point
+    from lidar3d import utility
+    from lidar3d.ept import EPT
+    from pyproj import Transformer
+    cx, cy = d["cx"], d["cy"]
+    back = Transformer.from_crs(BT.CRS, 4326, always_xy=True)
+    eq = {k: np.array([(g.x, g.y) for g in feats.get(k, []) if g.geom_type == "Point"]).reshape(-1, 2) for k in ("switch", "transformer", "portal")}
+    allq = np.vstack(list(eq.values()))
+    yards = []
+    for g in feats["substation"]:
+        b = g.buffer(15).bounds
+        W_, S_ = back.transform(cx + b[0], cy + b[1]); E_, N_ = back.transform(cx + b[2], cy + b[3])
+        c = EPT(BT.PROJECT).fetch((W_, S_, E_, N_), max_depth=20, log=lambda s: None)
+        k = (c.x >= cx + b[0]) & (c.x < cx + b[2]) & (c.y >= cy + b[1]) & (c.y < cy + b[3]) & (c.cls != 7)
+        x, y, z, cls = c.x[k] - cx, c.y[k] - cy, c.z[k], c.cls[k]
+        xyz = np.c_[x, y, z]
+        hag, _ = utility.height_above_ground(x, y, z, cls, (b[0], b[1], b[2], b[3]), 1.0)
+        wmask, _, _ = utility.detect_wires(xyz, hag)
+        inside = contains_xy(g.buffer(0), x, y)
+        S = utility.yard_structures(xyz, hag, inside, wmask)
+        Sx = np.array([(s_["x"], s_["y"]) for s_ in S]).reshape(-1, 2)
+        mapped = allq[contains_xy(g.buffer(10), allq[:, 0], allq[:, 1])]
+        rng = np.random.default_rng(0)
+        R = rng.uniform([b[0], b[1]], [b[2], b[3]], (60000, 2)); R = R[contains_xy(g.buffer(0), R[:, 0], R[:, 1])][:5000]
+        rec = {}
+        if len(mapped) and len(Sx):
+            tS = cKDTree(Sx)
+            dm, dr = tS.query(mapped)[0], tS.query(R)[0]
+            rec = dict(mapped_equipment=int(len(mapped)), within_1p5m=float((dm < 1.5).mean()), random_within_1p5m=float((dr < 1.5).mean()), within_3m=float((dm < 3).mean()), random_within_3m=float((dr < 3).mean()), median_distance_m=float(np.median(dm)))
+        yards.append(dict(area_m2=float(g.area), centre=[float(g.centroid.x), float(g.centroid.y)], points=int(len(x)), structures=len(S), structure_xy=Sx.tolist(), structure_top_hag=[float(s_["top_hag"]) for s_ in S],
+                          median_top_hag_m=float(np.median([s_["top_hag"] for s_ in S])) if S else None, versus_map=rec, mapped_xy=mapped.tolist()))
+        print("yard", yards[-1]["area_m2"], yards[-1]["structures"], rec, flush=True)
+    # pole-top equipment at supports
+    sup = d["sup"][d["sup"].tier == "support"][["x", "y"]].to_numpy()
+    m = pickle.load(open(CACHE / "town" / "support_model.pkl", "rb"))
+    LS = m["C"][m["oof"] >= 0.12]
+    LS = LS[TL.nms(LS, m["oof"][m["oof"] >= 0.12], 6.0)]
+    ctrl_all = m["C"][(m["y"] == 0)]
+    rng = np.random.default_rng(1)
+    ctrl = ctrl_all[rng.choice(len(ctrl_all), 600, replace=False)]
+    sel = hagP >= 5.0
+    tree = cKDTree(P[sel][:, :2]); Pv, Hv = P[sel], hagP[sel]
+    def poletop(xy):
+        out = []
+        for q in np.atleast_2d(xy):
+            ids = tree.query_ball_point(q, 2.0)
+            if len(ids) < 20:
+                out.append((False, 0.0, np.nan, np.nan)); continue
+            h = Hv[ids]; top = np.percentile(h, 99)
+            low = ((h >= top - 8) & (h < top - 6)).sum()
+            best = (0.0, np.nan, np.nan)
+            for lo in np.arange(top - 5.5, top - 1.4, 0.5):
+                sl = (h >= lo) & (h < lo + 1.0)
+                if sl.sum() >= 12:
+                    r_ = sl.sum() / max(low, 4)
+                    if r_ > best[0]:
+                        c = Pv[ids][sl][:, :2].mean(0)
+                        best = (r_, float(np.hypot(*(c - q))), float(lo + 0.5))
+            out.append((best[0] >= 3.0 and best[1] <= 2.0, best[0], best[1], best[2]))
+        return out
+    res_sup, res_ls, res_ctrl = poletop(sup), poletop(LS), poletop(ctrl)
+    rate = lambda r: float(np.mean([a for a, _, _, _ in r])) if len(r) else None
+    cand = [dict(x=float(q[0]), y=float(q[1]), ratio=float(r[1]), offset_m=float(r[2]), height_below_top_m=None, hag_m=float(r[3])) for q, r in zip(sup, res_sup) if r[0]]
+    out = dict(yards=yards, pole_top=dict(supports_tested=int(len(sup)), candidates_at_geometric_supports=int(sum(a for a, *_ in res_sup)), rate_geometric_supports=rate(res_sup), learned_supports_tested=int(len(LS)),
+                                         rate_learned_supports=rate(res_ls), control_column_candidates_tested=int(len(ctrl)), rate_control=rate(res_ctrl), candidates=cand,
+                                         rule="at least 12 returns in a 1 m band within 2 m of the support axis, 1.5 to 5.5 m below its top, with at least 3 times the returns of the 2 m band 6 to 8 m below the top, centred within 2 m of the axis",
+                                         note="the map holds no pole-mounted equipment, so these are unverified candidates; the control is column-shaped locations the support model labelled as not mapped poles"))
+    (OUT / "extras_equipment.json").write_text(json.dumps(out, indent=1, default=float))
+    print(json.dumps({k: v for k, v in out["pole_top"].items() if k != "candidates"}, indent=1))
+
+
 def main():
     what = sys.argv[1] if len(sys.argv) > 1 else "all"
     OUT.mkdir(parents=True, exist_ok=True)
@@ -301,6 +376,8 @@ def main():
         learn_support(d, W_, Hg, P, hagP, gi, ndvi, meta)
     if what in ("spans", "all"):
         span_stage(d, P, hagP, feats)
+    if what in ("equipment", "all"):
+        equipment_stage(d, P, hagP, feats)
 
 
 if __name__ == "__main__":
