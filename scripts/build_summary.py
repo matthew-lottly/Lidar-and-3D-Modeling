@@ -60,10 +60,15 @@ def cards():
     c.append(dict(n=12, group="Floods", title="Drainage and flood-stage road vulnerability, Norfolk, Virginia", img="outputs/53_norfolk_flood_stages.png", doc="docs/flood-drainage.md",
                   what="A 1 m bare-earth terrain conditioned with pysheds, culvert-obstruction candidates at road embankments, and bathtub flooding at stages from 1.5 to 4 m against the drivable road network.",
                   stats=[(f"{fl['dtm_holdout']['rmse_m'] * 100:.1f} cm", "terrain hold-out error"), (f"{fl['road_vulnerability']['3']['any_low_ground']['km_impassable']:.0f} of {fl['roads']['drivable_km']:.0f} km", "roads under 30 cm of water at a 3 m stage"), (f"{fl['stages']['2.5']['raw_stage_minus_0.1']:.0f} to {fl['stages']['2.5']['raw_stage_plus_0.1']:.0f} ha", "flooded at 2.5 m if the stage is off by 10 cm")], limit="Static bathtub: no rain, drains, pumps, tide or storm."))
+    tw, tsp, tdg = J("town/stats.json"), J("town/extras_spans.json"), J("town/extras_diagnosis.json")
+    c.append(dict(n=13, group="Utilities", title="Town-scale utility model, White River, Washington (3 km by 3 km)", img="outputs/57_whiteriver_town_network_map.png", doc="docs/white-river-town-model.md",
+                  what="Tiled extraction of wires, poles and substation structures from 270 million lidar points, spans fitted between supports with sag-curve gap filling, a diagnosis of the mapped lines that get no wire, a learned support detector and span scoring, and a map and figure for each part.",
+                  stats=[(f"{tsp['mapped_line_covered_within_6m']['plus_bridged'] * 100:.0f}%", "of mapped line length recovered (33% with the first rule)"), (f"{tsp['connectivity']['confirmed']['components']} to {tsp['connectivity']['plus_bridged']['components']}", "separate network pieces after scoring and bridging"), (f"{tdg['share']['elevated returns on the line, no wire fitted'] * 100:.0f}%", "of mapped line has returns but no support found")],
+                  limit="Checked only against Overture, which misses poles and has no pole-mounted equipment; the learned pole detector is no better than the geometric one."))
     return c
 
 
-CHECK_KEY = {2: "Seattle buildings", 3: "Cape Cod erosion", 4: "Tatoosh terrain and hydrology", 5: "Utilities, fusion, spans (White River)", 6: "Utilities, fusion, spans (White River)", 7: "Utilities, fusion, spans (White River)", 8: "Wabash scroll bars",
+CHECK_KEY = {13: "Utilities, fusion, spans (White River)", 2: "Seattle buildings", 3: "Cape Cod erosion", 4: "Tatoosh terrain and hydrology", 5: "Utilities, fusion, spans (White River)", 6: "Utilities, fusion, spans (White River)", 7: "Utilities, fusion, spans (White River)", 8: "Wabash scroll bars",
              9: "Canopy, Tahoe", 10: "Rooftop solar", 11: "Pacifica differencing", 12: "Norfolk flood and drainage"}
 MATRIX = {r["analysis"]: r for r in json.loads((ROOT / "data" / "processed" / "validation" / "matrix.json").read_text())}
 
