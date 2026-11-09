@@ -139,6 +139,10 @@ Checks made after the map was finished, not used to tune it, except where stated
 * Agreement with ESA WorldCover at 10 m is 68 %. Most of the disagreement is WorldCover calling sparsely vegetated alpine ground "grassland" where the lidar and NDVI say bare. This is a disagreement between maps, not a measured accuracy; there is no field data here.
 * History, stated plainly: the first version of the classifier labelled 52 % of the area as bare ground. The NDVI check showed that was wrong (mean NDVI 0.60 there), so the bare/short-vegetation split was changed to use intensity. The NDVI check therefore shaped the final design.
 
+## Fourteenth item: White River town-scale utility model
+
+A 3 km by 3 km area of Pierce County, Washington (270 million lidar points, 36 tiles): wires, poles, spans fitted between supports with sag-curve gap filling (4 to 5 cm interpolation error), a diagnosis of why only 33% of mapped line length gets a wire, a learned support detector that does not beat the geometric one, substation-yard equipment found at 72% of mapped items within 3 m (29% for random points), unverified pole-top candidates, and learned span scoring plus straight-line bridging that raise recovery of the mapped network to 39% and reduce the network from 44 pieces to 12. Plates 56 to 65 (a map and a figure for each part, and the full network map 57); method, numbers and limits in [docs/white-river-town-model.md](docs/white-river-town-model.md).
+
 ## Accuracy against independent data
 
 Every analysis is checked against something it did not produce (a second survey, overlapping flight lines, USGS's own DTM, satellite and third-party maps, null tests); the table, what each check changed and what is still unchecked are in [docs/accuracy-assessment.md](docs/accuracy-assessment.md). Run the `scripts/validate_*.py` scripts, then `python scripts/build_accuracy_report.py`.

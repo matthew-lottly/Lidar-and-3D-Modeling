@@ -105,7 +105,7 @@ def learn_support(d, W_, Hg, P, hagP, gi, ndvi, tiles_meta):
         oof[te] = m.predict_proba(X[te])[:, 1]
         if y[te].min() != y[te].max():
             aucs.append(roc_auc_score(y[te], oof[te]))
-    thr = np.round(np.arange(0.3, 0.99, 0.03), 2)
+    thr = np.round(np.arange(0.02, 0.9, 0.02), 2)
     geo = d["sup"][d["sup"].tier == "support"][["x", "y"]].to_numpy()
     rawp = d["poles"][:, :2]
     out = dict(candidates_before_column_filter=int(n_all), candidates=int(len(C)), positives=int(y.sum()), positive_share=float(y.mean()), features=names, folds=5, auc_per_fold=[float(a) for a in aucs], auc_mean=float(np.mean(aucs)), auc_oof=float(roc_auc_score(y, oof)),
