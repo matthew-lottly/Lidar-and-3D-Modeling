@@ -1,0 +1,93 @@
+{
+ "project": "WA_PierceCounty_1_2020",
+ "collected": [
+  "2020-04-13"
+ ],
+ "centre_lonlat": [
+  -122.21035,
+  47.23898
+ ],
+ "area_km2": 9.0,
+ "tiles": 36,
+ "points_read_incl_buffers": 270011713,
+ "detections": {
+  "wire_points": 49379,
+  "wire_chains": 352,
+  "poles": 77,
+  "elevated_candidate_points": 4187935
+ },
+ "anchors": 539,
+ "pairs": 1842,
+ "wires": 1755,
+ "wire_length_m": 107667.09869680446,
+ "observed_share": 0.7890736342042756,
+ "supports": 148,
+ "attachment_only": 250,
+ "null": {
+  "shifts": 4,
+  "null_length_m": [
+   6771.422630423766,
+   4450.249605946311,
+   5038.930732039794,
+   12441.140119792259
+  ],
+  "null_to_real_ratio": 0.06664464686892782
+ },
+ "overture": {
+  "power_poles_and_towers": 278,
+  "mapped_line_points": 19853,
+  "mapped_line_covered_within_6m": 0.28121694454238655,
+  "wire_within_10m_of_a_mapped_line": 0.998044947926183,
+  "supports_vs_poles": {
+   "3.0": {
+    "detected": 148,
+    "matched": 34,
+    "precision": 0.22972972972972974,
+    "recall": 0.11870503597122302,
+    "median_offset_m": 1.444924406343656
+   },
+   "5.0": {
+    "detected": 148,
+    "matched": 48,
+    "precision": 0.32432432432432434,
+    "recall": 0.16546762589928057,
+    "median_offset_m": 2.1104668059416234
+   },
+   "8.0": {
+    "detected": 148,
+    "matched": 63,
+    "precision": 0.42567567567567566,
+    "recall": 0.2158273381294964,
+    "median_offset_m": 2.817726506934888
+   }
+  },
+  "detected_poles_vs_poles": {
+   "3.0": {
+    "detected": 77,
+    "matched": 23,
+    "precision": 0.2987012987012987,
+    "recall": 0.07913669064748201,
+    "median_offset_m": 1.6598256056617664
+   },
+   "5.0": {
+    "detected": 77,
+    "matched": 28,
+    "precision": 0.36363636363636365,
+    "recall": 0.09352517985611511,
+    "median_offset_m": 1.8641981354026278
+   }
+  }
+ },
+ "interpolation_holdout": {
+  "20": {
+   "n": 309,
+   "rms_linear_m": 0.07671703229108041,
+   "rms_parabola_m": 0.0443052343382376
+  },
+  "40": {
+   "n": 309,
+   "rms_linear_m": 0.23750883692052066,
+   "rms_parabola_m": 0.04720563436437659
+  }
+ }
+}
