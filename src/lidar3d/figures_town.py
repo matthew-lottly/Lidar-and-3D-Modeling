@@ -38,6 +38,9 @@ def load():
     D["sp"] = pickle.load(open(CACHE / "town" / "spans_extras.pkl", "rb"))
     D["sm"] = pickle.load(open(CACHE / "town" / "support_model.pkl", "rb"))
     D["diag"] = pickle.load(open(CACHE / "town" / "diag.pkl", "rb"))
+    up = CACHE / "town" / "unified.pkl"
+    D["uni"] = pickle.load(open(up, "rb")) if up.exists() and (PROC / "extras_unified.json").exists() else None
+    D["unij"] = J("extras_unified.json") if D["uni"] is not None else None
     D["stats"], D["dg"], D["su"], D["spj"], D["eq"] = J("stats.json"), J("extras_diagnosis.json"), J("extras_support.json"), J("extras_spans.json"), J("extras_equipment.json")
     G = D["model"]["G"]
     D["hs"] = hillshade(np.nan_to_num(G, nan=float(np.nanmedian(G))), 1.0, 315, 40)
@@ -137,6 +140,9 @@ def fig_full(D):
     mp = mapped_polyline_pts(D)
     a.scatter(mp[:, 0], mp[:, 1], s=1.2, color=C_MAP, zorder=3, linewidths=0)
     lc(a, conf, C_CONF, 1.2); lc(a, add, C_ADD, 1.1, "--", 6); lc(a, br, C_BR, 1.4, ":", 7)
+    if D["uni"] is not None:
+        lc(a, [w["xyz"][:, :2] for w in D["uni"]["adds"]], "#2E8B57", 1.0, "-", 6)
+        lc(a, [w["xyz"][:, :2] for w in D["uni"]["br"]], "#7B241C", 1.3, ":", 7)
     sup = D["model"]["sup"]; sup = sup[sup.tier == "support"]
     a.scatter(sup.x, sup.y, s=14, marker="s", color=C_SUP, zorder=9, edgecolors="white", linewidths=0.4)
     LS, LSs = sp["LS"], sp["LSs"]
@@ -149,7 +155,7 @@ def fig_full(D):
             a.scatter(S[:, 0], S[:, 1], s=2.5, color="#8E44AD", zorder=8)
     a.set_title("")
     scalebar(a, EXT, 500.0); north_arrow(a, EXT)
-    legend(a, [Line2D([], [], color=C_CONF, lw=1.4, label="wire, observed returns"), Line2D([], [], color=C_ADD, lw=1.4, ls="--", label="wire added by the span model"), Line2D([], [], color=C_BR, lw=1.6, ls=":", label="line end bridged across a gap"),
+    legend(a, [Line2D([], [], color=C_CONF, lw=1.4, label="wire, observed returns"), Line2D([], [], color=C_ADD, lw=1.4, ls="--", label="wire added by the span model"), Line2D([], [], color=C_BR, lw=1.6, ls=":", label="line end bridged across a gap")] + ([Line2D([], [], color="#2E8B57", lw=1.4, label="observed wire piece no span explains"), Line2D([], [], color="#7B241C", lw=1.6, ls=":", label="bridge between wire pieces")] if D["uni"] is not None else []) + [
                Line2D([], [], color=C_MAP, marker=".", ls="", label="mapped line (Overture)"), pts_legend(C_SUP, "support from wire attachments", "s", 5), pts_legend(C_LEARN, "support from the learned detector", "^", 5),
                pts_legend(C_POLE, "mapped pole or tower", "o", 5, "none"), pts_legend("#8E44AD", "substation structure", ".", 6)], "lower right", 7)
     pl.label(0.6, 8.35, "Full network")
@@ -159,6 +165,7 @@ def fig_full(D):
         ("What is on the map", f"{len(conf)} observed wire spans, {len(add)} spans the model added, {len(br)} bridged line ends, {int(sup.shape[0])} supports from wire attachments, {len(LS)} learned supports and the structures of two substation yards."),
         ("How much of the mapped network is recovered", f"{cov['confirmed'] * 100:.0f}% of the mapped line length has a fitted wire within 6 m with the first rule, {cov['plus_scored_spans'] * 100:.0f}% after the model-added spans and {cov['plus_bridged'] * 100:.0f}% after bridging. The rest is mostly line with returns on it but no detected support (41%), line with no returns in open ground (15%, so the map may be wrong there) and line under vegetation (7%)."),
         ("Connectivity", f"Supports linked by spans form {cn['confirmed']['components']} separate pieces at first, {cn['plus_scored_spans']['components']} with the model's spans and {cn['plus_bridged']['components']} after bridging; the largest piece holds {cn['confirmed']['largest_component_share_of_nodes'] * 100:.0f}%, then {cn['plus_scored_spans']['largest_component_share_of_nodes'] * 100:.0f}%, then {cn['plus_bridged']['largest_component_share_of_nodes'] * 100:.0f}% of the supports."),
+        ] + ([("Every detected wire", f"Wire pieces that no fitted span explained are now drawn where they were observed (green, {len(D['uni']['adds'])} pieces) and joined by sag-curve bridges where they line up ({len(D['uni']['br'])}, dark red): {D['unij']['coverage_before']['share_wire_points_within_1m'] * 100:.0f}% of the {D['unij']['wire_points']:,} detected wire points were within 1 m of a model wire before, {D['unij']['coverage_after_with_bridges']['share_wire_points_within_1m'] * 100:.0f}% are now. Wire ends with no support or bridge fell from {D['unij']['free_ends_before_bridges'] * 100:.0f}% to {D['unij']['free_ends_after_bridges'] * 100:.0f}%.")] if D["uni"] is not None else []) + [
         ("Read with care", "The map is incomplete and sometimes wrong, so every agreement figure with it is a floor for precision and a floor for recall. Poles are found well when a column of returns exists (41% of mapped poles have one within 3 m); the rest of the network is joined by geometry. Heights of added and bridged wires are modelled sag curves.")], 80)
     return pl.save("57_whiteriver_town_network_map.png")
 
