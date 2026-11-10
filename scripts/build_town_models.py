@@ -58,12 +58,14 @@ def prepare():
     return out
 
 
-def corridor(S):
+def corridor(S, bounds=(-440.0, -50.0, -70.0, 70.0), exclude=None):
     d, G, hag, wmask, wlab = S["d"], S["G"], S["hag"], S["wmask"], S["wlab"]
     x, y, z = d["x"], d["y"], d["z"]
     xyz = np.c_[x, y, z]
     gz = U.ground_fn(G)
-    cw = (x >= -440) & (x <= -50) & (y >= -70) & (y <= 70)
+    cw = (x >= bounds[0]) & (x <= bounds[1]) & (y >= bounds[2]) & (y <= bounds[3])
+    if exclude is not None:
+        cw &= ~exclude
     xc, hc, wm, wl = xyz[cw], hag[cw], wmask[cw], wlab[cw]
     poles = utility.detect_poles(xc, hc, exclude=wm)
     ids = [c for c in np.unique(wl[wl >= 0]) if (wl == c).sum() >= 8]
@@ -99,7 +101,7 @@ def corridor(S):
     before = U.coverage(wpts, span_w, sup[["x", "y"]].to_numpy())
     after_w = [dict(xyz=w, flag=np.ones(len(w))) for w in span_w] + adds
     after = U.coverage(wpts, after_w, None)
-    return dict(xc=xc, hc=hc, wm=wm, wl=wl, poles=poles, res=res, sup=sup, tiers=tiers, span_w=span_w, adds=adds, chain_l=chain_l, before=before, after=after, chain_share_added=kept, n_chains=len(chains), wpts=wpts)
+    return dict(cond=cond, xc=xc, hc=hc, wm=wm, wl=wl, poles=poles, res=res, sup=sup, tiers=tiers, span_w=span_w, adds=adds, chain_l=chain_l, before=before, after=after, chain_share_added=kept, n_chains=len(chains), wpts=wpts)
 
 
 def complete_supports(K, S):

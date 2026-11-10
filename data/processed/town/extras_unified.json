@@ -1,0 +1,32 @@
+{
+ "wire_points": 49379,
+ "fine_chains": 1531,
+ "span_wires": 1027,
+ "chain_pieces_added": 371,
+ "chain_length_share_kept": 0.39570830228166676,
+ "bridges": 473,
+ "bridged_length_m": 15742.407714403418,
+ "sag_k": 0.00018781042101542145,
+ "coverage_before": {
+  "model_wire_samples": 240414,
+  "share_wire_points_within_1m": 0.5957593308896495,
+  "share_within_0.5m": 0.5515300026326981,
+  "share_within_2m": 0.6616172867008242
+ },
+ "coverage_after_chain_pieces": {
+  "model_wire_samples": 249847,
+  "share_wire_points_within_1m": 0.8045120395309747,
+  "share_within_0.5m": 0.7353328337957431,
+  "share_within_2m": 0.8641527774965067
+ },
+ "coverage_after_with_bridges": {
+  "model_wire_samples": 313855,
+  "share_wire_points_within_1m": 0.8303732355859779,
+  "share_within_0.5m": 0.7603029627979505,
+  "share_within_2m": 0.8943275481479981
+ },
+ "wire_ends_ge10m": 2160,
+ "free_ends_before_bridges": 0.7537037037037037,
+ "free_ends_after_bridges": 0.26481481481481484,
+ "note": "coverage = share of detected wire points within 1 m of a model wire; 'before' is the fitted spans (first rule plus model-added) and the bridged line ends of plate 64"
+}

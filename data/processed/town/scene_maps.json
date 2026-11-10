@@ -1,0 +1,26 @@
+{
+ "overview": {
+  "wire_pieces": 525,
+  "wire_km": 2.129654534214898,
+  "within5": 0.9583866207575013,
+  "mapped_km": 7.746,
+  "mapped_covered": 0.43919442292796285,
+  "columns": 44,
+  "poles_ref": 61,
+  "pole_precision": 0.20454545454545456,
+  "pole_recall": 0.13114754098360656
+ },
+ "fused": {
+  "km": {
+   "confirmed": 2114.0,
+   "partial": 1714.0,
+   "elevated": 3176.0,
+   "none": 736.0
+  },
+  "total_km": 7.74,
+  "supports": 45,
+  "mapped": 61,
+  "precision": 0.3333333333333333,
+  "recall": 0.2459016393442623
+ }
+}
