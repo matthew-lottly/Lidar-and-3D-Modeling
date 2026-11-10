@@ -1,0 +1,33 @@
+{
+ "wire_km_outside_yard": 14.224,
+ "exposed_km": 7.096,
+ "exposed_share": 0.49887514060742405,
+ "km_by_exposure": {
+  "no tree can reach": 7.128,
+  "1 to 2 trees": 4.258,
+  "3 to 9 trees": 2.755,
+  "10 or more trees": 0.083
+ },
+ "km_by_clearance": {
+  "under 1.5 m": 0.495,
+  "1.5 to 3 m": 1.361,
+  "3 to 5 m": 1.918,
+  "5 m or more": 9.057
+ },
+ "km_from_canopy_rows": 1.393,
+ "trees": 2565,
+ "trees_can_strike": 279,
+ "trees_can_strike_two_or_more_wires": 165,
+ "supports": 66,
+ "supports_reachable": 58,
+ "supports_top_reachable": 29,
+ "median_strike_tree_height_m": 20.38015287446123,
+ "min_clearance_m": 1.0001395076765258,
+ "share_clear_under_3m": 0.14464967656457017,
+ "worst_wire": {
+  "index": 14,
+  "len": 117,
+  "max_n": 12,
+  "exposed_m": 117
+ }
+}
