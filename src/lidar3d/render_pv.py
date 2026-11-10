@@ -35,6 +35,34 @@ def wire_tube(xyz, radius=0.07, sides=5):
     return pv.lines_from_points(xyz).tube(radius=radius, n_sides=sides)
 
 
+def lines_mesh(polys):
+    """One polydata holding many polylines ((n, 3) arrays), for screen-space line widths."""
+    polys = [np.asarray(p, float) for p in polys if len(p) >= 2]
+    if not polys:
+        return None
+    pts = np.vstack(polys)
+    cells, off = [], 0
+    for q in polys:
+        cells.append(np.r_[len(q), np.arange(off, off + len(q))])
+        off += len(q)
+    m = pv.PolyData(pts)
+    m.lines = np.concatenate(cells)
+    return m
+
+
+def canopy_mesh(z_top, z_ground, mask, rgb, x0, y0, res, step=1):
+    """The tree canopy as a surface built from the canopy height model: cells with canopy follow the top of the returns, every other vertex is pushed just under the ground so the crowns stand as solids. rgb (ny, nx, 3) uint8."""
+    z = np.where(mask, z_top, z_ground - 0.15)[::step, ::step]
+    ny, nx = z.shape
+    X = x0 + (np.arange(nx) * step + 0.5) * res
+    Y = y0 + (np.arange(ny) * step + 0.5) * res
+    XX, YY = np.meshgrid(X, Y)
+    g = pv.StructuredGrid(XX, YY, z)
+    sub = rgb[::step, ::step]
+    g["rgb"] = np.stack([sub[..., k].ravel(order="F") for k in range(3)], 1).astype(np.uint8)
+    return g
+
+
 def render(layers, focus, dist, az, el, size=(1700, 1000), sky=("#dbe9f5", "#8fb4d9"), zoom=1.0, light_az=300.0, light_el=45.0, ssao=False, shadows=False, bg=None):
     """layers: list of dicts(mesh=..., kind='mesh'|'points'|'tube', color/rgb, opacity, point_size). Camera looks at `focus` from compass bearing `az` (0 = camera north of the target, 90 = east) at elevation `el` degrees and distance `dist` m."""
     pl = pv.Plotter(off_screen=True, window_size=size)
@@ -44,6 +72,9 @@ def render(layers, focus, dist, az, el, size=(1700, 1000), sky=("#dbe9f5", "#8fb
         pl.set_background(sky[0], top=sky[1])
     for L in layers:
         kind = L.get("kind", "mesh")
+        if kind == "lines":
+            pl.add_mesh(L["mesh"], color=L.get("color", "black"), line_width=L.get("width", 2.0), render_lines_as_tubes=True, lighting=False)
+            continue
         if kind == "points":
             pl.add_mesh(L["mesh"], scalars="rgb", rgb=True, point_size=L.get("point_size", 3.0), render_points_as_spheres=False, lighting=False)
         elif L.get("rgb", True) and "rgb" in L["mesh"].array_names:

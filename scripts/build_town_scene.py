@@ -282,27 +282,29 @@ def assemble(S, D, N, mode="classified", step=2):
         yard_m = contains_xy(Y["yard"], XX, YY)
         col = np.where(yard_m[..., None], np.array([200, 196, 186], np.uint8), col)
     layers["ground"] = R.ground_mesh(dict(z=G["z"], res=G["res"], x0=G["x0"], y0=G["y0"]), col, step)
-    # trees
+    # trees: the canopy surface from the lidar canopy height model (not templates), coloured from the photo or by height
     T = D["trees"]
     n = len(T["x"])
+    chm = D["chm"]
+    from scipy import ndimage as ndi
+    mask = np.isfinite(chm) & (chm >= 2.0)
+    mask = ndi.binary_closing(mask, iterations=1) | mask
+    filled = np.where(np.isfinite(chm), chm, 0.0)
+    smooth = ndi.gaussian_filter(filled, 0.9)
+    top = np.where(mask, np.maximum(smooth, 1.0), 0.0) + G["z"]
     if photo:
-        c = CL.displaced_rgb(S["img"][:3], S["tf"], d["cx"], d["cy"], T["x"], T["y"], np.maximum(T["height"] - 1.0, 0) * 0 + fit_h(T), dict(k=fit["k"], bx=fit["bx"], by=fit["by"])).astype(float)
-        # where the displaced image position is not vegetated (it landed on a roof or road), fall back to a green from the crown's own undisplaced position
-        hmid = fit_h(T)
-        de, dn = hmid * (fit["k"] * T["x"] + fit["bx"]), hmid * (fit["k"] * T["y"] + fit["by"])
-        _, ndv = sample_naip(S, T["x"] + de, T["y"] + dn)
-        c0 = CL.displaced_rgb(S["img"][:3], S["tf"], d["cx"], d["cy"], T["x"], T["y"], np.zeros(n), dict(k=0, bx=0, by=0)).astype(float)
-        bad = ndv < 0.15
-        c[bad] = c0[bad] * 0.85 + np.array([20, 40, 18])
-        rng = np.random.default_rng(1)
-        c = np.clip(c * rng.uniform(1.0, 1.3, (n, 1)), 0, 255).astype(np.uint8)
-        layers_tree_fallback = int(bad.sum())
+        h_c = np.where(mask, smooth, 0.0)
+        de = h_c * (fit["k"] * XX + fit["bx"]); dn = h_c * (fit["k"] * YY + fit["by"])
+        cc, _ = sample_naip(S, XX + de, YY + dn)
+        _, nd_c = sample_naip(S, XX + de, YY + dn)
+        c0, _ = sample_naip(S, XX, YY)
+        cc = np.where((nd_c < 0.12)[..., None], (c0 * 0.8 + np.array([18, 38, 16])).clip(0, 255).astype(np.uint8), cc)
+        tone = np.clip(0.9 + 0.012 * np.minimum(smooth, 25.0), 0.9, 1.2)[..., None]
+        cc = np.clip(cc.astype(float) * tone, 0, 255).astype(np.uint8)
     else:
-        t = np.clip((T["height"] - 3.0) / 30.0, 0, 1)
-        cm = plt.get_cmap("YlGn_r")
-        c = (cm(0.15 + 0.7 * (1 - t))[:, :3] * 255).astype(np.uint8)
-        c = (plt.get_cmap("Greens")(0.35 + 0.6 * t)[:, :3] * 255).astype(np.uint8)
-    layers["trees"] = SC.trees_mesh(T, lambda a, b: gz(a, b), c)
+        t = np.clip((smooth - 3.0) / 32.0, 0, 1)
+        cc = (plt.get_cmap("Greens")(0.3 + 0.62 * t)[..., :3] * 255).astype(np.uint8)
+    layers["canopy"] = R.canopy_mesh(top, G["z"], mask, cc, G["x0"], G["y0"], G["res"], step=1 if step == 1 else 1)
     # buildings
     def roof_color(b, j):
         if not photo:
@@ -355,6 +357,13 @@ def assemble(S, D, N, mode="classified", step=2):
             t["rgb"] = np.tile(np.array((28, 30, 34) if photo else (20, 20, 20), np.uint8), (t.n_points, 1))
             tubes.append(t)
     layers["wires"] = SC.merge(tubes)
+    layers["wires_lines"] = R.lines_mesh(wires)
+    sx = list(N["K"]["sup"][N["K"]["sup"].tier == "support"].itertuples())
+    tops = [(r.x, r.y, r.top_z) for r in sx] + [(t["x"], t["y"], float(gz(t["x"], t["y"])[0]) + t["height"]) for t in Y["towers"]]
+    if tops:
+        pm = pv.PolyData(np.array(tops, float))
+        layers["support_markers"] = pm.glyph(geom=pv.Sphere(radius=2.2, theta_resolution=10, phi_resolution=8), scale=False, orient=False)
+        layers["support_markers"]["rgb"] = np.tile(np.array((235, 70, 50), np.uint8), (layers["support_markers"].n_points, 1))
     info = dict(tree_colour_fallbacks=int(locals().get("layers_tree_fallback", 0)), open_frames=len(frames), boxy_blocks=len(boxy), clean=clean_stats, wires_final=wires, wires_raw=wires_raw, displacement=fit, equipment_kinds={k: kinds.count(k) for k in set(kinds)}, trees=int(n), buildings=len(D["buildings"]))
     return layers, info
 

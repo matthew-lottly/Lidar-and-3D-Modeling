@@ -15,7 +15,8 @@ from matplotlib.patches import Polygon as MPoly
 from . import sitemap, spans
 from .cloud import hillshade
 from .ept import CACHE
-from .plates import INK, MUTED, Plate, map_frame, north_arrow, scalebar
+from .plates import map_frame, north_arrow, scalebar
+from .plates_pro import ACCENT, INK, MUTED, ProPlate
 
 ROOT = Path(__file__).resolve().parents[2]
 PROC = ROOT / "data" / "processed" / "town"
@@ -50,8 +51,13 @@ def load():
 
 def src(D):
     s = D["stats"]
-    return (f"Lidar: USGS 3DEP {s['project']}, flown {s['collected'][0]} (about 25 returns per m2); 36 tiles read with a 40 m buffer. Power features: Overture Maps (OpenStreetMap-derived), used only to check and to train the support and span scores. "
-            "Imagery: NAIP 2019.")
+    return (f"Lidar: USGS 3DEP project {s['project']}, collected {s['collected'][0]}, about 25 returns per m2, read as 36 tiles of 500 m with a 40 m buffer; the survey carries no wire or tower classes. Reference: Overture Maps power features "
+            "(OpenStreetMap-derived), used to check results and, for the learned support and span scores, as labels. Imagery: NAIP 2019. Local grid in metres from the substation centre, UTM zone 10N.")
+
+
+KICK = "White River town model  ·  3 km by 3 km"
+MX, MW = 0.6, 6.95            # square map: x and size
+SX, SW = 7.95, 7.45           # sidebar next to a square map
 
 
 def base(ax, D, extent=EXT, shade=0.55, step=500.0):
@@ -112,20 +118,22 @@ def fig_site(D, naip_img):
     L = sitemap.regional_layers("whiteriver", bbox, "Washington", pop_min=20000)
     lon, lat = s["centre_lonlat"]
     dlon = HALF / (111000 * np.cos(np.radians(lat))); dlat = HALF / 111000
-    pl = Plate("Where the White River town model is", "A 3 km by 3 km square of the White River valley between Sumner, Auburn and Bonney Lake in Pierce County, Washington, with the White River substation at its centre", src(D), "Dashed grey: county lines. Red: freeways. Blue: water")
-    a = pl.ax(0.6, 1.1, 7.0, 7.2)
+    pl = ProPlate(56, KICK, "Where the White River town model is", "A 3 km square of the White River valley between Sumner, Auburn and Bonney Lake in Pierce County, Washington, centred on White River Substation", src(D), "Region map: dashed grey county lines, red freeways, blue water")
+    pl.panel_title(0.6, 8.14, "A", "Region", w=6.7)
+    a = pl.ax(0.6, 1.0, 6.7, 6.95)
     sitemap.draw_regional(a, L, bbox, (lon, lat), (dlon, dlat), label_places=("Seattle", "Tacoma", "Auburn", "Kent", "Puyallup", "Enumclaw", "Federal Way"))
     a.annotate("model area", xy=(lon, lat), xytext=(lon + 0.1, lat - 0.2), fontsize=9, fontweight="bold", color="#E74C3C", ha="center", arrowprops=dict(arrowstyle="->", color="#E74C3C", lw=1.2))
-    pl.label(0.6, 8.35, "Region")
-    b = pl.ax(8.2, 4.1, 3.8, 3.8)
-    b.imshow(np.moveaxis(naip_img[:3], 0, -1), extent=(-HALF, HALF, -HALF, HALF)); b.set_xticks([]); b.set_yticks([])
-    pl.label(8.2, 8.0, "Aerial imagery, 3 km")
-    c = pl.ax(12.2, 4.1, 3.2, 3.8)
-    c.imshow(D["G"], origin="lower", extent=EXT, cmap="terrain"); c.set_xticks([]); c.set_yticks([])
-    pl.label(12.2, 8.0, "Bare-earth terrain")
-    rows(pl, 8.2, 3.8, [("Why here", f"Of the Pierce County towns scanned, this flight is the densest and the area has a real transmission corridor (mapped: {s['overture']['power_poles_and_towers']} poles and towers, 38 km of high-voltage line) and a large substation. Density is about 25 returns per m2 over {s['area_km2']:.0f} km2 and {s['points_read_incl_buffers'] / 1e6:.0f} million points were read."),
-                        ("What is here", "Flat valley floor with farmland, warehouses and housing; the terrain panel spans about 60 m of relief. Vertical datum NAVD88."),
-                        ("How it was built", "The square was cut into 36 tiles of 500 m, read with a 40 m buffer, and wires, poles and elevated returns were extracted per tile and joined across the tile edges.")], 95)
+    pl.panel_title(7.65, 8.14, "B", "Aerial photo, 3 km", w=3.7)
+    pl.image(np.moveaxis(naip_img[:3], 0, -1), 7.65, 4.75, 3.7, 3.2)
+    pl.panel_title(11.7, 8.14, "C", "Bare-earth terrain", w=3.7)
+    b = pl.ax(11.7, 4.75, 3.7, 3.2)
+    b.imshow(D["G"], origin="lower", extent=EXT, cmap="terrain"); b.set_xticks([]); b.set_yticks([])
+    for sp in b.spines.values():
+        sp.set_color("#B7BCC3")
+    y0 = pl.tiles(7.65, 4.2, 7.75, [(f"{s['area_km2']:.0f} km\u00b2", "modelled, in 36 tiles"), (f"{s['points_read_incl_buffers'] / 1e6:.0f} M", "lidar points read"), (f"{s['overture']['power_poles_and_towers']}", "mapped poles and towers; 38 km of mapped line")])
+    pl.notes(7.65, y0 - 0.02, 7.75, [
+        ("Why this site", "Of the Pierce County towns scanned, this flight is among the densest and the area holds a transmission corridor and a large substation. Density is about 25 returns per m\u00b2, enough to see wires and large equipment but not to resolve small apparatus."),
+        ("What is here", "A flat valley floor with farmland, warehouses and housing on its edges, and about 60 m of relief across the terrain panel. Elevations are NAVD88.")], fs=8.4)
     return pl.save("56_whiteriver_town_site_map.png")
 
 
@@ -133,9 +141,10 @@ def fig_site(D, naip_img):
 def fig_full(D):
     s, sp, eq = D["stats"], D["sp"], D["eq"]
     conf, add, br = line_layers(D)
-    pl = Plate("The White River utility network, 3 km by 3 km", "Wires fitted between supports from the lidar, wires the model added where returns are weak, line ends bridged across gaps, supports and substation equipment",
-               src(D), "Wire heights are fitted from lidar returns; dashed lines are inferred, not observed")
-    a = pl.ax(0.6, 1.1, 7.2, 7.2)
+    cov, cn = D["spj"]["mapped_line_covered_within_6m"], D["spj"]["connectivity"]
+    pl = ProPlate(57, KICK, "The White River utility network", "Wires fitted between supports, wire pieces the spans missed, bridges across gaps, supports and substation structures", src(D), "Dashed and dotted lines are inferred, not observed")
+    pl.panel_title(MX, 8.14, "A", "Full network", w=MW)
+    a = pl.ax(MX, 1.0, MW, 6.95)
     base(a, D)
     mp = mapped_polyline_pts(D)
     a.scatter(mp[:, 0], mp[:, 1], s=1.2, color=C_MAP, zorder=3, linewidths=0)
@@ -145,7 +154,7 @@ def fig_full(D):
         lc(a, [w["xyz"][:, :2] for w in D["uni"]["br"]], "#7B241C", 1.3, ":", 7)
     sup = D["model"]["sup"]; sup = sup[sup.tier == "support"]
     a.scatter(sup.x, sup.y, s=14, marker="s", color=C_SUP, zorder=9, edgecolors="white", linewidths=0.4)
-    LS, LSs = sp["LS"], sp["LSs"]
+    LS = sp["LS"]
     a.scatter(LS[:, 0], LS[:, 1], s=16, marker="^", color=C_LEARN, zorder=9, edgecolors="white", linewidths=0.3)
     ref = D["model"]["ref"]
     a.scatter(ref[:, 0], ref[:, 1], s=9, facecolors="none", edgecolors=C_POLE, linewidths=0.5, zorder=8)
@@ -153,28 +162,25 @@ def fig_full(D):
         S = np.array(y["structure_xy"]).reshape(-1, 2)
         if len(S):
             a.scatter(S[:, 0], S[:, 1], s=2.5, color="#8E44AD", zorder=8)
-    a.set_title("")
     scalebar(a, EXT, 500.0); north_arrow(a, EXT)
-    legend(a, [Line2D([], [], color=C_CONF, lw=1.4, label="wire, observed returns"), Line2D([], [], color=C_ADD, lw=1.4, ls="--", label="wire added by the span model"), Line2D([], [], color=C_BR, lw=1.6, ls=":", label="line end bridged across a gap")] + ([Line2D([], [], color="#2E8B57", lw=1.4, label="observed wire piece no span explains"), Line2D([], [], color="#7B241C", lw=1.6, ls=":", label="bridge between wire pieces")] if D["uni"] is not None else []) + [
-               Line2D([], [], color=C_MAP, marker=".", ls="", label="mapped line (Overture)"), pts_legend(C_SUP, "support from wire attachments", "s", 5), pts_legend(C_LEARN, "support from the learned detector", "^", 5),
-               pts_legend(C_POLE, "mapped pole or tower", "o", 5, "none"), pts_legend("#8E44AD", "substation structure", ".", 6)], "lower right", 7)
-    pl.label(0.6, 8.35, "Full network")
-    cov = D["spj"]["mapped_line_covered_within_6m"]
-    cn = D["spj"]["connectivity"]
-    rows(pl, 8.3, 8.2, [
-        ("What is on the map", f"{len(conf)} observed wire spans, {len(add)} spans the model added, {len(br)} bridged line ends, {int(sup.shape[0])} supports from wire attachments, {len(LS)} learned supports and the structures of two substation yards."),
-        ("How much of the mapped network is recovered", f"{cov['confirmed'] * 100:.0f}% of the mapped line length has a fitted wire within 6 m with the first rule, {cov['plus_scored_spans'] * 100:.0f}% after the model-added spans and {cov['plus_bridged'] * 100:.0f}% after bridging. The rest is mostly line with returns on it but no detected support (41%), line with no returns in open ground (15%, so the map may be wrong there) and line under vegetation (7%)."),
-        ("Connectivity", f"Supports linked by spans form {cn['confirmed']['components']} separate pieces at first, {cn['plus_scored_spans']['components']} with the model's spans and {cn['plus_bridged']['components']} after bridging; the largest piece holds {cn['confirmed']['largest_component_share_of_nodes'] * 100:.0f}%, then {cn['plus_scored_spans']['largest_component_share_of_nodes'] * 100:.0f}%, then {cn['plus_bridged']['largest_component_share_of_nodes'] * 100:.0f}% of the supports."),
-        ] + ([("Every detected wire", f"Wire pieces that no fitted span explained are now drawn where they were observed (green, {len(D['uni']['adds'])} pieces) and joined by sag-curve bridges where they line up ({len(D['uni']['br'])}, dark red): {D['unij']['coverage_before']['share_wire_points_within_1m'] * 100:.0f}% of the {D['unij']['wire_points']:,} detected wire points were within 1 m of a model wire before, {D['unij']['coverage_after_with_bridges']['share_wire_points_within_1m'] * 100:.0f}% are now. Wire ends with no support or bridge fell from {D['unij']['free_ends_before_bridges'] * 100:.0f}% to {D['unij']['free_ends_after_bridges'] * 100:.0f}%.")] if D["uni"] is not None else []) + [
-        ("Read with care", "The map is incomplete and sometimes wrong, so every agreement figure with it is a floor for precision and a floor for recall. Poles are found well when a column of returns exists (41% of mapped poles have one within 3 m); the rest of the network is joined by geometry. Heights of added and bridged wires are modelled sag curves.")], 80)
+    u = D["unij"]
+    pl.panel_title(SX, 8.14, "B", "Key numbers", w=SW)
+    y0 = pl.tiles(SX, 7.85, SW, [(f"{u['coverage_after_with_bridges']['share_wire_points_within_1m'] * 100:.0f}%" if u else "-", "of detected wire points are in the model (60% before)"), (f"{cov['plus_bridged'] * 100:.0f}%", "of mapped line has a wire within 6 m (33% first rule)"), (f"{cn['confirmed']['components']} to {cn['plus_bridged']['components']}", "separate network pieces after scoring and bridging")])
+    y0 = pl.notes(SX, y0 - 0.05, SW, [
+        ("What is drawn", f"{len(conf)} observed wire spans, {len(add)} spans the span model added where returns were weak, {len(br)} bridged line ends, {int(sup.shape[0])} supports from wire attachments, {len(LS)} supports from the learned detector, and the structures of two substation yards." + (f" Wire pieces no fitted span explained are drawn where they were observed ({len(D['uni']['adds'])}, green) and joined by sag-curve bridges where they line up ({len(D['uni']['br'])}, dark red); wire ends with no support or bridge fell from {u['free_ends_before_bridges'] * 100:.0f}% to {u['free_ends_after_bridges'] * 100:.0f}%." if u else "")),
+        ("What is still missing", f"Recovery of the mapped network stops near {cov['plus_bridged'] * 100:.0f}%. The largest cause is line that has returns on it but no detected support (41% of mapped length); 15% has no returns at all in open ground, so the map may be wrong there, and 7% is under vegetation (plates 58 and 59)."),
+        ("How to read it", "The map is incomplete and sometimes wrong, so agreement with it is a floor for precision and recall. Wires are found well where a column of returns exists (41% of mapped poles have one within 3 m); the rest of the network is joined by geometry. Heights of added and bridged wire are modelled sag curves.")], fs=8.4)
+    pl.legend(SX, y0 - 0.02, SW, [("line", C_CONF, "wire, observed"), ("dash", C_ADD, "wire added by the span model"), ("dash", C_BR, "line end bridged"), ("line", "#2E8B57", "observed piece no span explains"), ("dash", "#7B241C", "bridge between pieces"),
+                                  ("dot", C_MAP, "mapped line"), ("square", C_SUP, "support from wire attachments"), ("tri", C_LEARN, "support from the learned detector"), ("ring", C_POLE, "mapped pole or tower"), ("dot", "#8E44AD", "substation structure")], fs=7.2, row_h=0.19)
     return pl.save("57_whiteriver_town_network_map.png")
 
 
 # ------------------------------------------------------------------------------------------------ 58/59 diagnosis
 def fig_diag_map(D):
     d = D["diag"]; dg = D["dg"]
-    pl = Plate("Why mapped power lines have no fitted wire", "Every 2 m along the 40 km of mapped line, coloured by what the lidar shows there", src(D), "Colour = category of the lidar evidence at that point of the mapped line; the map itself may be wrong")
-    a = pl.ax(0.6, 1.1, 7.2, 7.2)
+    pl = ProPlate(58, KICK, "Why mapped power lines have no fitted wire", "Every 2 m along 40 km of mapped line, coloured by what the lidar shows at that point", src(D), "The map itself may be wrong where the lidar shows nothing")
+    pl.panel_title(MX, 8.14, "A", "Mapped lines by lidar evidence", w=MW)
+    a = pl.ax(MX, 1.0, MW, 6.95)
     base(a, D)
     for cat, col in CAT_COL.items():
         m = d.category == cat
@@ -182,114 +188,123 @@ def fig_diag_map(D):
     sup = D["model"]["sup"]; sup = sup[sup.tier == "support"]
     a.scatter(sup.x, sup.y, s=10, marker="s", color="white", edgecolors=C_SUP, linewidths=0.7, zorder=9)
     scalebar(a, EXT, 500.0); north_arrow(a, EXT)
-    legend(a, [pts_legend(CAT_COL[c], f"{CAT_SHORT[c]}  ({dg['share'][c] * 100:.0f}%)", ".", 9) for c in CAT_COL] + [pts_legend(C_SUP, "detected support", "s", 5, "white")], "lower right", 7.5)
-    pl.label(0.6, 8.35, "Mapped lines by lidar evidence")
-    rows(pl, 8.3, 8.2, [
-        ("Reading the map", "Blue: a fitted wire lies within 6 m. Orange: returns that look like wire or crown are on the mapped line but no span was fitted, because the supports at its ends were not found. Green and red: no elevated returns at all, under vegetation (NAIP NDVI of 0.3 or more within 4 m) or on open ground."),
-        ("Main finding", f"{dg['share']['elevated returns on the line, no wire fitted'] * 100:.0f}% of the mapped length ({dg['km']['power_line']['elevated returns on the line, no wire fitted']:.1f} km of high-voltage line) has elevated returns on it with no wire fitted. The nearest detected support is a median {dg['median_distance_to_nearest_detected_support_m']:.0f} m from a mapped line point, so the missing piece is the supports, not the wires."),
-        ("Where the lidar shows nothing", f"{dg['share']['no elevated returns, open ground'] * 100:.0f}% of the mapped length ({dg['km']['power_line']['no elevated returns, open ground']:.1f} km) has no elevated returns on open ground, which points at a mapped line that is not there or is drawn in the wrong place; {dg['share']['no elevated returns, under vegetation'] * 100:.0f}% is under vegetation."),
-        ("Limit", "A return within 3 m at 5 m height is not proof of a wire; sparse tree crowns count. Category boundaries (6, 15 m, 5 returns, NDVI 0.3) were fixed before looking at the map's quality.")], 80)
+    sh = dg["share"]
+    pl.panel_title(SX, 8.14, "B", "Key numbers", w=SW)
+    y0 = pl.tiles(SX, 7.85, SW, [(f"{sh['elevated returns on the line, no wire fitted'] * 100:.0f}%", "of mapped length has returns on it but no wire fitted"), (f"{sh['no elevated returns, open ground'] * 100:.0f}%", "has no elevated returns, in open ground"), (f"{dg['median_distance_to_nearest_detected_support_m']:.0f} m", "median distance from a mapped line point to a detected support")])
+    y0 = pl.notes(SX, y0 - 0.05, SW, [
+        ("Reading the map", "Blue: a fitted wire lies within 6 m. Orange: returns that look like wire are on the mapped line but no span was fitted, because the supports at its ends were not found. Green and red: no elevated returns at all, under vegetation (photo NDVI of 0.3 or more within 4 m) or on open ground."),
+        ("Main finding", f"{dg['km']['power_line']['elevated returns on the line, no wire fitted']:.1f} km of high-voltage line carries returns but no fitted wire. The missing piece is the supports, not the wires: where a wire was fitted a detected support is close, and where it was not the nearest one is tens of metres away."),
+        ("Where the lidar shows nothing", f"{dg['km']['power_line']['no elevated returns, open ground']:.1f} km of mapped line has nothing above ground on open ground. That points at a line that is not there or is drawn in the wrong place; a further {sh['no elevated returns, under vegetation'] * 100:.0f}% lies under vegetation."),
+        ("Limit", "A return 5 m up within 3 m of the line is not proof of a wire; sparse crowns count. The category boundaries (6 m, 15 m, 5 returns, NDVI 0.3) were fixed before the map's quality was examined.")], fs=8.3)
+    pl.legend(SX, y0 - 0.02, SW, [("dot", CAT_COL[c], f"{CAT_SHORT[c]} ({sh[c] * 100:.0f}%)") for c in CAT_COL] + [("square", "#888", "detected support")], fs=7.3, row_h=0.19)
     return pl.save("58_whiteriver_town_line_diagnosis_map.png")
 
 
 def fig_diag_fig(D):
     d, dg = D["diag"], D["dg"]
-    pl = Plate("Mapped lines without a wire: the evidence in numbers", "Length by category, vegetation under the line, and the distance to the nearest detected support", src(D), "Spacing between samples 2 m; vegetation = NAIP 2019 NDVI within 4 m")
+    pl = ProPlate(59, KICK, "Mapped lines without a wire: the evidence in numbers", "Length by category, vegetation under the line, and distance to the nearest detected support", src(D), "Samples every 2 m; vegetation from the photo's NDVI within 4 m")
     cats = list(CAT_COL)
-    a = pl.ax(1.0, 4.9, 6.6, 3.2)
-    kinds = ("power_line", "minor_line")
+    pl.panel_title(0.6, 8.14, "A", "Length by category", w=4.5)
+    a = pl.ax(2.3, 4.75, 3.0, 3.1)
     left = np.zeros(len(cats))
-    for kd, col in zip(kinds, ("#34495E", "#BDC3C7")):
+    for kd, col in zip(("power_line", "minor_line"), ("#34495E", "#BDC3C7")):
         v = np.array([dg["km"][kd].get(c, 0) for c in cats])
         a.barh(range(len(cats)), v, left=left, color=col, label=kd.replace("_", " "))
         left += v
-    a.set_yticks(range(len(cats))); a.set_yticklabels([CAT_SHORT[c] for c in cats], fontsize=8); a.invert_yaxis()
+    a.set_yticks(range(len(cats))); a.set_yticklabels([CAT_SHORT[c] for c in cats], fontsize=7.5); a.invert_yaxis()
     for i, v in enumerate(left):
-        a.text(v + 0.2, i, f"{v:.1f} km", va="center", fontsize=8, color=MUTED)
-    a.set_xlabel("km of mapped line", fontsize=8, color=MUTED); a.tick_params(labelsize=8); a.spines[["top", "right"]].set_visible(False); a.legend(fontsize=8, frameon=False, loc="lower right")
-    pl.label(1.0, 8.35, "Length by category")
-    b = pl.ax(9.0, 4.9, 6.0, 3.2)
-    nd = [dg["median_ndvi_by_category"][c] for c in cats]
-    b.bar(range(len(cats)), nd, color=[CAT_COL[c] for c in cats]); b.axhline(0.3, color="k", lw=0.8, ls="--"); b.text(len(cats) - 0.5, 0.31, "vegetation threshold 0.3", fontsize=7.5, ha="right", va="bottom")
-    b.set_xticks(range(len(cats))); b.set_xticklabels([CAT_SHORT[c].replace(", ", ",\n").replace(" no wire fitted", "\nno wire fitted") for c in cats], fontsize=7); b.set_ylabel("median NDVI under the line", fontsize=8, color=MUTED); b.tick_params(labelsize=8); b.spines[["top", "right"]].set_visible(False)
-    pl.label(9.0, 8.35, "Vegetation under the line")
-    c = pl.ax(1.0, 1.3, 6.6, 2.7)
+        a.text(v + 0.2, i, f"{v:.1f} km", va="center", fontsize=7.5, color=MUTED)
+    a.set_xlabel("km of mapped line", fontsize=8, color=MUTED); a.tick_params(labelsize=8, colors=MUTED); a.spines[["top", "right"]].set_visible(False); a.legend(fontsize=7.5, frameon=False, loc="lower right")
+    pl.panel_title(5.6, 8.14, "B", "Vegetation under the line", w=4.2)
+    b = pl.ax(5.85, 4.75, 3.8, 3.1)
+    b.bar(range(len(cats)), [dg["median_ndvi_by_category"][c] for c in cats], color=[CAT_COL[c] for c in cats]); b.axhline(0.3, color="k", lw=0.8, ls="--")
+    b.set_xticks(range(len(cats))); b.set_xticklabels(["fitted", "6-15 m", "returns", "veg.", "open"], fontsize=7.5); b.set_ylabel("median NDVI under the line", fontsize=8, color=MUTED); b.tick_params(labelsize=8, colors=MUTED); b.spines[["top", "right"]].set_visible(False)
+    pl.panel_title(0.6, 4.4, "C", "Distance from a mapped line point to the nearest detected support", w=9.0)
+    c = pl.ax(1.0, 1.15, 8.6, 2.75)
     for cat in (cats[0], cats[2], cats[4]):
         v = d.dist_support_m[d.category == cat]
         c.hist(v.clip(0, 300), bins=40, histtype="step", color=CAT_COL[cat], lw=1.6, density=True, label=CAT_SHORT[cat])
-    c.set_xlabel("distance from the mapped line point to the nearest detected support, m", fontsize=8, color=MUTED); c.set_ylabel("density", fontsize=8, color=MUTED); c.tick_params(labelsize=8); c.spines[["top", "right"]].set_visible(False); c.legend(fontsize=8, frameon=False)
-    pl.label(1.0, 4.35, "Distance to the nearest support")
-    rows(pl, 9.0, 3.9, [("What it says", f"Where a wire was fitted, a detected support is close; where returns are present but no wire was fitted the supports are tens of metres away. Median distance to a support is {np.median(d.dist_support_m[d.category == cats[0]]):.0f} m for the fitted category and {np.median(d.dist_support_m[d.category == cats[2]]):.0f} m for the unfitted one."),
-                        ("What it does not say", "The map is not ground truth. The red and green lengths are where the lidar and the map disagree; this diagnosis cannot tell a missing line from a misplaced one without a survey or imagery review.")], 70)
+    c.set_xlabel("distance, m", fontsize=8, color=MUTED); c.set_ylabel("density", fontsize=8, color=MUTED); c.tick_params(labelsize=8, colors=MUTED); c.spines[["top", "right"]].set_visible(False); c.legend(fontsize=8, frameon=False)
+    pl.panel_title(10.1, 8.14, "D", "What it says", w=5.3)
+    pl.notes(10.1, 7.85, 5.3, [
+        ("Supports explain the gap", f"Where a wire was fitted, the median distance to a detected support is {np.median(d.dist_support_m[d.category == cats[0]]):.0f} m; where returns are present but no wire was fitted it is {np.median(d.dist_support_m[d.category == cats[2]]):.0f} m. Spans are only fitted between supports, so a missing support is a missing span."),
+        ("Vegetation", "Lines with a fitted wire and lines with unfitted returns both run through vegetated ground (median NDVI about 0.3). Only the lines with no elevated returns split into vegetated and open ground."),
+        ("What it does not say", "The map is not ground truth. Red and green lengths are where lidar and map disagree; telling a missing line from a misplaced one needs a survey or an imagery review.")], fs=8.4)
     return pl.save("59_whiteriver_town_line_diagnosis_figure.png")
 
 
 # ------------------------------------------------------------------------------------------------ 60/61 supports
 def fig_sup_map(D):
     sm, su = D["sm"], D["su"]
-    C, oof = sm["C"], sm["oof"]
-    LS, LSs = D["sp"]["LS"], D["sp"]["LSs"]
+    LS = D["sp"]["LS"]
     ref = D["model"]["ref"]
     from scipy.spatial import cKDTree
     hit = cKDTree(ref).query(LS)[0] <= 5.0
     geo = D["model"]["sup"]; geo = geo[geo.tier == "support"]
-    pl = Plate("Finding poles and towers: geometry against a learned detector", "Mapped poles and towers, supports from wire attachments and detections of a model scored only on tiles it was not trained on", src(D), "Green: detection within 5 m of a mapped pole. Orange: no mapped pole nearby (a true unmapped pole or a false detection)")
-    a = pl.ax(0.6, 1.1, 7.2, 7.2)
+    r5 = [x for x in su["pr_5m"] if abs(x["threshold"] - 0.12) < 0.02][0]
+    pl = ProPlate(60, KICK, "Finding poles and towers: geometry against a learned detector", "Mapped poles and towers, supports from wire attachments, and detections of a model scored only on tiles it was not trained on", src(D), "Green triangles lie within 5 m of a mapped pole")
+    pl.panel_title(MX, 8.14, "A", "Supports", w=MW)
+    a = pl.ax(MX, 1.0, MW, 6.95)
     base(a, D)
     a.scatter(ref[:, 0], ref[:, 1], s=34, facecolors="none", edgecolors=C_POLE, linewidths=0.8, zorder=7)
     a.scatter(geo.x, geo.y, s=18, marker="s", color=C_SUP, zorder=8, edgecolors="white", linewidths=0.4)
     a.scatter(LS[hit, 0], LS[hit, 1], s=26, marker="^", color="#2E8B57", zorder=9, edgecolors="white", linewidths=0.4)
     a.scatter(LS[~hit, 0], LS[~hit, 1], s=26, marker="^", color=C_LEARN, zorder=9, edgecolors="white", linewidths=0.4)
     scalebar(a, EXT, 500.0); north_arrow(a, EXT)
-    legend(a, [pts_legend(C_POLE, f"mapped pole or tower ({len(ref)})", "o", 7, "none"), pts_legend(C_SUP, f"geometric support ({len(geo)})", "s", 5), pts_legend("#2E8B57", f"learned, near a mapped pole ({int(hit.sum())})", "^", 6), pts_legend(C_LEARN, f"learned, no mapped pole near ({int((~hit).sum())})", "^", 6)], "lower right", 7.5)
-    pl.label(0.6, 8.35, "Supports")
-    r5 = [x for x in su["pr_5m"] if abs(x["threshold"] - 0.12) < 0.02][0]
-    rows(pl, 8.3, 8.2, [
-        ("The detector", f"A gradient-boosted tree model scores {su['candidates']:,} column-shaped candidate locations from the point mass in height bands, column spread, isolation, wires nearby and tree cover. Mapped poles and towers within 4 m label the positives ({su['positives']}). Scores are out of fold: five folds, each holding out whole 500 m tiles. (No GPU or deep-learning library is installed here, so this is trees, not a neural network.)"),
-        ("Held-out result", f"Ranking quality is good (area under the ROC curve {su['auc_mean']:.2f}, folds {min(su['auc_per_fold']):.2f} to {max(su['auc_per_fold']):.2f}), but the useful operating point is modest: at a score of 0.12 it keeps {r5['detections']} detections with {r5['precision'] * 100:.0f}% within 5 m of a mapped pole and {r5['recall'] * 100:.0f}% of mapped poles found."),
-        ("Why recall is capped", "Only 41% of mapped poles have any column of returns within 3 m and 59% within 5 m at this density, so no detector can pass those ceilings. Orange detections are unconfirmed, not necessarily wrong: the map holds about 7 poles per km of line, fewer than spacing of 40 to 60 m would give."),
-        ("Verdict", "The learned detector is about as good as the geometric one at the same recall, which is not an improvement worth a claim. It is kept as an extra source of anchors for span fitting.")], 80)
+    pl.panel_title(SX, 8.14, "B", "Key numbers", w=SW)
+    y0 = pl.tiles(SX, 7.85, SW, [(f"{su['auc_mean']:.2f}", "held-out ranking quality (area under the ROC curve)"), (f"{r5['recall'] * 100:.0f}%", f"of mapped poles found within 5 m ({r5['precision'] * 100:.0f}% precision)"), ("41%", "of mapped poles have any column of returns within 3 m")])
+    y0 = pl.notes(SX, y0 - 0.05, SW, [
+        ("The detector", f"A gradient-boosted tree model scores {su['candidates']:,} column-shaped candidates from the point mass in height bands, column spread, isolation, nearby wires and tree cover. Mapped poles within 4 m label the {su['positives']} positives. Scores are out of fold: five folds, each holding out whole 500 m tiles. No GPU or deep-learning library is available here, so this is trees, not a neural network."),
+        ("Result", f"The model ranks candidates well, but at a score of 0.12 it keeps {r5['detections']} detections with {r5['precision'] * 100:.0f}% within 5 m of a mapped pole, about what the geometric method achieves at the same recall. It is not an improvement; it is kept as an extra source of anchors for span fitting."),
+        ("Why recall is capped", "Only 41% of mapped poles have a column of returns within 3 m, and 59% within 5 m, so no detector can pass those ceilings. Orange detections are unconfirmed rather than wrong: the map holds about 7 poles per km of line where a 40 to 60 m spacing would give 17 to 25.")], fs=8.3)
+    pl.legend(SX, y0 - 0.02, SW, [("ring", C_POLE, f"mapped pole or tower ({len(ref)})"), ("square", C_SUP, f"geometric support ({len(geo)})"), ("tri", "#2E8B57", f"learned, near a mapped pole ({int(hit.sum())})"), ("tri", C_LEARN, f"learned, no mapped pole near ({int((~hit).sum())})")], fs=7.4)
     return pl.save("60_whiteriver_town_support_map.png")
 
 
 def fig_sup_fig(D):
     su, sm = D["su"], D["sm"]
     from lidar3d import town_learn as TL
+    from scipy.spatial import cKDTree
     ref = D["model"]["ref"]
     C, oof, y = sm["C"], sm["oof"], sm["y"]
-    pl = Plate("Pole and tower detection: held-out accuracy", "Precision and recall against the map, the ceiling set by the data, and how well the score separates mapped poles from other columns", src(D), "All learned scores are out of fold on whole 500 m tiles; precision against the map is a lower bound because the map misses poles")
+    pl = ProPlate(61, KICK, "Pole and tower detection: held-out accuracy", "Precision and recall against the map, the ceiling the data sets, and how well the score separates mapped poles from other columns", src(D), "Scores are out of fold on whole 500 m tiles")
     thr = np.round(np.arange(0.02, 0.9, 0.02), 2)
-    a = pl.ax(1.0, 4.9, 6.4, 3.2)
+    pl.panel_title(0.6, 8.14, "A", "Precision against recall", w=4.5)
+    a = pl.ax(0.95, 4.75, 4.1, 3.1)
     for r_, col in ((3.0, "#D35400"), (5.0, "#1F4E79")):
         rows_ = TL.pr_curve(C, oof, ref, r_, thr)
         pr = [(rc, p) for t, n, p, rc in rows_ if n > 0]
-        a.plot([p[0] for p in pr], [p[1] for p in pr], "-o", ms=2.5, color=col, label=f"learned, match within {r_:g} m")
+        a.plot([p[0] for p in pr], [p[1] for p in pr], "-o", ms=2.5, color=col, label=f"learned, {r_:g} m")
         g = su["geometric"]
         for nm, mk in (("geometric_supports", "s"), ("raw_pole_detector", "D")):
             v = g[f"{nm}_{int(r_)}m"]
-            a.scatter(v["recall"], v["precision"], marker=mk, s=55, color=col, edgecolors="k", zorder=5, label=f"{'geometric supports' if 'geo' in nm else 'raw pole detector'}, {r_:g} m")
-    a.set_xlabel("recall (share of mapped poles found)", fontsize=8, color=MUTED); a.set_ylabel("precision against the map", fontsize=8, color=MUTED); a.set_xlim(0, 0.45); a.set_ylim(0, 1.0); a.tick_params(labelsize=8); a.spines[["top", "right"]].set_visible(False); a.legend(fontsize=7, frameon=False, loc="upper right")
-    pl.label(1.0, 8.35, "Precision against recall")
-    b = pl.ax(9.0, 4.9, 6.0, 3.2)
+            a.scatter(v["recall"], v["precision"], marker=mk, s=45, color=col, edgecolors="k", zorder=5, label=f"{'geometric supports' if 'geo' in nm else 'raw pole detector'}, {r_:g} m")
+    a.set_xlabel("recall", fontsize=8, color=MUTED); a.set_ylabel("precision against the map", fontsize=8, color=MUTED); a.set_xlim(0, 0.45); a.set_ylim(0, 1.0); a.tick_params(labelsize=8, colors=MUTED); a.spines[["top", "right"]].set_visible(False); a.legend(fontsize=6.6, frameon=False, loc="upper right")
+    pl.panel_title(5.3, 8.14, "B", "Ranking quality by fold", w=4.3)
+    b = pl.ax(5.6, 4.75, 3.9, 3.1)
     b.bar(range(5), su["auc_per_fold"], color="#1F4E79"); b.axhline(0.5, color="k", lw=0.7, ls=":"); b.set_ylim(0.4, 1.0)
-    b.set_xticks(range(5)); b.set_xticklabels([f"fold {i + 1}" for i in range(5)], fontsize=8); b.set_ylabel("area under ROC curve", fontsize=8, color=MUTED); b.tick_params(labelsize=8); b.spines[["top", "right"]].set_visible(False)
+    b.set_xticks(range(5)); b.set_xticklabels([f"{i + 1}" for i in range(5)], fontsize=8); b.set_xlabel("fold", fontsize=8, color=MUTED); b.set_ylabel("area under ROC curve", fontsize=8, color=MUTED); b.tick_params(labelsize=8, colors=MUTED); b.spines[["top", "right"]].set_visible(False)
     for i, v in enumerate(su["auc_per_fold"]):
         b.text(i, v + 0.01, f"{v:.2f}", ha="center", fontsize=8)
-    pl.label(9.0, 8.35, "Held-out ranking quality")
-    c = pl.ax(1.0, 1.3, 6.4, 2.7)
-    from scipy.spatial import cKDTree
+    pl.panel_title(0.6, 4.4, "C", "The ceiling set by the data", w=4.5)
+    c = pl.ax(0.95, 1.15, 4.1, 2.75)
     t = cKDTree(C)
     ceil = [float((t.query(ref)[0] <= r_).mean()) for r_ in (3, 5)]
     r3 = [x for x in su["pr_3m"] if abs(x["threshold"] - 0.12) < 0.02][0]["recall"]; r5 = [x for x in su["pr_5m"] if abs(x["threshold"] - 0.12) < 0.02][0]["recall"]
     xs = np.arange(2)
-    c.bar(xs - 0.2, ceil, 0.38, color="#BDC3C7", label="mapped poles with a column-shaped candidate near"); c.bar(xs + 0.2, [r3, r5], 0.38, color="#D35400", label="found by the learned detector at score 0.12")
-    c.set_xticks(xs); c.set_xticklabels(["within 3 m", "within 5 m"], fontsize=8); c.set_ylim(0, 0.8); c.tick_params(labelsize=8); c.spines[["top", "right"]].set_visible(False); c.legend(fontsize=7.5, frameon=False, loc="upper left")
-    pl.label(1.0, 4.35, "The ceiling set by the data")
-    d_ = pl.ax(9.0, 1.3, 6.0, 2.7)
+    c.bar(xs - 0.2, ceil, 0.38, color="#BDC3C7", label="mapped poles with a column near"); c.bar(xs + 0.2, [r3, r5], 0.38, color="#D35400", label="found at score 0.12")
+    c.set_xticks(xs); c.set_xticklabels(["within 3 m", "within 5 m"], fontsize=8); c.set_ylim(0, 0.8); c.tick_params(labelsize=8, colors=MUTED); c.spines[["top", "right"]].set_visible(False); c.legend(fontsize=7.2, frameon=False, loc="upper left")
+    pl.panel_title(5.3, 4.4, "D", "Score distributions", w=4.3)
+    d_ = pl.ax(5.6, 1.15, 3.9, 2.75)
     d_.hist(oof[y == 0].clip(0, 1), bins=np.linspace(0, 1, 41), color="#BDC3C7", label="not near a mapped pole", log=True); d_.hist(oof[y == 1], bins=np.linspace(0, 1, 41), color="#D35400", alpha=0.85, label="near a mapped pole", log=True)
-    d_.set_xlabel("out-of-fold score", fontsize=8, color=MUTED); d_.set_ylabel("candidates (log)", fontsize=8, color=MUTED); d_.tick_params(labelsize=8); d_.spines[["top", "right"]].set_visible(False); d_.legend(fontsize=8, frameon=False)
-    pl.label(9.0, 4.35, "Score distributions")
+    d_.set_xlabel("out-of-fold score", fontsize=8, color=MUTED); d_.set_ylabel("candidates (log)", fontsize=8, color=MUTED); d_.tick_params(labelsize=8, colors=MUTED); d_.spines[["top", "right"]].set_visible(False); d_.legend(fontsize=7.4, frameon=False)
+    pl.panel_title(10.1, 8.14, "E", "What the figures show", w=5.3)
+    pl.notes(10.1, 7.85, 5.3, [
+        ("A learned score that ranks well but does not beat geometry", f"Held-out ranking is good in every fold ({min(su['auc_per_fold']):.2f} to {max(su['auc_per_fold']):.2f}), yet the useful operating points reach only about 20 to 30% precision at 10 to 20% recall, level with the geometric supports (squares) and the raw pole detector (diamonds)."),
+        ("The data set the limit", "Only 41% of mapped poles have a column-shaped candidate within 3 m (59% within 5 m), so recall cannot exceed those bars. At 25 returns per m\u00b2 a pole is a handful of returns."),
+        ("Precision is a floor", "The map misses poles, so some detections counted as wrong are real. The same is true of every precision figure in this series.")], fs=8.4)
     return pl.save("61_whiteriver_town_support_figure.png")
+
 
 
 # ------------------------------------------------------------------------------------------------ 62/63 equipment
@@ -297,13 +312,13 @@ def fig_eq_map(D):
     eq = D["eq"]
     big = max(eq["yards"], key=lambda y: y["area_m2"])
     sm_y = min(eq["yards"], key=lambda y: y["area_m2"])
-    S = np.array(big["structure_xy"]); M = np.array(big["mapped_xy"]); H = np.array(big["structure_top_hag"])
-    from scipy.spatial import cKDTree
-    d_m = cKDTree(S).query(M)[0] if len(S) and len(M) else np.array([])
-    pl = Plate("Equipment: substation yard structures and pole-top candidates", "Structures found in the dense returns of the two substation yards, the mapped switches, transformers and portals, and pole-top equipment candidates along the lines", src(D), "Yard structures need no class codes; the 3DEP classes carry no equipment class")
+    S = np.array(big["structure_xy"]); M = np.array(big["mapped_xy"])
+    vm, pt = big["versus_map"], eq["pole_top"]
+    pl = ProPlate(62, KICK, "Equipment: substation structures and pole-top candidates", "Structures found in the dense returns of the two yards against the mapped switches, transformers and portals, and pole-top candidates along the lines", src(D), "The 3DEP classes carry no equipment class")
     cx, cy = big["centre"]
     half = 130
-    a = pl.ax(0.6, 1.1, 7.2, 7.2)
+    pl.panel_title(MX, 8.14, "A", "Main substation yard", w=MW)
+    a = pl.ax(MX, 1.0, MW, 6.95)
     a.set_facecolor("#F4F4F2")
     a.imshow(D["hs"], origin="lower", extent=(-HALF, HALF, -HALF, HALF), cmap="gray", vmin=0.1, vmax=1.0, alpha=0.8, interpolation="bilinear")
     ext = (cx - half, cx + half, cy - half, cy + half)
@@ -311,57 +326,59 @@ def fig_eq_map(D):
     a.scatter(S[:, 0], S[:, 1], s=16, color="#27AE60", zorder=6, edgecolors="white", linewidths=0.3)
     a.scatter(M[:, 0], M[:, 1], s=52, marker="x", color="#C0392B", linewidths=1.0, zorder=8)
     scalebar(a, ext, 50.0); north_arrow(a, ext)
-    legend(a, [pts_legend("#27AE60", f"structure found ({len(S)})", "o", 6), Line2D([], [], marker="x", ls="", color="#C0392B", ms=7, label=f"mapped switch, transformer or portal ({len(M)})")], "lower right", 8)
-    pl.label(0.6, 8.35, "Main substation yard")
-    b = pl.ax(8.2, 4.1, 3.4, 3.4)
-    pole = D["eq"]["pole_top"]["candidates"]
+    pl.panel_title(SX, 8.14, "B", "Key numbers", w=SW)
+    y0 = pl.tiles(SX, 7.85, SW, [(f"{vm['within_3m'] * 100:.0f}%", f"of {vm['mapped_equipment']} mapped yard items have a structure within 3 m (random points: {vm['random_within_3m'] * 100:.0f}%)"), (f"{big['structures']}", f"structures found in the main yard, median {big['median_top_hag_m']:.1f} m tall"), (f"{pt['rate_geometric_supports'] * 100:.0f}%", f"of supports show a pole-top thickening (control columns: {pt['rate_control'] * 100:.0f}%)")])
+    y0 = pl.notes(SX, y0 - 0.05, SW, [
+        ("Substation yards", f"Within 1.5 m the match is {vm['within_1p5m'] * 100:.0f}% against {vm['random_within_1p5m'] * 100:.0f}% for random points, with a median distance of {vm['median_distance_m']:.1f} m. The position match is real, but one structure can be several devices and many structures are buswork, fences or frames."),
+        ("Pole-top equipment", f"A thickening just below the top fires at {pt['candidates_at_geometric_supports']} of {pt['supports_tested']} supports, only a few points more often than at control columns. All 97 mapped switches, transformers and portals are inside yards, so these candidates have no ground truth and name nothing; at 25 returns per m\u00b2 a pole-mounted transformer is a few dozen returns.")], fs=8.3)
+    pl.panel_title(SX, y0 - 0.02, "C", "Pole-top candidates", w=3.6)
+    b = pl.ax(SX, 1.0, 3.6, max(y0 - 0.45 - 1.0, 1.5))
+    pole = pt["candidates"]
     b.imshow(D["hs"], origin="lower", extent=(-HALF, HALF, -HALF, HALF), cmap="gray", vmin=0.1, vmax=1.0, alpha=0.8); map_frame(b, EXT, step=1000, grid=False, labels=False)
     if pole:
         pc = np.array([(p["x"], p["y"]) for p in pole]); b.scatter(pc[:, 0], pc[:, 1], s=26, marker="o", facecolors="none", edgecolors="#D35400", linewidths=1.0, zorder=6)
     b.scatter([cx], [cy], s=120, marker="s", facecolors="none", edgecolors="#C0392B", linewidths=1.2)
     b.set_xticks([]); b.set_yticks([])
-    pl.label(8.2, 7.8, "Pole-top candidates, whole area")
-    c = pl.ax(12.0, 4.1, 3.4, 3.4)
+    pl.panel_title(SX + 3.85, y0 - 0.02, "D", "Second, small yard", w=3.6)
+    c = pl.ax(SX + 3.85, 1.0, 3.6, max(y0 - 0.45 - 1.0, 1.5))
     s2 = np.array(sm_y["structure_xy"]).reshape(-1, 2); cx2, cy2 = sm_y["centre"]
     c.imshow(D["hs"], origin="lower", extent=(-HALF, HALF, -HALF, HALF), cmap="gray", vmin=0.1, vmax=1.0, alpha=0.8)
-    ext2 = (cx2 - 60, cx2 + 60, cy2 - 60, cy2 + 60); map_frame(c, ext2, step=50.0, grid=False)
-    if len(s2): c.scatter(s2[:, 0], s2[:, 1], s=14, color="#27AE60", zorder=6)
-    pl.label(12.0, 7.8, "Second, small yard")
-    vm = big["versus_map"]
-    rows(pl, 8.2, 3.7, [
-        ("Substation yard", f"{len(S)} compact structures with a median top {big['median_top_hag_m']:.1f} m above ground. {vm['within_3m'] * 100:.0f}% of the {vm['mapped_equipment']} mapped switches, transformers and portals have a structure within 3 m, against {vm['random_within_3m'] * 100:.0f}% for random points in the yard; within 1.5 m, {vm['within_1p5m'] * 100:.0f}% against {vm['random_within_1p5m'] * 100:.0f}%. Median distance {vm['median_distance_m']:.1f} m."),
-        ("Pole-top equipment", f"{eq['pole_top']['candidates_at_geometric_supports']} of {eq['pole_top']['supports_tested']} geometric supports ({eq['pole_top']['rate_geometric_supports'] * 100:.0f}%) show a thickening just below the top. The control (column-shaped places the support model calls not mapped poles) shows it {eq['pole_top']['rate_control'] * 100:.0f}% of the time. That separation is slight."),
-        ("Not claimed", "The map has no pole-mounted equipment (all 97 mapped switches, transformers and portals are in the yards), so the pole-top candidates are unverified. At 25 returns per m2 a pole-mounted transformer is a few dozen returns; naming it a transformer needs imagery.")], 78)
+    map_frame(c, (cx2 - 60, cx2 + 60, cy2 - 60, cy2 + 60), step=50.0, grid=False, labels=False)
+    if len(s2):
+        c.scatter(s2[:, 0], s2[:, 1], s=14, color="#27AE60", zorder=6)
+    c.set_xticks([]); c.set_yticks([])
+    pl.legend(MX + 0.2, 1.75, 4.8, [("dot", "#27AE60", f"structure found ({len(S)})"), ("dot", "#C0392B", f"mapped switch, transformer or portal ({len(M)})")], fs=7.3)
     return pl.save("62_whiteriver_town_equipment_map.png")
 
 
 def fig_eq_fig(D):
     eq = D["eq"]
     big = max(eq["yards"], key=lambda y: y["area_m2"])
-    vm = big["versus_map"]
-    pl = Plate("Equipment detection: how it checks out", "Substation structures against mapped equipment with a random-position control, and the pole-top rule against its control", src(D), "Yard: 97 mapped items; pole-top: no ground truth")
-    a = pl.ax(1.0, 4.9, 6.4, 3.2)
+    vm, pt = big["versus_map"], eq["pole_top"]
+    pl = ProPlate(63, KICK, "Equipment detection: how it checks out", "Substation structures against mapped equipment with a random-position control, and the pole-top rule against its control", src(D), "Yard: 97 mapped items. Pole tops: no ground truth")
+    pl.panel_title(0.6, 8.14, "A", "Yard structures against the map", w=4.5)
+    a = pl.ax(0.95, 4.75, 4.1, 3.1)
     xs = np.arange(2)
-    a.bar(xs - 0.2, [vm["within_1p5m"], vm["within_3m"]], 0.38, color="#27AE60", label="mapped equipment"); a.bar(xs + 0.2, [vm["random_within_1p5m"], vm["random_within_3m"]], 0.38, color="#BDC3C7", label="random points in the yard")
+    a.bar(xs - 0.2, [vm["within_1p5m"], vm["within_3m"]], 0.38, color="#27AE60", label="mapped equipment"); a.bar(xs + 0.2, [vm["random_within_1p5m"], vm["random_within_3m"]], 0.38, color="#BDC3C7", label="random points")
     for i, (u, v) in enumerate(zip([vm["within_1p5m"], vm["within_3m"]], [vm["random_within_1p5m"], vm["random_within_3m"]])):
         a.text(i - 0.2, u + 0.01, f"{u * 100:.0f}%", ha="center", fontsize=8); a.text(i + 0.2, v + 0.01, f"{v * 100:.0f}%", ha="center", fontsize=8)
-    a.set_xticks(xs); a.set_xticklabels(["structure within 1.5 m", "structure within 3 m"], fontsize=8); a.set_ylim(0, 0.9); a.set_ylabel("share with a structure nearby", fontsize=8, color=MUTED); a.tick_params(labelsize=8); a.spines[["top", "right"]].set_visible(False); a.legend(fontsize=8, frameon=False)
-    pl.label(1.0, 8.35, "Yard structures against the map")
-    b = pl.ax(9.0, 4.9, 6.0, 3.2)
-    pt = eq["pole_top"]
+    a.set_xticks(xs); a.set_xticklabels(["within 1.5 m", "within 3 m"], fontsize=8); a.set_ylim(0, 0.9); a.set_ylabel("share with a structure nearby", fontsize=8, color=MUTED); a.tick_params(labelsize=8, colors=MUTED); a.spines[["top", "right"]].set_visible(False); a.legend(fontsize=7.5, frameon=False)
+    pl.panel_title(5.3, 8.14, "B", "Pole-top rule against a control", w=4.3)
+    b = pl.ax(5.6, 4.75, 3.9, 3.1)
     vals = [pt["rate_geometric_supports"], pt["rate_learned_supports"], pt["rate_control"]]
     b.bar(range(3), vals, color=["#1F4E79", "#D35400", "#BDC3C7"])
     for i, v in enumerate(vals):
         b.text(i, v + 0.005, f"{v * 100:.0f}%", ha="center", fontsize=8)
-    b.set_xticks(range(3)); b.set_xticklabels([f"geometric supports\n(n={pt['supports_tested']})", f"learned supports\n(n={pt['learned_supports_tested']})", f"control columns\n(n={pt['control_column_candidates_tested']})"], fontsize=8)
-    b.set_ylabel("share with a pole-top thickening", fontsize=8, color=MUTED); b.tick_params(labelsize=8); b.spines[["top", "right"]].set_visible(False)
-    pl.label(9.0, 8.35, "Pole-top rule against a control")
-    c = pl.ax(1.0, 1.3, 6.4, 2.7)
-    H = np.array(big["structure_top_hag"])
-    c.hist(H, bins=np.arange(0, 22, 1), color="#8E44AD"); c.set_xlabel("top of the structure above ground, m", fontsize=8, color=MUTED); c.set_ylabel("structures", fontsize=8, color=MUTED); c.tick_params(labelsize=8); c.spines[["top", "right"]].set_visible(False)
-    pl.label(1.0, 4.35, "Heights of the yard structures")
-    rows(pl, 9.0, 4.2, [("Yard", f"Structures sit {vm['median_distance_m']:.1f} m (median) from the mapped equipment. The excess over random is real ({vm['within_3m'] * 100:.0f}% against {vm['random_within_3m'] * 100:.0f}%) but a quarter of the mapped items have no structure within 3 m, and most structures are unmapped or are fences, buswork and conduit rather than equipment."),
-                       ("Pole tops", "The rule fires more often on supports than on controls, but only by a few percentage points, and about 85 to 90% of supports show no thickening. This does not identify transformers; it marks places to look at.")], 70)
+    b.set_xticks(range(3)); b.set_xticklabels([f"geometric\nsupports\n(n={pt['supports_tested']})", f"learned\nsupports\n(n={pt['learned_supports_tested']})", f"control\ncolumns\n(n={pt['control_column_candidates_tested']})"], fontsize=7.5)
+    b.set_ylabel("share with a thickening", fontsize=8, color=MUTED); b.tick_params(labelsize=8, colors=MUTED); b.spines[["top", "right"]].set_visible(False)
+    pl.panel_title(0.6, 4.4, "C", "Heights of the yard structures", w=9.0)
+    c = pl.ax(0.95, 1.15, 8.5, 2.75)
+    c.hist(np.array(big["structure_top_hag"]), bins=np.arange(0, 22, 1), color="#8E44AD"); c.set_xlabel("top of the structure above ground, m", fontsize=8, color=MUTED); c.set_ylabel("structures", fontsize=8, color=MUTED); c.tick_params(labelsize=8, colors=MUTED); c.spines[["top", "right"]].set_visible(False)
+    pl.panel_title(10.1, 8.14, "D", "What the figures show", w=5.3)
+    pl.notes(10.1, 7.85, 5.3, [
+        ("Structures sit on mapped equipment", f"The median distance from a mapped item to a structure is {vm['median_distance_m']:.1f} m, and {vm['within_3m'] * 100:.0f}% are within 3 m against {vm['random_within_3m'] * 100:.0f}% for random points. A quarter of the mapped items have no structure within 3 m, and most structures are unmapped, because many are buswork, fences or frames."),
+        ("Pole tops", "The thickening rule fires slightly more often on supports than on control columns, and about 85 to 90% of supports show nothing. It marks places to look at; it does not identify transformers."),
+        ("Heights", "Yard structures cluster between 3 and 10 m, with a tail of gantries up to 20 m.")], fs=8.4)
     return pl.save("63_whiteriver_town_equipment_figure.png")
 
 
@@ -369,8 +386,11 @@ def fig_eq_fig(D):
 def fig_span_map(D):
     spj = D["spj"]
     conf, add, br = line_layers(D)
-    pl = Plate("Joining the network: observed, model-added and bridged spans", "Spans between supports scored on held-out tiles, then line ends that face each other bridged where the line continues straight", src(D), "Dashed orange: the model accepted a weakly observed span. Dotted red: no returns, inferred from the straight continuation")
-    a = pl.ax(0.6, 1.1, 7.2, 7.2)
+    g, ad, bd = spj["geometric_rule"], spj["added_by_model"], spj["bridged"]
+    cov, cn = spj["mapped_line_covered_within_6m"], spj["connectivity"]
+    pl = ProPlate(64, KICK, "Joining the network: observed, added and bridged spans", "Spans between supports scored on held-out tiles, then line ends that face each other bridged where the line continues straight", src(D), "Dashed orange: weakly observed span accepted by the model")
+    pl.panel_title(MX, 8.14, "A", "Spans", w=MW)
+    a = pl.ax(MX, 1.0, MW, 6.95)
     base(a, D)
     mp = mapped_polyline_pts(D)
     a.scatter(mp[:, 0], mp[:, 1], s=1.2, color=C_MAP, zorder=3, linewidths=0)
@@ -378,53 +398,55 @@ def fig_span_map(D):
     A = D["sp"]["A"]
     a.scatter(A[:, 0], A[:, 1], s=4, color="white", edgecolors="k", linewidths=0.3, zorder=9)
     scalebar(a, EXT, 500.0); north_arrow(a, EXT)
-    legend(a, [Line2D([], [], color=C_CONF, lw=1.5, label=f"observed span (first rule, {len(conf)})"), Line2D([], [], color=C_ADD, lw=1.5, ls="--", label=f"added by the span model ({len(add)})"), Line2D([], [], color=C_BR, lw=2, ls=":", label=f"bridged line end ({len(br)})"),
-               Line2D([], [], color=C_MAP, marker=".", ls="", label="mapped line"), pts_legend("white", "anchor", "o", 4, "white")], "lower right", 7.5)
-    pl.label(0.6, 8.35, "Spans")
-    g, ad, bd = spj["geometric_rule"], spj["added_by_model"], spj["bridged"]
-    rows(pl, 8.3, 8.2, [
-        ("Candidate spans", f"{spj['anchors']} anchors (the geometric supports and wire ends plus {spj['anchors_added_from_learned_supports']} from the learned detector) give {spj['candidate_pairs']:,} neighbour pairs; {spj['pair_table']:,} have a wire fit of some coverage. A tree model scores each from its length, returns, sag, end heights, the support score at each end and how straight it continues a confirmed neighbour."),
-        ("What the model added", f"At score {spj['threshold']:.2f} (the lowest threshold whose held-out precision against the map stays within 2 points of the first rule's {g['precision_by_length'] * 100:.0f}%) it accepts {spj['scored_spans']['spans']} spans, {ad['spans']} of them new: {ad['length_m'] / 1000:.1f} km, {ad['precision_by_length'] * 100:.0f}% of which lies within 6 m of a mapped line. These spans are partly observed (from 20% of the span up) and partly modelled."),
-        ("Bridging", f"{bd['spans']} line ends facing each other within {bd['gap_range_m'][0]} to {bd['gap_range_m'][1]} m and 15 degrees were joined, {bd['length_m']:.0f} m in all, {bd['fraction_of_length_within_6m_of_mapped_line'] * 100:.0f}% within 6 m of a mapped line. Heights come from a sag curve (coefficient {bd['sag_coefficient']:.5f} per m) between the end heights of the adjacent spans."),
-        ("Limits", "Bridging is conservative: most gaps have no facing end because no support was found on the far side. Precision is against an incomplete map.")], 80)
+    pl.panel_title(SX, 8.14, "B", "Key numbers", w=SW)
+    y0 = pl.tiles(SX, 7.85, SW, [(f"+{ad['length_m'] / 1000:.1f} km", f"of wire added by the span model, {ad['precision_by_length'] * 100:.0f}% within 6 m of a mapped line"), (f"{cov['confirmed'] * 100:.0f}% to {cov['plus_bridged'] * 100:.0f}%", "of mapped line with a wire within 6 m"), (f"{cn['confirmed']['components']} to {cn['plus_bridged']['components']}", "separate network pieces")])
+    y0 = pl.notes(SX, y0 - 0.05, SW, [
+        ("Candidate spans", f"{spj['anchors']} anchors (geometric supports and wire ends, plus {spj['anchors_added_from_learned_supports']} from the learned detector) give {spj['candidate_pairs']:,} neighbour pairs, of which {spj['pair_table']:,} have a wire fit. A tree model scores each from its length, returns, sag, end heights, the support score at each end and how straight it continues a confirmed neighbour."),
+        ("What the model added", f"At score {spj['threshold']:.2f}, the lowest threshold whose held-out precision stays within 2 points of the first rule's {g['precision_by_length'] * 100:.0f}%, it accepts {spj['scored_spans']['spans']} spans, {ad['spans']} of them new. These are partly observed (from 20% of the span up) and partly modelled."),
+        ("Bridging", f"{bd['spans']} line ends facing each other within {bd['gap_range_m'][0]} to {bd['gap_range_m'][1]} m and 15 degrees were joined, {bd['length_m']:.0f} m in all, {bd['fraction_of_length_within_6m_of_mapped_line'] * 100:.0f}% of it within 6 m of a mapped line. Bridging is conservative: most gaps have no facing end, because no support was found on the far side.")], fs=8.3)
+    pl.legend(SX, y0 - 0.02, SW, [("line", C_CONF, f"observed span ({len(conf)})"), ("dash", C_ADD, f"added by the span model ({len(add)})"), ("dash", C_BR, f"bridged line end ({len(br)})"), ("dot", C_MAP, "mapped line"), ("ring", "k", "anchor")], fs=7.4)
     return pl.save("64_whiteriver_town_span_map.png")
 
 
 def fig_span_fig(D):
     spj, st = D["spj"], D["stats"]
-    pl = Plate("Spans and gap filling: results", "How much of the mapped network is recovered, how connected the model becomes, how precise the added spans are, and how accurate the filled wire is", src(D), "Against Overture lines (lower bounds); interpolation error from hidden stretches")
-    a = pl.ax(1.0, 4.9, 6.4, 3.2)
+    pl = ProPlate(65, KICK, "Spans and gap filling: results", "How much of the mapped network is recovered, how connected the model becomes, how precise the added spans are, and how accurate a filled wire is", src(D), "Against Overture lines: lower bounds")
     cov = spj["mapped_line_covered_within_6m"]
     v = [cov["confirmed"], cov["plus_scored_spans"], cov["plus_bridged"]]
+    pl.panel_title(0.6, 8.14, "A", "Share of the mapped network recovered", w=4.5)
+    a = pl.ax(0.95, 4.75, 4.1, 3.1)
     a.bar(range(3), [x * 100 for x in v], color=[C_CONF, C_ADD, C_BR])
     for i, x in enumerate(v):
         a.text(i, x * 100 + 0.8, f"{x * 100:.1f}%", ha="center", fontsize=8.5)
-    a.set_xticks(range(3)); a.set_xticklabels(["first rule\n(observed spans)", "+ spans the model\nadded", "+ bridged\nline ends"], fontsize=8); a.set_ylabel("mapped line length with a wire within 6 m, %", fontsize=8, color=MUTED); a.set_ylim(0, 55); a.tick_params(labelsize=8); a.spines[["top", "right"]].set_visible(False)
-    pl.label(1.0, 8.35, "Share of the mapped network recovered")
-    b = pl.ax(9.0, 4.9, 6.0, 3.2)
+    a.set_xticks(range(3)); a.set_xticklabels(["first rule", "+ model spans", "+ bridges"], fontsize=8); a.set_ylabel("mapped line with a wire within 6 m, %", fontsize=7.5, color=MUTED); a.set_ylim(0, 55); a.tick_params(labelsize=8, colors=MUTED); a.spines[["top", "right"]].set_visible(False)
+    pl.panel_title(5.3, 8.14, "B", "Connectivity of the network", w=4.3)
+    b = pl.ax(5.6, 4.75, 3.7, 3.1)
     cn = spj["connectivity"]
     names = ["confirmed", "plus_scored_spans", "plus_bridged"]
-    b.bar(np.arange(3) - 0.2, [cn[n]["components"] for n in names], 0.38, color="#34495E", label="separate pieces")
+    b.bar(np.arange(3), [cn[n]["components"] for n in names], 0.5, color="#34495E")
     for i, n in enumerate(names):
-        b.text(i - 0.2, cn[n]["components"] + 0.8, str(cn[n]["components"]), ha="center", fontsize=8.5)
-    b.set_ylabel("separate pieces", fontsize=8, color=MUTED); b.set_xticks(range(3)); b.set_xticklabels(["first rule", "+ model spans", "+ bridged"], fontsize=8)
-    b2 = b.twinx(); b2.plot(range(3), [cn[n]["largest_component_share_of_nodes"] * 100 for n in names], "-o", color="#D35400", label="largest piece, % of supports"); b2.set_ylim(0, 100); b2.set_ylabel("largest piece, % of supports", fontsize=8, color="#D35400")
-    b.tick_params(labelsize=8); b2.tick_params(labelsize=8); b.spines[["top"]].set_visible(False); b2.spines[["top"]].set_visible(False)
-    pl.label(9.0, 8.35, "Connectivity of the network")
-    c = pl.ax(1.0, 1.3, 6.4, 2.7)
+        b.text(i, cn[n]["components"] + 0.8, str(cn[n]["components"]), ha="center", fontsize=8.5)
+    b.set_ylabel("separate pieces", fontsize=8, color=MUTED); b.set_xticks(range(3)); b.set_xticklabels(["first rule", "+ model", "+ bridges"], fontsize=8)
+    b2 = b.twinx(); b2.plot(range(3), [cn[n]["largest_component_share_of_nodes"] * 100 for n in names], "-o", color="#D35400"); b2.set_ylim(0, 100); b2.set_ylabel("largest piece, % of supports", fontsize=8, color="#D35400")
+    b.tick_params(labelsize=8, colors=MUTED); b2.tick_params(labelsize=8, colors="#D35400"); b.spines[["top"]].set_visible(False); b2.spines[["top"]].set_visible(False)
+    pl.panel_title(0.6, 4.4, "C", "Precision against the map, by length", w=4.5)
+    c = pl.ax(0.95, 1.15, 4.1, 2.75)
     g, ad, bd = spj["geometric_rule"], spj["added_by_model"], spj["bridged"]
     pv = [g["precision_by_length"], ad["precision_by_length"], bd["fraction_of_length_within_6m_of_mapped_line"]]
     ln = [g["length_m"] / 1000, ad["length_m"] / 1000, bd["length_m"] / 1000]
     c.bar(range(3), [p * 100 for p in pv], color=[C_CONF, C_ADD, C_BR])
     for i, (p, l) in enumerate(zip(pv, ln)):
         c.text(i, p * 100 + 1.5, f"{p * 100:.0f}%\n({l:.1f} km)", ha="center", fontsize=8)
-    c.set_xticks(range(3)); c.set_xticklabels(["first rule", "added by the model", "bridged"], fontsize=8); c.set_ylim(0, 115); c.set_ylabel("length within 6 m of a mapped line, %", fontsize=8, color=MUTED); c.tick_params(labelsize=8); c.spines[["top", "right"]].set_visible(False)
-    pl.label(1.0, 4.35, "Precision against the map, by length")
-    d_ = pl.ax(9.0, 1.3, 3.2, 2.7)
+    c.set_xticks(range(3)); c.set_xticklabels(["first rule", "added", "bridged"], fontsize=8); c.set_ylim(0, 118); c.set_ylabel("length within 6 m of a mapped line, %", fontsize=7.5, color=MUTED); c.tick_params(labelsize=8, colors=MUTED); c.spines[["top", "right"]].set_visible(False)
+    pl.panel_title(5.3, 4.4, "D", "Filling a gap in a wire", w=4.3)
+    d_ = pl.ax(5.6, 1.15, 3.7, 2.75)
     h = st["interpolation_holdout"]
     x = np.arange(2)
     d_.bar(x - 0.2, [h["20"]["rms_parabola_m"] * 100, h["40"]["rms_parabola_m"] * 100], 0.38, color="#1F4E79", label="fitted sag curve"); d_.bar(x + 0.2, [h["20"]["rms_linear_m"] * 100, h["40"]["rms_linear_m"] * 100], 0.38, color="#BDC3C7", label="straight line")
-    d_.set_xticks(x); d_.set_xticklabels(["20 m gap", "40 m gap"], fontsize=8); d_.set_ylabel("rms error, cm", fontsize=8, color=MUTED); d_.tick_params(labelsize=8); d_.spines[["top", "right"]].set_visible(False); d_.legend(fontsize=7.5, frameon=False)
-    pl.label(9.0, 4.35, "Filling a gap in a wire")
-    rows(pl, 12.5, 4.2, [("Reading", f"Interpolation: hiding a stretch of well-observed wire ({h['20']['n']} tests per size) and refitting gives {h['20']['rms_parabola_m'] * 100:.0f} to {h['40']['rms_parabola_m'] * 100:.0f} cm error with the sag curve against {h['20']['rms_linear_m'] * 100:.0f} to {h['40']['rms_linear_m'] * 100:.0f} cm for a straight line. Hidden stretches were inliers of the original fit, so this is optimistic for noisy wires.")], 32)
+    d_.set_xticks(x); d_.set_xticklabels(["20 m gap", "40 m gap"], fontsize=8); d_.set_ylabel("rms error, cm", fontsize=8, color=MUTED); d_.tick_params(labelsize=8, colors=MUTED); d_.spines[["top", "right"]].set_visible(False); d_.legend(fontsize=7.5, frameon=False)
+    pl.panel_title(10.1, 8.14, "E", "What the figures show", w=5.3)
+    pl.notes(10.1, 7.85, 5.3, [
+        ("Recovery and connection", f"Scoring spans lifts the share of mapped line with a wire from {v[0] * 100:.0f}% to {v[1] * 100:.0f}%, bridging adds {(v[2] - v[1]) * 100:.1f} points, and the network falls from {cn['confirmed']['components']} pieces to {cn['plus_bridged']['components']}, the largest holding {cn['plus_bridged']['largest_component_share_of_nodes'] * 100:.0f}% of the supports."),
+        ("Precision", f"The first rule's spans are {g['precision_by_length'] * 100:.0f}% within 6 m of a mapped line by length. Spans the model added are {ad['precision_by_length'] * 100:.0f}%, and bridges {bd['fraction_of_length_within_6m_of_mapped_line'] * 100:.0f}%. The map is incomplete, so these are floors."),
+        ("Filling a gap", f"Hiding a 20 to 40 m stretch of a well-observed wire ({h['20']['n']} tests per size) and refitting gives {h['20']['rms_parabola_m'] * 100:.0f} to {h['40']['rms_parabola_m'] * 100:.0f} cm error with the sag curve against {h['20']['rms_linear_m'] * 100:.0f} to {h['40']['rms_linear_m'] * 100:.0f} cm for a straight line. Hidden stretches were inliers of the fit, so this is optimistic for noisy wires.")], fs=8.4)
     return pl.save("65_whiteriver_town_span_figure.png")
