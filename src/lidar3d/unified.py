@@ -289,3 +289,212 @@ def clean_wires(wires, min_len=3.0, dup_tol=0.45, dup_share=0.7, smooth=5):
             P = np.c_[P[:, :2], z]
         out.append(P)
     return out, dict(before=len(ws), after=len(out), dropped_short=dropped_short, dropped_duplicate=dropped_dup, length_before_m=float(sum(lens)), length_after_m=float(sum(np.hypot(*np.diff(p[:, :2], axis=0).T).sum() for p in out)))
+
+
+def connect_wires(wires, anchors, ground_at, sag_k, snap_sup=4.0, join_end=3.0, tap=1.0, reach=70.0, cone=28.0, near=15.0, arm=2.2, min_keep=25.0):
+    """Make every wire end terminate on something: a support, another wire's end, or a point on another wire.
+    For each end, in order: (1) a support within `snap_sup` m (plan) -> the end moves onto the support's cross-arm (pole position plus the end's offset across the line, at most `arm` m, height capped at the support top);
+    (2) another wire's end within `join_end` m (3D) -> the two ends are welded at their midpoint; (3) a point of another wire within `tap` m -> the end is moved onto it (a tap);
+    (4) a support or wire point ahead of the end (within `cone` degrees of the wire's direction, up to `reach` m) -> a sagging span (sag = sag_k * s * (L - s)) is added to it;
+    (5) a support or wire point in any direction within `near` m -> a straight drop to it. An end still free after that gets an inferred pole if its wire is at least `min_keep` m long, otherwise the wire is dropped.
+    anchors: (m, 3) support tops. Returns (wires, inferred poles as (k, 3) tops, counts)."""
+    ws = [np.asarray(w, float).copy() for w in wires if len(w) >= 2]
+    A = np.asarray(anchors, float).reshape(-1, 3)
+    at = cKDTree(A[:, :2]) if len(A) else None
+    counts = dict(ends=0, support=0, weld=0, tap=0, span_ahead=0, drop_near=0, inferred_pole=0, dropped_wires=0)
+    span_len = 0.0
+
+    def dens_all(skip):
+        P, I = [], []
+        for j, w in enumerate(ws):
+            if j == skip or w is None:
+                continue
+            D = densify(w, 0.5)
+            P.append(D); I.append(np.full(len(D), j))
+        if not P:
+            return None, None, None
+        P = np.vstack(P); I = np.concatenate(I)
+        return P, I, cKDTree(P)
+
+    def span(a, b):
+        L = float(np.hypot(*(b[:2] - a[:2])))
+        s = np.linspace(0, L, max(int(L), 2))
+        t = s / max(L, 1e-9)
+        xy = a[:2] + (b[:2] - a[:2]) * t[:, None]
+        z = a[2] + (b[2] - a[2]) * t - (sag_k * s * (L - s) if L > 8 else 0.0)
+        return np.c_[xy, z]
+
+    free = []
+    for i in range(len(ws)):
+        for side in (0, 1):
+            w = ws[i]
+            if w is None:
+                break
+            counts["ends"] += 1
+            e = w[0] if side == 0 else w[-1]
+            nb = w[min(len(w) - 1, 5)] if side == 0 else w[max(0, len(w) - 6)]
+            v = e[:2] - nb[:2]
+            v = v / max(np.hypot(*v), 1e-9)
+            # (1) support
+            if at is not None:
+                d, k = at.query(e[:2])
+                if d <= snap_sup:
+                    perp = np.array([-v[1], v[0]])
+                    off = float(np.clip((e[:2] - A[k, :2]) @ perp, -arm, arm))
+                    p = np.r_[A[k, :2] + perp * off, min(e[2], A[k, 2] + 0.3)]
+                    seg = span(e, p) if np.hypot(*(p[:2] - e[:2])) > 0.6 else p[None]
+                    ws[i] = np.vstack([seg[::-1], w[1:]]) if side == 0 else np.vstack([w[:-1], seg])
+                    counts["support"] += 1
+                    continue
+            P, I, T = dens_all(i)
+            if T is not None:
+                # (2) weld to another end
+                best = None
+                for j, o in enumerate(ws):
+                    if j == i or o is None:
+                        continue
+                    for oe_side, oe in ((0, o[0]), (1, o[-1])):
+                        dd = float(np.linalg.norm(oe - e))
+                        if dd <= join_end and (best is None or dd < best[0]):
+                            best = (dd, j, oe_side)
+                if best is not None:
+                    _, j, os_ = best
+                    m = (e + (ws[j][0] if os_ == 0 else ws[j][-1])) / 2
+                    if side == 0:
+                        ws[i][0] = m
+                    else:
+                        ws[i][-1] = m
+                    if os_ == 0:
+                        ws[j][0] = m
+                    else:
+                        ws[j][-1] = m
+                    counts["weld"] += 1
+                    continue
+                # (3) tap onto another wire
+                d, k = T.query(e)
+                if d <= tap:
+                    if side == 0:
+                        ws[i][0] = P[k]
+                    else:
+                        ws[i][-1] = P[k]
+                    counts["tap"] += 1
+                    continue
+            # (4) something ahead
+            cand = []
+            if at is not None:
+                for k in at.query_ball_point(e[:2], reach):
+                    g = A[k, :2] - e[:2]; L = np.hypot(*g)
+                    if L > 0.5 and np.degrees(np.arccos(np.clip(v @ (g / L), -1, 1))) <= cone:
+                        cand.append((L, np.r_[A[k, :2], min(A[k, 2] + 0.3, max(e[2], A[k, 2] - 3.0))]))
+            if T is not None:
+                for k in T.query_ball_point(e, reach)[::3]:
+                    g = P[k, :2] - e[:2]; L = np.hypot(*g)
+                    if L > 0.5 and np.degrees(np.arccos(np.clip(v @ (g / L), -1, 1))) <= cone and abs(P[k, 2] - e[2]) <= 0.25 * L + 2.0:
+                        cand.append((L * 1.15, P[k]))
+            if cand:
+                L, p = min(cand, key=lambda c: c[0])
+                seg = span(e, p)
+                ws[i] = np.vstack([seg[::-1], ws[i][1:]]) if side == 0 else np.vstack([ws[i][:-1], seg])
+                span_len += float(np.hypot(*(p[:2] - e[:2])))
+                counts["span_ahead"] += 1
+                continue
+            # (5) anything near
+            cand = []
+            if at is not None:
+                d, k = at.query(e[:2])
+                if d <= near:
+                    cand.append((d, np.r_[A[k, :2], min(e[2], A[k, 2] + 0.3)]))
+            if T is not None:
+                d, k = T.query(e)
+                if d <= near:
+                    cand.append((d, P[k]))
+            if cand:
+                _, p = min(cand, key=lambda c: c[0])
+                seg = span(e, p)
+                ws[i] = np.vstack([seg[::-1], ws[i][1:]]) if side == 0 else np.vstack([ws[i][:-1], seg])
+                counts["drop_near"] += 1
+                continue
+            free.append((i, side))
+    poles = []
+    for i, side in free:
+        w = ws[i]
+        if w is None:
+            continue
+        L = float(np.hypot(*np.diff(w[:, :2], axis=0).T).sum())
+        if L < min_keep:
+            ws[i] = None
+            counts["dropped_wires"] += 1
+            continue
+        e = w[0] if side == 0 else w[-1]
+        poles.append([e[0], e[1], e[2] + 0.3])
+        counts["inferred_pole"] += 1
+    out = [w for w in ws if w is not None]
+    counts["wires_out"] = len(out); counts["added_span_m"] = span_len
+    return out, np.array(poles, float).reshape(-1, 3), counts
+
+
+def free_ends(wires, anchors, tol_sup=2.6, tol_wire=0.6, points=False):
+    """Ends that touch neither a support top (plan distance) nor any other wire (3D). A check, independent of how the ends were joined."""
+    A = np.asarray(anchors, float).reshape(-1, 3)
+    at = cKDTree(A[:, :2]) if len(A) else None
+    D = [densify(np.asarray(w, float), 0.25) for w in wires]
+    n = 0
+    pts = []
+    for i, w in enumerate(wires):
+        others = [D[j] for j in range(len(D)) if j != i]
+        T = cKDTree(np.vstack(others)) if others else None
+        for e in (w[0], w[-1]):
+            ok = (at is not None and at.query(e[:2])[0] <= tol_sup) or (T is not None and T.query(e)[0] <= tol_wire)
+            n += 0 if ok else 1
+            if not ok:
+                pts.append(e)
+    return (n, np.array(pts).reshape(-1, 3)) if points else n
+
+
+def wire_rows(x, y, top_z, radius, eps=7.0, dz=1.2, max_r=2.0, min_n=5, lin=0.97, min_len=20.0):
+    """Wire returns the wire detector missed still form ridges in the canopy height model, and the tree segmentation puts a row of narrow 'crowns' along them, all at the conductor's height.
+    Find those rows: narrow tops (radius <= `max_r`) linked when within `eps` m in plan and `dz` m in height, groups of at least `min_n` whose plan spread is a line (first PCA share >= `lin`) at least `min_len` m long.
+    Returns (boolean mask of tops in a row, list of (n, 3) polylines ordered along each row)."""
+    from scipy.sparse.csgraph import connected_components
+    from scipy.sparse import coo_matrix
+    cand = np.flatnonzero(radius <= max_r)
+    P = np.c_[x[cand], y[cand]]
+    tr = cKDTree(P)
+    pairs = np.array(sorted(tr.query_pairs(eps)), int).reshape(-1, 2)
+    if len(pairs):
+        pairs = pairs[np.abs(top_z[cand][pairs[:, 0]] - top_z[cand][pairs[:, 1]]) <= dz]
+    n = len(cand)
+    g = coo_matrix((np.ones(len(pairs)), (pairs[:, 0], pairs[:, 1])), shape=(n, n)) if len(pairs) else coo_matrix((n, n))
+    _, lab = connected_components(g, directed=False)
+    mask = np.zeros(len(x), bool)
+    rows = []
+    for l in np.unique(lab):
+        idx = np.flatnonzero(lab == l)
+        if len(idx) < min_n:
+            continue
+        Q = P[idx] - P[idx].mean(0)
+        ev, evec = np.linalg.eigh(np.cov(Q.T))
+        if ev[-1] / max(ev.sum(), 1e-9) < lin:
+            continue
+        t = Q @ evec[:, -1]
+        if t.max() - t.min() < min_len:
+            continue
+        o = np.argsort(t)
+        sel = cand[idx][o]
+        mask[sel] = True
+        # one smooth line per row: the PCA axis in plan, with the median offset and height in 6 m steps along it (the tops of parallel conductors interleave, so joining them in order zig-zags)
+        ax = evec[:, -1]; nrm = np.array([-ax[1], ax[0]])
+        off = Q @ nrm
+        zz = top_z[cand][idx]
+        edges = np.arange(t.min(), t.max() + 6.0, 6.0)
+        tc, oc, zc = [], [], []
+        for a_, b_ in zip(edges[:-1], edges[1:]):
+            m_ = (t >= a_) & (t <= b_)
+            if m_.any():
+                tc.append(np.median(t[m_])); oc.append(np.median(off[m_])); zc.append(np.median(zz[m_]))
+        tc = np.r_[t.min(), tc, t.max()]; oc = np.r_[oc[0], oc, oc[-1]]; zc = np.r_[zc[0], zc, zc[-1]]
+        oc = np.convolve(np.pad(oc, 1, mode="edge"), np.ones(3) / 3, mode="valid")
+        c0 = P[idx].mean(0)
+        xy = c0 + tc[:, None] * ax + oc[:, None] * nrm
+        rows.append(np.c_[xy, zc])
+    return mask, rows

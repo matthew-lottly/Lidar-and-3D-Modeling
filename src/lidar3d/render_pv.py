@@ -104,3 +104,108 @@ def render(layers, focus, dist, az, el, size=(1700, 1000), sky=("#dbe9f5", "#8fb
     img = pl.screenshot(return_img=True)
     pl.close()
     return img
+
+
+def crowns_mesh(chm, lab, ids, tops_xy, bases, ground, x0, y0, res, base_rgb, n_az=20, n_lev=10, seed=0):
+    """One 3D crown per segmented tree, shaped by the lidar: for each tree the canopy-height cells of its watershed crown give, at each of `n_lev` heights between
+    the crown base and the top and in each of `n_az` directions from the tree top, the furthest cell still at least that tall. That radius envelope is the crown
+    (so a cone-shaped conifer, a broad round crown and a crown pressed against its neighbour each keep their own shape). A trunk joins the crown base to the ground.
+    chm, lab, ground: grids on the same 0.5 m lattice; base_rgb: (n, 3) colour per tree. Returns (crowns polydata, trunks polydata), each with an 'rgb' array."""
+    from scipy import ndimage as ndi
+    rng = np.random.default_rng(seed)
+    sm = ndi.gaussian_filter(np.where(np.isfinite(chm), chm, 0.0), 0.6)
+    objs = ndi.find_objects(lab)
+    V, F, C, off = [], [], [], 0
+    TV, TF, off_t = [], [], 0
+    az = np.linspace(0, 2 * np.pi, n_az, endpoint=False)
+    ca, sa = np.cos(az), np.sin(az)
+    for t, tid in enumerate(ids):
+        if tid - 1 >= len(objs) or objs[tid - 1] is None:
+            continue
+        sl = objs[tid - 1]
+        m = lab[sl] == tid
+        if m.sum() < 3:
+            continue
+        rr, cc = np.nonzero(m)
+        px = x0 + (cc + sl[1].start + 0.5) * res
+        py = y0 + (rr + sl[0].start + 0.5) * res
+        h = sm[sl][m]
+        tx, ty = tops_xy[t]
+        ti, tj = int((ty - y0) / res), int((tx - x0) / res)
+        g = float(ground[np.clip(ti, 0, ground.shape[0] - 1), np.clip(tj, 0, ground.shape[1] - 1)])
+        top = float(h.max())
+        base = float(np.clip(bases[t], 0.5, top * 0.75))
+        dx, dy = px - tx, py - ty
+        dist = np.hypot(dx, dy) + res * 0.5
+        sec = (np.round(np.arctan2(dy, dx) / (2 * np.pi / n_az)).astype(int)) % n_az
+        levs = base + (top - base) * np.linspace(0, 1, n_lev + 1)[:-1]
+        R = np.zeros((n_lev, n_az))
+        for li, L in enumerate(levs):
+            ok = h >= L
+            if ok.any():
+                np.maximum.at(R[li], sec[ok], dist[ok])
+        # empty sectors take the circular mean of their neighbours; smooth across direction and height; a crown never grows wider upward than below by much
+        for li in range(n_lev):
+            r = R[li]
+            if (r > 0).any():
+                fill = np.where(r > 0, r, np.nan)
+                idx = np.arange(n_az)
+                good = ~np.isnan(fill)
+                fill = np.interp(idx, np.r_[idx[good] - n_az, idx[good], idx[good] + n_az], np.r_[fill[good], fill[good], fill[good]])
+                R[li] = fill
+            else:
+                R[li] = R[li - 1] * 0.6 if li else res
+        R = (R + np.roll(R, 1, 1) + np.roll(R, -1, 1)) / 3
+        R = ndi.uniform_filter1d(R, 3, axis=0, mode="nearest")
+        # foliage hangs: below the widest level of the upper crown the radius does not shrink by more than 15% per level (so crowns taper upward, as they do)
+        for li in range(n_lev - 2, -1, -1):
+            R[li] = np.maximum(R[li], R[li + 1] * 0.92)
+        R = np.maximum(R, res * 0.6)
+        R *= 1.0 + 0.05 * rng.standard_normal(R.shape).clip(-2, 2)
+        # rings: a small inward-curving underside, the levels, and an apex
+        zz = g + levs
+        rings = [(g + base - 0.25, R[0] * 0.55)] + [(zz[i], R[i]) for i in range(n_lev)]
+        vs = [np.c_[tx + r * ca, ty + r * sa, np.full(n_az, z)] for z, r in rings]
+        vs.append(np.array([[tx, ty, g + top]]))
+        vs.insert(0, np.array([[tx, ty, g + base - 0.35]]))
+        P = np.vstack(vs)
+        nr = len(rings)
+        f = []
+        # bottom fan
+        for k in range(n_az):
+            f.append((0, 1 + k, 1 + (k + 1) % n_az))
+        for ri in range(nr - 1):
+            a0, b0 = 1 + ri * n_az, 1 + (ri + 1) * n_az
+            for k in range(n_az):
+                k1 = (k + 1) % n_az
+                f += [(a0 + k, b0 + k, b0 + k1), (a0 + k, b0 + k1, a0 + k1)]
+        apex = len(P) - 1
+        a0 = 1 + (nr - 1) * n_az
+        for k in range(n_az):
+            f.append((a0 + k, apex, a0 + (k + 1) % n_az))
+        f = np.array(f) + off
+        V.append(P); F.append(f); off += len(P)
+        # colour: the tree's own colour, darker low and inside, lit at the top, with foliage noise
+        frac = np.clip((P[:, 2] - g - base) / max(top - base, 0.5), 0, 1)
+        shade = 0.62 + 0.5 * frac + 0.07 * rng.standard_normal(len(P))
+        C.append(np.clip(base_rgb[t][None, :] * shade[:, None], 0, 255))
+        # trunk
+        rt = 0.08 + 0.012 * top
+        k6 = np.linspace(0, 2 * np.pi, 6, endpoint=False)
+        ring_b = np.c_[tx + rt * np.cos(k6), ty + rt * np.sin(k6), np.full(6, g - 0.2)]
+        ring_t = np.c_[tx + rt * 0.7 * np.cos(k6), ty + rt * 0.7 * np.sin(k6), np.full(6, g + base + 0.3)]
+        TV.append(np.vstack([ring_b, ring_t]))
+        tf = []
+        for k in range(6):
+            k1 = (k + 1) % 6
+            tf += [(k, 6 + k, 6 + k1), (k, 6 + k1, k1)]
+        TF.append(np.array(tf) + off_t); off_t += 12
+    def poly(V, F):
+        F = np.vstack(F)
+        return pv.PolyData(np.vstack(V), np.c_[np.full(len(F), 3), F].ravel())
+    cr = poly(V, F)
+    cr["rgb"] = np.vstack(C).astype(np.uint8)
+    cr = cr.compute_normals(point_normals=True, cell_normals=False, auto_orient_normals=False, split_vertices=False)
+    tr = poly(TV, TF)
+    tr["rgb"] = np.tile(np.array([92, 72, 54], np.uint8), (tr.n_points, 1))
+    return cr, tr

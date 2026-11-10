@@ -83,13 +83,16 @@ class Scene:
             if k == "frames":
                 out.append(dict(mesh=m, kind="points", point_size=3.0))
             elif k == "wires_lines":
-                out.append(dict(mesh=m, kind="lines", color="#E8E8E8" if False else ("#141414" if mode == "realistic" else "#111111"), width=2.8 if dist > 500 else (1.6 if dist > 150 else 1.0)))
+                if dist > 150:
+                    out.append(dict(mesh=m, kind="lines", color="#141414", width=2.6 if dist > 500 else 1.4))
             elif k == "wires":
-                if dist <= 500:
+                if dist <= 150:
                     out.append(dict(mesh=m))
             elif k == "support_markers":
                 if mode == "classified" and dist > 500:
                     out.append(dict(mesh=m))
+            elif k == "crowns":
+                out.append(dict(mesh=m, smooth=True))
             else:
                 out.append(dict(mesh=m))
         return out
@@ -122,7 +125,7 @@ def run_75(sc):
     y0 = pl.notes(SBX, y0 - 0.05, SBW, [
         ("Built from the points", "Ground is the lidar surface with every hole interpolated. Crowns are cut from the canopy height model, roofs from planar returns, and towers and gantries are lattices fitted to their own returns."),
         ("Coloured from the photo", "Ground, crowns and roofs take their colour from the 0.6 m aerial photo, registered to the roof outlines because a photo shifts tall objects sideways."),
-        ("Surface and templates", "Tree crowns are the lidar canopy surface itself. Equipment, poles and cross-arms are templates scaled to measured sizes. Nothing in the model is a photograph of the object.")])
+        ("Lidar crowns, template hardware", "Each tree crown is shaped by its own canopy-height returns, direction by direction and height by height. Equipment, poles and cross-arms are templates scaled to measured sizes; nothing is a photograph of the object.")])
     pl.panel_title(SBX, y0 - 0.02, "C", "Close views", w=SBW)
     thumbs(pl, sc, "realistic", max(1.5, y0 - 0.45 - 1.3))
     pl.save("75_whiteriver_scene_realistic_3d.png")
@@ -236,10 +239,10 @@ def run_79(sc):
     D, S = sc.D, sc.S
     T = D["trees"]
     conifer = ((T["height"] - np.minimum(T["base"], 0.6 * T["height"])) / np.maximum(2 * T["radius"] * 1.25, 0.5)) > 1.6
-    pl = ProPlate(79, KICK, "Trees: individual crowns from the canopy height model", "Watershed segmentation cuts the canopy into crowns, each with a top, height, radius and crown base, drawn as a crown and a trunk", src(S), "Crown shape (cone or ellipsoid) follows crown length against width")
-    win = (-420, -150, 0, 270)
+    pl = ProPlate(79, KICK, "Trees: individual crowns from the canopy height model", "Watershed segmentation cuts the canopy into crowns, each with a top, height, radius and crown base, drawn as a lidar-shaped crown on a trunk", src(S), "Each crown is the radius envelope of its own canopy-height cells")
+    win = (-420, -150, -140, 130)
     pl.panel_title(0.6, 8.14, "A", "Canopy height model, tree tops and crowns", w=4.4)
-    a = pl.ax(0.75, 4.35, 4.15, 3.6)
+    a = pl.ax(0.75, 4.45, 4.15, 3.5)
     ch = D["chm"]
     x0, y0 = BS.WIN[0], BS.WIN[2]
     sl = (slice(int((win[2] - y0) / 0.5), int((win[3] - y0) / 0.5)), slice(int((win[0] - x0) / 0.5), int((win[1] - x0) / 0.5)))
@@ -251,7 +254,7 @@ def run_79(sc):
         a.add_patch(Circle((xx, yy), rr, fill=False, ec="#222", lw=0.3))
     a.set_aspect("equal"); a.tick_params(labelsize=7, colors="#5B6470")
     pl.panel_title(5.2, 8.14, "B", "Tree height by crown shape", w=4.3)
-    b = pl.ax(5.45, 4.35, 3.95, 3.6)
+    b = pl.ax(5.45, 4.6, 3.95, 3.35)
     bins = np.arange(3, 50, 2)
     b.hist([T["height"][~conifer], T["height"][conifer]], bins=bins, stacked=True, color=["#8FBF6A", "#2F6B3F"], label=["broadleaf-shaped", "conifer-shaped"])
     b.set_xlabel("tree height, m", fontsize=8, color="#5B6470"); b.set_ylabel("trees", fontsize=8, color="#5B6470"); b.legend(fontsize=7.5, frameon=False); b.tick_params(labelsize=8, colors="#5B6470"); b.spines[["top", "right"]].set_visible(False)
@@ -263,9 +266,10 @@ def run_79(sc):
     y0_ = pl.tiles(SBX, 7.85, SBW, [(f"{len(T['x']):,}", "tree crowns found"), (f"{np.median(T['height']):.0f} m", f"median height, tallest {T['height'].max():.0f} m"), (f"{conifer.mean() * 100:.0f}%", "of crowns are conifer-shaped")])
     y0_ = pl.notes(SBX, y0_ - 0.05, SBW, [
         ("Method", "The canopy height model (highest return per 0.5 m cell above 1.5 m) is smoothed and split at local maxima at least 1.8 m apart; each crown is its basin down to 40% of its own height. The crown base is the 12th percentile of returns inside the crown."),
-        ("Drawing", "A crown is an ellipsoid, or three stacked cones when it is long and narrow. The radius is widened by a quarter because the 40% cut trims the edges. Trunks are cylinders up to the crown base.")])
+        ("Drawing", "Each crown is drawn from its own cells: at ten heights from base to top and in twenty directions, the radius is the furthest cell still that tall. A trunk runs from the ground to the crown base."),
+        ("Not trees", f"{D.get('trees_removed_on_wires', 0) - D.get('trees_removed_as_wire_rows', 0)} tops sat on a modelled wire or support. {D.get('trees_removed_as_wire_rows', 0)} more stood in {len(D.get('wire_rows', []))} straight rows at one height: conductors the wire detector missed, now added to the wire model.")])
     pl.panel_title(SBX, y0_ - 0.02, "F", "Crown radius against height", w=SBW)
-    c = pl.ax(SBX + 0.35, 1.2, SBW - 0.5, 1.85)
+    c = pl.ax(SBX + 0.35, max(1.2, y0_ - 2.75), SBW - 0.5, 2.3)
     c.scatter(T["height"], T["radius"], s=3, alpha=0.3, color="#2F6B3F", linewidths=0)
     c.set_xlabel("tree height, m", fontsize=7.5, color="#5B6470"); c.set_ylabel("crown radius, m", fontsize=7.5, color="#5B6470"); c.tick_params(labelsize=7.5, colors="#5B6470"); c.spines[["top", "right"]].set_visible(False)
     pl.save("79_whiteriver_scene_trees.png")
@@ -313,7 +317,7 @@ def run_80(sc):
         ("Why a filter is needed", f"Dense crowns also form planar returns, so {D['buildings_all']} footprints were found but only {bc['kept']['buildings']} are roofs. A footprint is kept when its roof is not vegetated in the photo (NDVI under 0.25 at the displaced roof position), is at least 40 m2, is 2.5 to 25 m tall (and over 300 m2 when over 12 m), and is not cut by the window edge."),
         ("Reading the check", f"Overture maps {bc['overture_buildings']} separate footprints where the lidar merges each row of houses into one, so counts differ and area overlap is the fair measure. Walls are plain surfaces from ground to roof outline: no windows, doors or eaves.")], fs=8.3)
     pl.panel_title(SBX, y0_ - 0.02, "F", "Registering the photo to the roofs", w=SBW)
-    c = pl.ax(SBX + 0.35, 1.2, SBW - 0.5, 1.85)
+    c = pl.ax(SBX + 0.35, max(1.2, y0_ - 2.75), SBW - 0.5, 2.3)
     sp = sc.info["realistic"]["displacement"]["split"]
     names = list(sp)
     xs = np.arange(len(names))
@@ -367,40 +371,48 @@ def run_81(sc):
 
 def run_82(sc):
     I = sc.info["realistic"]
-    cs = I["clean"]
+    cs = I["clean"]; cn = cs["connect"]
     S, D, N = sc.S, sc.D, sc.N
     d = S["d"]
     wm = D["wmask"]
     W = np.c_[d["x"][wm], d["y"][wm], d["z"][wm]].astype(float)
     cov_b = U.coverage(W, I["wires_raw"]); cov_a = U.coverage(W, I["wires_final"])
     v = [cov_b["share_wire_points_within_1m"] * 100, cov_a["share_wire_points_within_1m"] * 100]
-    pl = ProPlate(82, KICK, "Cleaning up the wire model", "Duplicates, stubs and jitter removed from the network of fitted spans, observed pieces and bridges, with the coverage of detected wire points checked before and after", src(S))
+    pl = ProPlate(82, KICK, "Cleaning up and connecting the wire model", "Duplicates and stubs removed, missed conductors added from the canopy model, then every wire end joined to a support, another wire or yard equipment: no wire is left floating", src(S))
     win = BS.WIN
     for k, (wires, ttl, L_) in enumerate(((I["wires_raw"], "Before", "A"), (I["wires_final"], "After", "B"))):
         x = 0.6 + k * 4.6
         pl.panel_title(x, 8.14, L_, f"{ttl}: {len(wires):,} polylines", w=4.4)
-        a = pl.ax(x + 0.05, 3.35, 4.3, 4.6)
+        a = pl.ax(x + 0.05, 4.35, 4.3, 3.6)
         for w in wires:
             a.plot(w[:, 0], w[:, 1], color="#1F4E79", lw=0.5)
-        a.set_xlim(win[0], win[1]); a.set_ylim(win[2] + 270, win[3]); a.set_aspect("equal"); a.set_xticks([]); a.set_yticks([])
+        ends = np.array([e[:2] for w in wires for e in (w[0], w[-1])])
+        a.scatter(ends[:, 0], ends[:, 1], s=2.5, color="#B03A2E", zorder=3, linewidths=0)
+        a.set_xlim(win[0], win[1]); a.set_ylim(win[2], win[3]); a.set_aspect("equal"); a.set_xticks([]); a.set_yticks([])
         for sp in a.spines.values():
             sp.set_color("#B7BCC3")
-    pl.panel_title(0.6, 3.0, "C", "Smoothness of the wires", w=4.4)
-    b = pl.ax(1.0, 1.15, 3.8, 1.5)
-    b.barh([0, 1], [cs["roughness_before_m"] * 100, cs["roughness_after_m"] * 100], color=["#BDC3C7", "#1F4E79"])
-    b.set_yticks([0, 1]); b.set_yticklabels(["before", "after"], fontsize=8); b.set_xlabel("height jitter, cm per m (rms second difference)", fontsize=7.5, color="#5B6470"); b.tick_params(labelsize=8, colors="#5B6470"); b.spines[["top", "right"]].set_visible(False)
-    pl.panel_title(5.2, 3.0, "D", "Detected wire kept in the model", w=4.3)
-    c = pl.ax(5.6, 1.15, 3.6, 1.5)
+    pl.panel_title(0.6, 3.95, "C", "How each of the wire ends was joined", w=4.4)
+    b = pl.ax(2.2, 1.15, 2.6, 2.45)
+    lab = ["on a support", "welded to another end", "tapped onto a wire", "new span to what lies ahead", "short drop to nearest", "new pole (assumed)", "wire dropped"]
+    val = [cn["support"], cn["weld"], cn["tap"], cn["span_ahead"], cn["drop_near"], cn["inferred_pole"], cn["dropped_wires"]]
+    b.barh(range(len(val))[::-1], val, color="#1F4E79")
+    for i, x_ in zip(range(len(val))[::-1], val):
+        b.text(x_ + 5, i, f"{x_}", va="center", fontsize=8)
+    b.set_yticks(range(len(val))[::-1]); b.set_yticklabels(lab, fontsize=7.5); b.set_xlim(0, max(val) * 1.18); b.tick_params(labelsize=7.5, colors="#5B6470"); b.spines[["top", "right"]].set_visible(False)
+    b.set_xlabel("wire ends", fontsize=7.5, color="#5B6470")
+    pl.panel_title(5.2, 3.95, "D", "Detected wire kept in the model", w=4.3)
+    c = pl.ax(5.6, 1.15, 3.6, 2.45)
     c.barh([0, 1], v, color=["#BDC3C7", "#1F4E79"])
     for i, x_ in enumerate(v):
         c.text(x_ + 1, i, f"{x_:.0f}%", va="center", fontsize=9)
-    c.set_yticks([0, 1]); c.set_yticklabels(["before", "after"], fontsize=8); c.set_xlim(0, 110); c.set_xlabel("wire points within 1 m of a model wire, %", fontsize=7.5, color="#5B6470"); c.tick_params(labelsize=8, colors="#5B6470"); c.spines[["top", "right"]].set_visible(False)
+    c.set_yticks([0, 1]); c.set_yticklabels(["before", "after"], fontsize=8); c.set_xlim(0, 110); c.set_xlabel("detected wire returns within 1 m of a model wire, %", fontsize=7.5, color="#5B6470"); c.tick_params(labelsize=8, colors="#5B6470"); c.spines[["top", "right"]].set_visible(False)
     pl.panel_title(SBX, 8.14, "E", "Key numbers", w=SBW)
-    y0_ = pl.tiles(SBX, 7.85, SBW, [(f"{cs['before']:,}", f"polylines before, {cs['after']:,} after"), (f"{cs['dropped_duplicate']}", "duplicate pieces removed"), (f"{cs['dropped_short']}", "stubs under 3 m removed")])
+    y0_ = pl.tiles(SBX, 7.85, SBW, [(f"{cn['free_ends_before']}", "free wire ends before"), (f"{cn['free_ends_after']}", "free wire ends after"), (f"{cn['added_span_m'] / 1000:.1f} km", "of wire added to join them")])
     pl.notes(SBX, y0_ - 0.05, SBW, [
-        ("What the clean-up does", f"A piece is dropped when 70% of it lies within 0.45 m of a longer piece, which means the same wire was drawn twice, once by a span fit and once as an observed piece. Pieces under 3 m are dropped. Heights are smoothed with a 5 m running mean and the end points are kept. Length goes from {cs['length_before_m'] / 1000:.1f} km to {cs['length_after_m'] / 1000:.1f} km."),
-        ("What it costs", f"Coverage of detected wire points within 1 m moves from {v[0]:.0f}% to {v[1]:.0f}%, so almost nothing real is removed, while height jitter falls from {cs['roughness_before_m'] * 100:.1f} to {cs['roughness_after_m'] * 100:.1f} cm per m."),
-        ("Why it matters", "Wires drawn twice are overlapping tubes, which show as thick or flickering lines in the 3D views. Smoothing removes the stair-step left by fitting each span separately.")], fs=8.4)
+        ("Clean-up", f"A piece is dropped when 70% of it lies within 0.45 m of a longer piece (the same wire drawn twice by a span fit and an observed piece); {cs['dropped_duplicate']} were. {cs['dropped_short']} stubs under 3 m were dropped. Polylines go from {cs['before']:,} to {cs['after']:,}."),
+        ("Connection", "A wire cannot end in the air. Each end, in order: moves onto the cross-arm of a support within 4 m; is welded to another end within 3 m; is tapped onto a wire within 1 m; gets a sagging span to the nearest support or wire ahead of it (28 degrees, 70 m); or drops to anything within 15 m. A second pass re-joins ends that a weld moved."),
+        ("The check", f"An end counts as free when no support top lies within 2.6 m in plan and no other wire within 0.6 m. {cn['free_ends_before']} ends were free before, {cn['free_ends_after']} after. {cn['inferred_pole']} ends with nothing within reach stand on an assumed pole (drawn orange in the classified map), and {cn['dropped_wires']} short isolated piece was dropped."),
+        ("What it costs", f"{v[0]:.0f}% of detected wire returns lie within 1 m of a model wire before, {v[1]:.0f}% after. The difference is the duplicate and stub pieces; whether those returns were real extra conductors or noise is not checked here.")], fs=8.4)
     pl.save("82_whiteriver_scene_wire_cleanup.png")
 
 
