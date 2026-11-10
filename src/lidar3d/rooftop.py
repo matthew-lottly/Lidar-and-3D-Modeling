@@ -371,7 +371,7 @@ def building_mesh(b: Building, plane_color=None, wall_color=(205, 198, 188)):
     _, k = tree.query(ring)
     pid = np.concatenate([np.full(len(p.pts), j) for j, p in enumerate(b.planes)])
     top = np.array([b.planes[pid[kk]].z(*ring[i]) for i, kk in enumerate(k)])
-    top = np.clip(top, b.ground_z + 1.0, None)
+    top = np.clip(top, b.ground_z + 1.0, b.ground_z + b.height + 0.3)      # a plane extrapolated past its own points can run far above the roof; walls never rise above the roof's highest point
     n = len(ring)
     P = np.vstack([np.c_[ring, np.full(n, b.ground_z)], np.c_[ring, top]])
     F = []

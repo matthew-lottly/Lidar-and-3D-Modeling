@@ -245,3 +245,47 @@ def bridge_ends(wires, supports_xy, sag_k, max_gap=90.0, min_gap=3.0, max_angle=
             z = ea[2] + (eb[2] - ea[2]) * t - sag_k * s * (L - s)
             out.append(dict(xyz=np.c_[xy, z], flag=np.full(len(s), 2), source="bridge"))
     return out
+
+
+def roughness(w):
+    """RMS of the second difference of height per metre along a polyline (a straight or sagging wire is smooth; jitter raises it)."""
+    P = densify(w, 1.0)
+    if len(P) < 4:
+        return np.nan
+    return float(np.sqrt(np.mean(np.diff(P[:, 2], 2) ** 2)))
+
+
+def clean_wires(wires, min_len=3.0, dup_tol=0.45, dup_share=0.7, smooth=5):
+    """Tidy a set of wire polylines ((n, 3) arrays): (1) drop pieces shorter than `min_len`; (2) drop a piece when at least `dup_share` of it lies within `dup_tol` m (3D) of a longer kept piece, i.e. the same wire drawn twice
+    by a span fit and an observed piece; (3) smooth heights with a running mean of `smooth` samples (1 m spacing), keeping the end points. Returns (cleaned list, dict of counts)."""
+    ws = [np.asarray(w, float) for w in wires if len(w) >= 2]
+    lens = [float(np.hypot(*np.diff(w[:, :2], axis=0).T).sum()) for w in ws]
+    order = np.argsort(lens)[::-1]
+    kept, dropped_short, dropped_dup = [], 0, 0
+    trees = []
+    for i in order:
+        w = ws[i]
+        if lens[i] < min_len:
+            dropped_short += 1
+            continue
+        D = densify(w, 0.5)
+        dup = False
+        for P_, t in trees:
+            if len(P_) and (t.query(D)[0] <= dup_tol).mean() >= dup_share:
+                dup = True
+                break
+        if dup:
+            dropped_dup += 1
+            continue
+        kept.append(w)
+        trees.append((D, cKDTree(D)))
+    out = []
+    for w in kept:
+        P = densify(w, 1.0)
+        if len(P) > smooth + 2:
+            k = np.ones(smooth) / smooth
+            z = np.convolve(np.pad(P[:, 2], (smooth // 2, smooth // 2), mode="edge"), k, mode="valid")
+            z[0], z[-1] = P[0, 2], P[-1, 2]
+            P = np.c_[P[:, :2], z]
+        out.append(P)
+    return out, dict(before=len(ws), after=len(out), dropped_short=dropped_short, dropped_duplicate=dropped_dup, length_before_m=float(sum(lens)), length_after_m=float(sum(np.hypot(*np.diff(p[:, :2], axis=0).T).sum() for p in out)))

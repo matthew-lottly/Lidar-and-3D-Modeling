@@ -35,10 +35,13 @@ def wire_tube(xyz, radius=0.07, sides=5):
     return pv.lines_from_points(xyz).tube(radius=radius, n_sides=sides)
 
 
-def render(layers, focus, dist, az, el, size=(1700, 1000), sky=("#dbe9f5", "#8fb4d9"), zoom=1.0, light_az=300.0, light_el=45.0):
+def render(layers, focus, dist, az, el, size=(1700, 1000), sky=("#dbe9f5", "#8fb4d9"), zoom=1.0, light_az=300.0, light_el=45.0, ssao=False, shadows=False, bg=None):
     """layers: list of dicts(mesh=..., kind='mesh'|'points'|'tube', color/rgb, opacity, point_size). Camera looks at `focus` from compass bearing `az` (0 = camera north of the target, 90 = east) at elevation `el` degrees and distance `dist` m."""
     pl = pv.Plotter(off_screen=True, window_size=size)
-    pl.set_background(sky[0], top=sky[1])
+    if bg is not None:
+        pl.set_background(bg)
+    else:
+        pl.set_background(sky[0], top=sky[1])
     for L in layers:
         kind = L.get("kind", "mesh")
         if kind == "points":
@@ -57,6 +60,16 @@ def render(layers, focus, dist, az, el, size=(1700, 1000), sky=("#dbe9f5", "#8fb
     pl.add_light(pv.Light(position=tuple(fp + 500 * np.array([np.sin(la) * np.cos(le), np.cos(la) * np.cos(le), np.sin(le)])), focal_point=tuple(fp), intensity=0.9, light_type="scene light"))
     pl.add_light(pv.Light(position=tuple(pos), focal_point=tuple(fp), intensity=0.35, light_type="scene light"))
     pl.enable_anti_aliasing("ssaa")
+    if ssao:
+        try:
+            pl.enable_ssao(radius=max(dist * 0.01, 1.0), bias=max(dist * 0.0004, 0.02), kernel_size=128, blur=True)
+        except Exception:
+            pass
+    if shadows:
+        try:
+            pl.enable_shadows()
+        except Exception:
+            pass
     img = pl.screenshot(return_img=True)
     pl.close()
     return img

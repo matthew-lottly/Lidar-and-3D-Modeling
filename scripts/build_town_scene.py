@@ -78,7 +78,7 @@ def detect(S):
     from lidar3d import classify as CL
     from lidar3d import rooftop as RT
     import build_town_model as BM
-    from shapely import contains_xy
+    from shapely import contains_xy, wkb as wkb_
     from shapely.geometry import box as sbox
     d, G, hag = S["d"], S["G"], S["hag"]
     x, y, z, cls = d["x"].astype(float), d["y"].astype(float), d["z"].astype(float), d["cls"]
@@ -88,29 +88,92 @@ def detect(S):
     feats = BM.overture(d["cx"], d["cy"])
     yard = max(feats["substation"], key=lambda g: g.area)
     inyard = contains_xy(yard.buffer(6), x, y)
-    wmask, wlab, winfo = utility.detect_wires(xyz, hag)
+    wp = CACHE_D / "scene_wires.pkl"
+    if wp.exists():
+        wmask, wlab = pickle.loads(wp.read_bytes())
+    else:
+        wmask, wlab, winfo = utility.detect_wires(xyz, hag)
+        wp.write_bytes(pickle.dumps((wmask, wlab)))
     out.update(yard=yard, inyard=inyard, wmask=wmask, wlab=wlab)
     print("wires", int(wmask.sum()), flush=True)
     # ---- imagery products
     img = S["img"]
     ndvi_img = (img[3] - img[0]) / np.maximum(img[3] + img[0], 1.0)
     fit = CL.fit_relief_displacement(ndvi_img, S["tf"], d["cx"], d["cy"], x, y, hag)
-    out["displacement"] = fit
-    print("displacement", fit, flush=True)
+    out["displacement_canopy_fit_not_used"] = fit
+    print("canopy-colour displacement fit (not used, unstable between window halves):", {k: round(v, 4) if isinstance(v, float) else v for k, v in fit.items()}, flush=True)
     # ---- buildings: planar returns outside the yard
     ccx, ccy = (WIN[0] + WIN[1]) / 2, (WIN[2] + WIN[3]) / 2
-    C = RT.Cloud((x - ccx).astype("float32"), (y - ccy).astype("float32"), z.astype("float32"), cls, d["nret"], "2020-04-13", 335.0, d["cx"] + ccx, d["cy"] + ccy)
-    dtm, hagC, dsm = RT.surfaces(C, 1.0)
-    use = RT.planar_points(C, hagC) & ~inyard & ~wmask
-    lab, polys = RT.footprints(C, hagC, use=use, min_area=30.0)
-    blds = RT.build_buildings(C, hagC, dtm, lab, polys, use=use)
-    out["buildings"] = blds
+    rawp = CACHE_D / "scene_bld_raw.pkl"
+    if rawp.exists():
+        blds, polys = pickle.loads(rawp.read_bytes())
+    else:
+        C = RT.Cloud((x - ccx).astype("float32"), (y - ccy).astype("float32"), z.astype("float32"), cls, d["nret"], "2020-04-13", 335.0, d["cx"] + ccx, d["cy"] + ccy)
+        dtm, hagC, dsm = RT.surfaces(C, 1.0)
+        use = RT.planar_points(C, hagC) & ~inyard & ~wmask
+        lab, polys = RT.footprints(C, hagC, use=use, min_area=30.0)
+        blds = RT.build_buildings(C, hagC, dtm, lab, polys, use=use)
+        rawp.write_bytes(pickle.dumps((blds, polys)))
+    # ---- keep real roofs: planar returns also form on dense crowns, which show up as vegetated (high NDVI) in the imagery
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+    ndvi_img = (img[3] - img[0]) / np.maximum(img[3] + img[0], 1.0)
+    tfm = S["tf"]
+    feats_b = []
     out["bld_offset"] = (ccx, ccy)
-    print("buildings", len(blds), "of", len(polys), "footprints", flush=True)
+    out["buildings"] = list(blds)
+    out["displacement_roofs"] = roof_displacement(S, out)
+    fitr = out["displacement_roofs"]
+    for b in blds:
+        cells = b.cells + np.array([ccx, ccy])
+        if len(cells):
+            h = float(max(b.height, 1.0))
+            cx_ = cells[:, 0] + h * (fitr["k"] * cells[:, 0] + fitr["bx"])
+            cy_ = cells[:, 1] + h * (fitr["k"] * cells[:, 1] + fitr["by"])
+            nd = float(np.median(ndvi_img[((cy_ + d["cy"] - tfm.f) / tfm.e).astype(int).clip(0, ndvi_img.shape[0] - 1), ((cx_ + d["cx"] - tfm.c) / tfm.a).astype(int).clip(0, ndvi_img.shape[1] - 1)]))
+        else:
+            nd = 1.0
+        pshare = float((b.cell_plane >= 0).mean()) if len(b.cell_plane) else 0.0
+        feats_b.append(dict(area=float(b.footprint.area), height=float(b.height), ndvi=nd, plane_share=pshare))
+    def edge_clear(b):
+        q = np.array(b.footprint.exterior.coords) + [ccx, ccy]
+        return bool(q[:, 0].min() > WIN[0] + 6 and q[:, 0].max() < WIN[1] - 6 and q[:, 1].min() > WIN[2] + 6 and q[:, 1].max() < WIN[3] - 6)
+    # roofs are not vegetated (NDVI under 0.25 at the displaced roof position), at least 40 m2, 2.5 to 25 m tall (a tall footprint must be big: small tall planar patches are crowns or towers), and not cut by the window edge
+    keep = [b for b, f in zip(blds, feats_b) if f["ndvi"] < 0.25 and f["area"] >= 40.0 and 2.5 <= b.height <= 25.0 and (b.height < 12.0 or f["area"] >= 300.0) and edge_clear(b)]
+    out["building_features"] = feats_b
+    # every cell of a footprint belongs to its nearest roof plane (the stock assignment leaves cells more than 2 m from a plane's returns bare, which draws holes in the roof)
+    for b in blds:
+        allp = np.vstack([p.pts for p in b.planes])
+        pid = np.concatenate([np.full(len(p.pts), j) for j, p in enumerate(b.planes)])
+        _, kk = cKDTree(allp[:, :2]).query(b.cells)
+        b.cell_plane = pid[kk]
+    out["buildings_all"] = len(blds)
+    out["buildings_raw_list"] = list(blds)
+    out["buildings"] = keep
+    # independent check against Overture's footprints (area overlap; rows of houses merge, so IoU per building would understate it)
+    import pyarrow.dataset as pads
+    from lidar3d import sitemap
+    trf = Transformer.from_crs(4326, BT.CRS, always_xy=True)
+    bk = Transformer.from_crs(BT.CRS, 4326, always_xy=True)
+    Wl, Sl = bk.transform(d["cx"] + WIN[0], d["cy"] + WIN[2])
+    El, Nl = bk.transform(d["cx"] + WIN[1], d["cy"] + WIN[3])
+    tb = sitemap._table("buildings", "building", ["geometry"], (Wl, Sl, El, Nl))
+    ov = unary_union([Polygon([(trf.transform(a, b)[0] - d["cx"], trf.transform(a, b)[1] - d["cy"]) for a, b in wkb_.loads(g).exterior.coords]) for g in tb.geometry]) if len(tb) else Polygon()
+    def agree(bl):
+        u = unary_union([Polygon(np.array(b.footprint.exterior.coords) + [ccx, ccy]) for b in bl]) if bl else Polygon()
+        inter = u.intersection(ov).area
+        return dict(buildings=len(bl), footprint_area_m2=float(u.area), share_of_lidar_area_inside_overture=float(inter / max(u.area, 1e-9)), share_of_overture_area_covered=float(inter / max(ov.area, 1e-9)))
+    out["building_check"] = dict(all_planar_footprints=agree(list(blds)), kept=agree(keep), overture_buildings=int(len(tb)), overture_area_m2=float(ov.area))
+    print("buildings kept", len(keep), "of", len(blds), out["building_check"], flush=True)
+    blds = keep
+    polys = [b.footprint for b in blds]
+    out["bld_offset"] = (ccx, ccy)
     # ---- trees from what is left: not ground, not wire, not building, not yard
     bmask = np.zeros(len(x), bool)
-    if len(polys):
-        for q in polys:
+    # returns of every roof-like footprint (not vegetated) are kept out of the trees, including roofs dropped from the drawn set for being tall, small or cut by the window edge
+    roofish = [b.footprint for b, f in zip(out["buildings_raw_list"], feats_b) if f["ndvi"] < 0.25 and f["area"] >= 40.0]
+    if len(roofish):
+        for q in roofish:
             qq = q.buffer(1.5)
             minx, miny, maxx, maxy = qq.bounds
             sel = np.flatnonzero((x - ccx >= minx) & (x - ccx <= maxx) & (y - ccy >= miny) & (y - ccy <= maxy))
@@ -161,6 +224,144 @@ def make_maps():
     out["fused"] = FS.fig_fused(S, D, N, feats, WIN)
     (ROOT / "data" / "processed" / "town" / "scene_maps.json").write_text(json.dumps(out, indent=1, default=float))
     print(json.dumps(out, indent=1, default=float))
+
+
+def roof_displacement(S, D):
+    """Relief displacement of the aerial image from building roofs (stable across the window, unlike a canopy-colour fit), with split-window repeats."""
+    from lidar3d import classify as CL
+    img, tf, d = S["img"], S["tf"], S["d"]
+    gray = img[:3].mean(0)
+    ccx, ccy = D["bld_offset"]
+    outs, cen = [], []
+    for b in D["buildings"]:
+        if b.height < 3:
+            continue
+        ring = np.array(b.footprint.exterior.coords)
+        seg = [a + (c - a) * np.linspace(0, 1, max(int(np.hypot(*(c - a))), 1))[:, None] for a, c in zip(ring[:-1], ring[1:])]
+        xy = np.vstack(seg) + [ccx, ccy]
+        outs.append((xy, float(b.height)))
+        cen.append(xy.mean(0))
+    fit = CL.fit_displacement_from_roofs(gray, tf, d["cx"], d["cy"], outs)
+    cen = np.array(cen)
+    split = {}
+    for nm, m in (("west", cen[:, 0] < -125), ("east", cen[:, 0] >= -125), ("north", cen[:, 1] >= -250), ("south", cen[:, 1] < -250)):
+        sel = [o for o, mm in zip(outs, m) if mm]
+        if len(sel) >= 8:
+            r = CL.fit_displacement_from_roofs(gray, tf, d["cx"], d["cy"], sel)
+            split[nm] = dict(buildings=len(sel), bx=r["bx"], by=r["by"], k=r["k"], edge_before=r["edge_before"], edge_after=r["edge_after"])
+    fit["split"] = split
+    return fit
+
+
+def assemble(S, D, N, mode="classified", step=2):
+    """Layers for render_pv: ground, trees, buildings, supports, wires, yard equipment and fence, in classified colours (no imagery) or imagery-coloured."""
+    import matplotlib.pyplot as plt
+    import pyvista as pv
+    import build_town_models as BMo
+    from shapely import contains_xy
+    from lidar3d import classify as CL, infra3d, render_pv as R, scene3d as SC
+    d, G = S["d"], S["G"]
+    x0, x1, y0, y1 = WIN
+    gz = U.ground_fn(G)
+    fit = roof_displacement(S, D)
+    photo = mode == "realistic"
+    K, E, br, Y = N["K"], N["E"], N["br"], N["Y"]
+    S2 = dict(d=dict(d, x=d["x"].astype(float), y=d["y"].astype(float), z=d["z"].astype(float)), G=G, hag=S["hag"])
+    layers = {}
+    # ground
+    ny, nx = G["z"].shape
+    X = np.arange(nx) * G["res"] + G["x0"] + G["res"] / 2
+    Y_ = np.arange(ny) * G["res"] + G["y0"] + G["res"] / 2
+    XX, YY = np.meshgrid(X, Y_)
+    rgb_g, nd_g = sample_naip(S, XX, YY)
+    if photo:
+        col = rgb_g
+    else:
+        veg = nd_g >= 0.25
+        col = np.where(veg[..., None], np.array([196, 210, 180], np.uint8), np.array([214, 214, 210], np.uint8))
+        yard_m = contains_xy(Y["yard"], XX, YY)
+        col = np.where(yard_m[..., None], np.array([200, 196, 186], np.uint8), col)
+    layers["ground"] = R.ground_mesh(dict(z=G["z"], res=G["res"], x0=G["x0"], y0=G["y0"]), col, step)
+    # trees
+    T = D["trees"]
+    n = len(T["x"])
+    if photo:
+        c = CL.displaced_rgb(S["img"][:3], S["tf"], d["cx"], d["cy"], T["x"], T["y"], np.maximum(T["height"] - 1.0, 0) * 0 + fit_h(T), dict(k=fit["k"], bx=fit["bx"], by=fit["by"])).astype(float)
+        # where the displaced image position is not vegetated (it landed on a roof or road), fall back to a green from the crown's own undisplaced position
+        hmid = fit_h(T)
+        de, dn = hmid * (fit["k"] * T["x"] + fit["bx"]), hmid * (fit["k"] * T["y"] + fit["by"])
+        _, ndv = sample_naip(S, T["x"] + de, T["y"] + dn)
+        c0 = CL.displaced_rgb(S["img"][:3], S["tf"], d["cx"], d["cy"], T["x"], T["y"], np.zeros(n), dict(k=0, bx=0, by=0)).astype(float)
+        bad = ndv < 0.15
+        c[bad] = c0[bad] * 0.85 + np.array([20, 40, 18])
+        rng = np.random.default_rng(1)
+        c = np.clip(c * rng.uniform(1.0, 1.3, (n, 1)), 0, 255).astype(np.uint8)
+        layers_tree_fallback = int(bad.sum())
+    else:
+        t = np.clip((T["height"] - 3.0) / 30.0, 0, 1)
+        cm = plt.get_cmap("YlGn_r")
+        c = (cm(0.15 + 0.7 * (1 - t))[:, :3] * 255).astype(np.uint8)
+        c = (plt.get_cmap("Greens")(0.35 + 0.6 * t)[:, :3] * 255).astype(np.uint8)
+    layers["trees"] = SC.trees_mesh(T, lambda a, b: gz(a, b), c)
+    # buildings
+    def roof_color(b, j):
+        if not photo:
+            return (222, 168, 98)
+        cells = b.cells[b.cell_plane == j]
+        if len(cells) == 0:
+            return (150, 150, 150)
+        pts = cells + np.array(D["bld_offset"])
+        h = float(np.mean(b.planes[j].pts[:, 2]) - b.ground_z)
+        cc = CL.displaced_rgb(S["img"][:3], S["tf"], d["cx"], d["cy"], pts[:, 0], pts[:, 1], np.full(len(pts), h), dict(k=fit["k"], bx=fit["bx"], by=fit["by"]))
+        return tuple(int(v) for v in np.median(cc, axis=0))
+    layers["buildings"] = SC.buildings_mesh(D["buildings"], D["bld_offset"], roof_color, wall_color=(214, 208, 198) if photo else (200, 196, 190))
+    # supports and wires
+    meshes, built = BMo.support_models(K, S2, E)
+    pal = dict(poles=(140, 92, 48), arms=(120, 80, 44), insulators=(200, 170, 130), towers=(70, 96, 130), arms_t=(120, 80, 44), insulators_t=(200, 170, 130), steel_default=(70, 96, 130), posts_extra=(140, 92, 48))
+    for k, m in meshes.items():
+        p = R.tmesh(m)
+        if not photo:
+            p["rgb"] = np.tile(np.array(pal.get(k, (120, 120, 120)), np.uint8), (p.n_points, 1))
+        layers["sup_" + k] = p
+    for k, m in Y["meshes"].items():
+        if k == "blocks":
+            continue
+        p = R.tmesh(m)
+        if not photo:
+            p["rgb"] = np.tile(np.array((70, 96, 130), np.uint8), (p.n_points, 1))
+        layers["yard_" + k] = p
+    boxy = [b for b in Y["blocks"] if b.get("fill", 1.0) >= 0.22]
+    frames = [b for b in Y["blocks"] if b.get("fill", 1.0) < 0.22]
+    if frames:
+        fp = np.vstack([b["points"] for b in frames])
+        pc_ = pv.PolyData(fp)
+        pc_["rgb"] = np.tile(np.array((150, 156, 162) if photo else (70, 96, 130), np.uint8), (len(fp), 1))
+        layers["frames"] = pc_
+    eqp, kinds = SC.equipment_templates(boxy)
+    if eqp is not None:
+        if not photo:
+            eqp["rgb"] = np.tile(np.array((60, 110, 160), np.uint8), (eqp.n_points, 1))
+        layers["equipment"] = eqp
+    ring = np.asarray(Y["yard"].exterior.coords)
+    layers["fence"] = SC.fence_mesh(ring, lambda a, b: gz(a, b))
+    wires_raw = [w for w in K["span_w"]] + [a["xyz"] for a in K["adds"]] + [b["xyz"] for b in br] + [w["xyz"] for w in Y["wires"]]
+    wires, clean_stats = U.clean_wires(wires_raw)
+    clean_stats["roughness_before_m"] = float(np.nanmedian([U.roughness(w) for w in wires_raw if len(w) > 3]))
+    clean_stats["roughness_after_m"] = float(np.nanmedian([U.roughness(w) for w in wires if len(w) > 3]))
+    tubes = []
+    for w in wires:
+        t = R.wire_tube(w, 0.07)
+        if t is not None:
+            t["rgb"] = np.tile(np.array((28, 30, 34) if photo else (20, 20, 20), np.uint8), (t.n_points, 1))
+            tubes.append(t)
+    layers["wires"] = SC.merge(tubes)
+    info = dict(tree_colour_fallbacks=int(locals().get("layers_tree_fallback", 0)), open_frames=len(frames), boxy_blocks=len(boxy), clean=clean_stats, wires_final=wires, wires_raw=wires_raw, displacement=fit, equipment_kinds={k: kinds.count(k) for k in set(kinds)}, trees=int(n), buildings=len(D["buildings"]))
+    return layers, info
+
+
+def fit_h(T):
+    """Height used to look up a crown's image colour: two thirds of the way up the crown, where most of the visible foliage is."""
+    return T["base"] + 0.66 * (T["height"] - T["base"])
 
 
 if __name__ == "__main__":

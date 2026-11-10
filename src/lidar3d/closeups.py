@@ -52,6 +52,7 @@ def equipment_blocks(xyz, hag, exclude, centre, half=14.0, vox=0.5, min_pts=25, 
             continue
         b = oriented_box(np.c_[P[sel, :2], H[sel]])
         if b["size"].min() >= min_dim:
+            b["fill"] = float((lab == c).sum() * vox ** 3 / max(float(np.prod(b["size"])), 1e-6))
             b["points"] = P[sel]
             b["hag_points"] = H[sel]
             out.append(b)

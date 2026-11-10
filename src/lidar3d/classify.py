@@ -99,3 +99,30 @@ def displaced_rgb(img_rgb, tf, cx, cy, x, y, h, fit):
     c = ((x + de + cx - tf.c) / tf.a).astype(int).clip(0, img_rgb.shape[2] - 1)
     r = ((y + dn + cy - tf.f) / tf.e).astype(int).clip(0, img_rgb.shape[1] - 1)
     return np.stack([img_rgb[b][r, c] for b in range(3)], -1)
+
+
+def fit_displacement_from_roofs(gray, tf, cx, cy, outlines, seed=0):
+    """Relief displacement from building roofs, which are well posed (unlike canopy colour): the outline of a roof, drawn at its height h above ground, should sit on the strong edge the roof makes in the image once it is shifted by
+    h * (k * p + b). `outlines` is a list of (xy (n, 2) local metres, h). Fits (k, bx, by) by maximising the mean gradient magnitude of the image under the shifted outlines. Returns the fit with the mean edge strength before and after."""
+    gy_, gx_ = np.gradient(ndimage.gaussian_filter(gray.astype(float), 1.0))
+    edge = np.hypot(gx_, gy_)
+    pts = np.vstack([np.c_[o[0], np.full(len(o[0]), o[1])] for o in outlines])
+    px0 = (pts[:, 0] + cx - tf.c) / tf.a
+    py0 = (pts[:, 1] + cy - tf.f) / tf.e
+    h = pts[:, 2]
+
+    def score(p):
+        k, bx, by = p
+        de = h * (k * pts[:, 0] + bx)
+        dn = h * (k * pts[:, 1] + by)
+        return float(np.mean(ndimage.map_coordinates(edge, [py0 + dn / tf.e, px0 + de / tf.a], order=1, mode="nearest")))
+
+    base = score((0, 0, 0))
+    best = None
+    for start in ((0, 0, 0), (1e-4, -0.2, 0.0), (-1e-4, 0.2, 0.0), (0, 0, 0.2), (0, 0, -0.2), (0, 0.3, 0.3), (0, -0.3, -0.3)):
+        r = minimize(lambda p: -score(p), start, method="Nelder-Mead", options=dict(xatol=1e-6, fatol=1e-6, maxiter=400))
+        if best is None or r.fun < best.fun:
+            best = r
+    k, bx, by = best.x
+    return dict(k=float(k), bx=float(bx), by=float(by), edge_before=base, edge_after=float(-best.fun), n=int(len(pts)), buildings=int(len(outlines)),
+                shift_at_10m_height_m=float(np.hypot(10 * bx, 10 * by)))

@@ -334,6 +334,19 @@ def yard_model(S):
     for b in blocks:
         b["centre"] = b["centre"] + np.array([0, 0, float(gz(b["centre"][0], b["centre"][1])[0])])
     sup_xy = np.array([(t["x"], t["y"]) for t in towers] + [(p["x"], p["y"]) for p in posts]).reshape(-1, 2)
+    # bus wires: spans fitted between neighbouring gantries and posts from the elevated returns, as in the corridor
+    ysp = []
+    if len(sup_xy) >= 2:
+        Pc, _ = spans.candidate_points(xyz[inb], hag[inb])
+        tr_ = cKDTree(Pc[:, :2])
+        for i_, j_ in spans.pairs(sup_xy, min_len=6.0, max_len=90.0, max_neighbours=6):
+            a_, b_ = sup_xy[i_], sup_xy[j_]
+            idx = tr_.query_ball_point((a_ + b_) / 2, np.hypot(*(b_ - a_)) / 2 + 8.0)
+            if len(idx) < 25:
+                continue
+            for w_ in spans.fit_pair(Pc[idx], a_, b_, None, corridor=5.0, max_wires=10, rng=np.random.default_rng(1), min_cov=0.5, min_n=25):
+                ysp.append(dict(xyz=spans.wire_xyz(w_, 1.0)[0], flag=np.ones(1)))
+    chain_l = chain_l + ysp
     br = U.bridge_ends([w["xyz"] for w in chain_l], sup_xy, 0.0003, max_gap=45.0, min_gap=3.0, max_angle=18.0, free_m=4.0)
     chain_l = chain_l + br
     meshes = {}
@@ -343,7 +356,7 @@ def yard_model(S):
         meshes["posts"] = infra3d._merge([U.pole_part(p["x"], p["y"], float(gz(p["x"], p["y"])[0]), p["top_hag"], 0.18) for p in posts], STEEL)
     if blocks:
         meshes["blocks"] = infra3d._merge([CU.box_part(b) for b in blocks], GREY)
-    return dict(yard=yard, centre=(cx_, cy_), wires=chain_l, bridges=len(br), meshes=meshes, towers=towers, posts=posts, blocks=blocks, inb=inb)
+    return dict(yard=yard, centre=(cx_, cy_), wires=chain_l, bridges=len(br), yard_spans=len(ysp), meshes=meshes, towers=towers, posts=posts, blocks=blocks, inb=inb)
 
 
 def yard_layers(S, Y, hw=115, hh=115, look="photo"):
